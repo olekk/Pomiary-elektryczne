@@ -1,0 +1,75 @@
+=================================================
+KOMENDY TERMINALA - POMIARY ELEKTRYCZNE PWA
+=================================================
+
+📦 INSTALACJA (już wykonane):
+-------------------------------------------------
+npm create vite@latest . -- --template react-ts
+npm install
+npm install -D tailwindcss postcss autoprefixer @tailwindcss/postcss
+npm install firebase zustand react-router-dom @react-pdf/renderer lucide-react react-signature-canvas @types/react-signature-canvas
+
+🚀 URUCHOMIENIE DEWELOPERSKIE:
+-------------------------------------------------
+npm run dev
+
+🏗️ BUILD PRODUCTION:
+-------------------------------------------------
+npm run build
+npm run preview
+
+🧹 CZYSZCZENIE:
+-------------------------------------------------
+rm -rf node_modules dist
+npm install
+
+📊 SPRAWDZENIE WIELKOŚCI:
+-------------------------------------------------
+npm run build
+ls -lh dist/
+
+🔍 TESTY:
+-------------------------------------------------
+npm run lint
+
+=================================================
+FIREBASE SETUP (console.firebase.google.com):
+=================================================
+1. Utwórz projekt
+2. Firestore Database → Utwórz
+3. Authentication → Sign-in method → Anonymous → Włącz
+4. Project Settings → Your apps → Web → Konfiguracja
+5. Skopiuj config do src/firebase.ts
+
+=================================================
+DEPLOYMENT:
+=================================================
+
+Firebase Hosting:
+-------------------------------------------------
+npm install -g firebase-tools
+firebase login
+firebase init hosting
+npm run build
+firebase deploy
+
+Vercel:
+-------------------------------------------------
+npm install -g vercel
+vercel login
+vercel
+
+Netlify:
+-------------------------------------------------
+npm run build
+# Przeciągnij folder 'dist' na netlify.com
+
+=================================================
+DEV TOOLS:
+=================================================
+# Sprawdź PWA w Chrome DevTools:
+# F12 → Application → Service Workers
+# F12 → Application → Manifest
+# F12 → Lighthouse → Progressive Web App
+
+=================================================

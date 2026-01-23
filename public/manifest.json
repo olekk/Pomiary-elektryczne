@@ -1,0 +1,32 @@
+{
+  "name": "Pomiary Elektryczne",
+  "short_name": "Pomiary",
+  "description": "Aplikacja do pomiarów elektrycznych w terenie",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Nowy pomiar",
+      "url": "/measurement",
+      "description": "Rozpocznij nowy pomiar"
+    }
+  ]
+}

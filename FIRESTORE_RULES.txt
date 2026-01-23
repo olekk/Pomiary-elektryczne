@@ -1,0 +1,79 @@
+================================================================
+FIRESTORE SECURITY RULES - SKOPIUJ DO FIREBASE CONSOLE
+================================================================
+
+WAŻNE: Bez tych reguł aplikacja NIE BĘDZIE MOGŁA zapisywać danych!
+
+Gdzie to wkleić?
+1. Otwórz Firebase Console: https://console.firebase.google.com/
+2. Wybierz swój projekt (pomiary-elektryczne-57ad6)
+3. Menu → Firestore Database
+4. Zakładka "Rules" (Reguły)
+5. Wklej poniższy kod
+6. Kliknij "Publish" (Opublikuj)
+
+================================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Kolekcja inspections - dostępna dla zalogowanych użytkowników
+    match /inspections/{inspectionId} {
+      // Odczyt - każdy zalogowany użytkownik
+      allow read: if request.auth != null;
+      
+      // Zapis - każdy zalogowany użytkownik
+      allow create: if request.auth != null
+                    && request.resource.data.address is string
+                    && request.resource.data.apartmentNumber is string
+                    && request.resource.data.technician is string;
+      
+      // Aktualizacja - każdy zalogowany użytkownik
+      allow update: if request.auth != null;
+      
+      // Usunięcie - każdy zalogowany użytkownik
+      allow delete: if request.auth != null;
+    }
+    
+    // Wszystkie inne kolekcje - zablokowane
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+================================================================
+OPCJONALNIE - Bardziej restrykcyjne reguły (dla produkcji):
+================================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    match /inspections/{inspectionId} {
+      // Tylko właściciel może czytać/pisać
+      allow read, write: if request.auth != null 
+                         && request.auth.uid == resource.data.userId;
+      
+      // Tworzenie nowych - dodaj userId
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
+
+UWAGA: Dla powyższych reguł musisz dodać pole "userId" przy zapisie!
+
+================================================================
+TESTOWANIE REGUŁ:
+================================================================
+
+1. Po opublikowaniu reguł, odśwież aplikację
+2. Spróbuj zapisać pomiar
+3. Jeśli nadal błąd:
+   - Sprawdź Console (F12) - code: 'permission-denied'
+   - Sprawdź czy Anonymous Auth jest włączony
+   - Sprawdź czy reguły zostały opublikowane
+
+================================================================
