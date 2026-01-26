@@ -20,6 +20,7 @@ export const MeasurementScreen: React.FC = () => {
   } = useInspectionStore();
 
   const [inputValue, setInputValue] = useState("0");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Settings for next measurement (Smart Defaults)
   const [nextProtectionType, setNextProtectionType] =
@@ -69,6 +70,8 @@ export const MeasurementScreen: React.FC = () => {
       return;
     }
 
+    setIsSaving(true);
+
     try {
       console.log("Rozpoczynam zapis...", currentInspection);
       await saveToFirestore();
@@ -79,6 +82,8 @@ export const MeasurementScreen: React.FC = () => {
     } catch (error: any) {
       console.error("Błąd zapisu w komponencie:", error);
       alert(error?.message || "Błąd podczas zapisywania. Spróbuj ponownie.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -232,10 +237,15 @@ export const MeasurementScreen: React.FC = () => {
       <div className="p-4 bg-white shadow-lg">
         <button
           onClick={handleSave}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2"
+          disabled={isSaving}
+          className={`w-full p-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 ${
+            isSaving
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"
+          } text-white`}
         >
           <Save size={24} />
-          Zapisz i Przejdź Dalej
+          {isSaving ? "Zapisywanie..." : "Zapisz i Przejdź Dalej"}
         </button>
       </div>
     </div>
