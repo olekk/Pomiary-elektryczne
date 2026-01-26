@@ -72,7 +72,7 @@ export const Dashboard: React.FC = () => {
           </div>
           <button
             onClick={handleRefresh}
-            className="p-2 hover:bg-blue-700 rounded-full transition-colors"
+            className="p-2 hover:bg-blue-700 active:bg-blue-800 rounded-full transition-colors"
             disabled={isLoading}
           >
             <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
@@ -153,7 +153,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleDelete(inspection.id!)}
-                    className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded cursor-pointer"
+                    className="ml-2 p-2 text-red-500 hover:bg-red-50 active:bg-red-100 rounded cursor-pointer transition-colors"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -167,7 +167,7 @@ export const Dashboard: React.FC = () => {
       {/* Floating Action Button */}
       <button
         onClick={() => setShowNewModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-5 rounded-full shadow-2xl flex items-center justify-center"
+        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
         style={{ width: "64px", height: "64px" }}
       >
         <Plus size={32} />
@@ -228,13 +228,13 @@ export const Dashboard: React.FC = () => {
                   setApartmentNumber("");
                   setTechnician("");
                 }}
-                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 p-3 rounded-lg font-semibold"
+                className="flex-1 bg-gray-300 hover:bg-gray-400 active:bg-gray-500 text-gray-800 p-3 rounded-lg font-semibold transition-colors"
               >
                 Anuluj
               </button>
               <button
                 onClick={handleCreateNew}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-semibold"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-3 rounded-lg font-semibold transition-colors"
               >
                 Rozpocznij
               </button>

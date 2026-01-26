@@ -19,7 +19,7 @@ export const SummaryScreen: React.FC = () => {
           <p className="text-gray-600 mb-4">Brak danych do wyświetlenia</p>
           <button
             onClick={() => navigate("/")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg"
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-6 py-2 rounded-lg transition-colors"
           >
             Powrót do listy
           </button>
@@ -167,14 +167,14 @@ export const SummaryScreen: React.FC = () => {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleClearSignature}
-              className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 p-2 rounded font-semibold"
+              className="flex-1 bg-gray-300 hover:bg-gray-400 active:bg-gray-500 text-gray-800 p-2 rounded font-semibold transition-colors"
             >
               Wyczyść
             </button>
             <button
               onClick={handleSaveSignature}
               disabled={!hasSignature}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-semibold disabled:opacity-50"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-2 rounded font-semibold disabled:opacity-50 transition-colors"
             >
               Zapisz podpis
             </button>
@@ -185,7 +185,7 @@ export const SummaryScreen: React.FC = () => {
         <div className="space-y-3">
           <button
             onClick={handleGeneratePDF}
-            className="w-full bg-red-600 hover:bg-red-700 text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2"
+            className="w-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
           >
             <FileDown size={24} />
             Generuj PDF
@@ -193,7 +193,7 @@ export const SummaryScreen: React.FC = () => {
 
           <button
             onClick={() => navigate("/")}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-4 rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
           >
             <Home size={24} />
             Powrót do Listy

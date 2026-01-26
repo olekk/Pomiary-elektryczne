@@ -213,7 +213,7 @@ export const MeasurementScreen: React.FC = () => {
                 </div>
                 <button
                   onClick={() => removeMeasurement(m.id)}
-                  className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded cursor-pointer"
+                  className="ml-2 p-2 text-red-500 hover:bg-red-50 active:bg-red-100 rounded cursor-pointer transition-colors"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -238,10 +238,10 @@ export const MeasurementScreen: React.FC = () => {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className={`w-full p-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 ${
+          className={`w-full p-4 rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-colors ${
             isSaving
               ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-600 hover:bg-blue-700"
+              : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
           } text-white`}
         >
           <Save size={24} />
