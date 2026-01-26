@@ -68,7 +68,16 @@ export const Dashboard: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Pomiary Elektryczne</h1>
-            <p className="text-sm opacity-90">Field Service App</p>
+            <p className="text-sm opacity-90">
+              Field Service App
+              <span className="text-xs text-gray-400">
+                Wersja z dnia: {__BUILD_DATE__}
+              </span>
+            </p>
+            {/* Gdzieś na dole renderu Dashboardu */}
+            <span className="text-xs text-gray-400">
+              Wersja z dnia: {__BUILD_DATE__}
+            </span>
           </div>
           <button
             onClick={handleRefresh}
