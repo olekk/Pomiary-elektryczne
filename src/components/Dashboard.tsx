@@ -48,8 +48,9 @@ export const Dashboard: React.FC = () => {
     if (confirm("Czy na pewno chcesz usunąć ten pomiar?")) {
       try {
         await deleteInspection(id);
-      } catch (error) {
-        alert("Błąd podczas usuwania");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        alert("Błąd podczas usuwania" + error.message);
       }
     }
   };
@@ -152,7 +153,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleDelete(inspection.id!)}
-                    className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded"
+                    className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded cursor-pointer"
                   >
                     <Trash2 size={20} />
                   </button>

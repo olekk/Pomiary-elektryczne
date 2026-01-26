@@ -75,6 +75,7 @@ export const MeasurementScreen: React.FC = () => {
       console.log("Zapis zakończony sukcesem");
       alert("Zapisano pomiar!");
       navigate("/summary");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Błąd zapisu w komponencie:", error);
       alert(error?.message || "Błąd podczas zapisywania. Spróbuj ponownie.");
@@ -207,7 +208,7 @@ export const MeasurementScreen: React.FC = () => {
                 </div>
                 <button
                   onClick={() => removeMeasurement(m.id)}
-                  className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded"
+                  className="ml-2 p-2 text-red-500 hover:bg-red-50 rounded cursor-pointer"
                 >
                   <Trash2 size={20} />
                 </button>
