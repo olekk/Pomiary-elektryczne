@@ -8,6 +8,9 @@ import {
   CheckCircle,
   Clock,
   RefreshCw,
+  CloudOff,
+  Cloud,
+  AlertCircle,
 } from "lucide-react";
 
 export const Dashboard: React.FC = () => {
@@ -17,6 +20,9 @@ export const Dashboard: React.FC = () => {
     loadInspections,
     createNewInspection,
     deleteInspection,
+    isOnline,
+    pendingSyncCount,
+    retryPendingSync,
   } = useInspectionStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -66,42 +72,81 @@ export const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="bg-blue-600 text-white p-4 shadow-lg">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold">Pomiary Elektryczne</h1>
             <p className="text-sm opacity-90">
               Field Service App <br />
               <span className="text-xs">Wersja z dnia: {__BUILD_DATE__}</span>
             </p>
           </div>
-          <button
-            onClick={handleRefresh}
-            className="p-2 hover:bg-blue-700 active:bg-blue-800 rounded-full transition-colors"
-            disabled={isLoading}
-          >
-            <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
-          </button>
+          
+          {/* Online/Offline Status Badge */}
+          <div className="flex items-center gap-3">
+            {!isOnline && (
+              <div className="flex items-center gap-2 bg-orange-500 px-3 py-1.5 rounded-full">
+                <CloudOff size={18} />
+                <span className="text-sm font-semibold">Offline</span>
+              </div>
+            )}
+            
+            {isOnline && pendingSyncCount > 0 && (
+              <button
+                onClick={retryPendingSync}
+                className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 rounded-full transition-colors"
+              >
+                <AlertCircle size={18} />
+                <span className="text-sm font-semibold">
+                  {pendingSyncCount} oczekuje
+                </span>
+              </button>
+            )}
+            
+            {isOnline && pendingSyncCount === 0 && (
+              <div className="flex items-center gap-2 bg-green-500 px-3 py-1.5 rounded-full">
+                <Cloud size={18} />
+                <span className="text-sm font-semibold">Online</span>
+              </div>
+            )}
+            
+            <button
+              onClick={handleRefresh}
+              className="p-2 hover:bg-blue-700 active:bg-blue-800 rounded-full transition-colors"
+              disabled={isLoading}
+            >
+              <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
       <div className="p-4">
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-3 gap-3 mb-4">
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-2 text-gray-600 mb-1">
-              <FileText size={20} />
-              <span className="text-sm">Wszystkie</span>
+              <FileText size={18} />
+              <span className="text-xs">Wszystkie</span>
             </div>
-            <div className="text-3xl font-bold text-gray-800">
+            <div className="text-2xl font-bold text-gray-800">
               {inspections.length}
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow">
             <div className="flex items-center gap-2 text-green-600 mb-1">
-              <CheckCircle size={20} />
-              <span className="text-sm">Zsynchronizowane</span>
+              <CheckCircle size={18} />
+              <span className="text-xs">Synced</span>
             </div>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600">
               {inspections.filter((i) => i.synced).length}
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center gap-2 text-orange-600 mb-1">
+              <Clock size={18} />
+              <span className="text-xs">Pending</span>
+            </div>
+            <div className="text-2xl font-bold text-orange-600">
+              {pendingSyncCount}
             </div>
           </div>
         </div>
@@ -134,7 +179,7 @@ export const Dashboard: React.FC = () => {
                     <p className="text-sm text-gray-600">
                       Technik: {inspection.technician}
                     </p>
-                    <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-4 mt-2 flex-wrap">
                       <span className="text-xs text-gray-500">
                         {new Date(inspection.date).toLocaleDateString("pl-PL")}
                       </span>
@@ -142,14 +187,14 @@ export const Dashboard: React.FC = () => {
                         Punkty: {inspection.measurements.length}
                       </span>
                       {inspection.synced ? (
-                        <span className="flex items-center gap-1 text-xs text-green-600">
+                        <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                           <CheckCircle size={14} />
-                          Synced
+                          <span className="font-semibold">Synced</span>
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-xs text-orange-600">
-                          <Clock size={14} />
-                          Pending
+                        <span className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                          <Clock size={14} className="animate-pulse" />
+                          <span className="font-semibold">Oczekuje na sync</span>
                         </span>
                       )}
                     </div>
