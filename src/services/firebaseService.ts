@@ -1,0 +1,94 @@
+import {
+  collection,
+  setDoc,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  Timestamp,
+  deleteDoc,
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import type { Inspection } from '../types';
+
+/**
+ * Save an inspection to Firestore
+ */
+export const saveInspectionToFirestore = async (
+  inspection: Inspection,
+  inspectionId: string
+): Promise<void> => {
+  const dateToSave =
+    inspection.date instanceof Date ? inspection.date : new Date(inspection.date);
+
+  const dataToSave = {
+    address: inspection.address || '',
+    apartmentNumber: inspection.apartmentNumber || '',
+    date: Timestamp.fromDate(dateToSave),
+    technician: inspection.technician || '',
+    measurements: inspection.measurements || [],
+    signature: inspection.signature || '',
+    synced: false,
+    createdAt: Timestamp.now(),
+  };
+
+  const docRef = doc(db, 'inspections', inspectionId);
+  await setDoc(docRef, dataToSave, { merge: true });
+};
+
+/**
+ * Load all inspections from Firestore
+ */
+export const loadInspectionsFromFirestore = async (): Promise<Inspection[]> => {
+  const q = query(collection(db, 'inspections'), orderBy('date', 'desc'));
+
+  // Timeout for offline: if getDocs doesn't respond in 3s, consider offline
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('timeout')), 3000)
+  );
+
+  const querySnapshot = await Promise.race([getDocs(q), timeoutPromise]);
+
+  const inspections: Inspection[] = [];
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    inspections.push({
+      id: doc.id,
+      address: data.address,
+      apartmentNumber: data.apartmentNumber,
+      date: data.date?.toDate ? data.date.toDate() : new Date(),
+      technician: data.technician,
+      measurements: data.measurements || [],
+      signature: data.signature,
+      synced: data.synced ?? true,
+    });
+  });
+
+  return inspections;
+};
+
+/**
+ * Delete an inspection from Firestore
+ */
+export const deleteInspectionFromFirestore = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'inspections', id));
+};
+
+/**
+ * Retry syncing a pending inspection
+ */
+export const retrySyncInspection = async (
+  inspection: Inspection
+): Promise<boolean> => {
+  if (!inspection.id) return false;
+
+  try {
+    await saveInspectionToFirestore(inspection, inspection.id);
+    console.log(`✅ Retry successful for inspection ${inspection.id}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Retry failed for inspection ${inspection.id}:`, error);
+    return false;
+  }
+};
