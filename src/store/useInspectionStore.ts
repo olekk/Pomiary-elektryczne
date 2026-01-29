@@ -1,12 +1,13 @@
-import { create } from 'zustand';
-import type { Inspection, ProtectionType, Amperage } from '../types';
-import { DEFAULT_K_FACTORS } from '../types';
+import { create } from "zustand";
+import type { Inspection, ProtectionType, Amperage } from "../types";
+import { DEFAULT_K_FACTORS } from "../types";
 import {
   saveInspectionToFirestore,
   loadInspectionsFromFirestore,
   deleteInspectionFromFirestore,
   retrySyncInspection,
-} from '../services';
+  markInspectionAsSynced,
+} from "../services";
 import {
   generateInspectionId,
   generateMeasurementId,
@@ -14,7 +15,7 @@ import {
   renumberMeasurements,
   calculateZsDop,
   determineMeasurementResult,
-} from '../utils';
+} from "../utils";
 
 interface InspectionState {
   // State
@@ -30,7 +31,7 @@ interface InspectionState {
   createNewInspection: (
     address: string,
     apartmentNumber: string,
-    technician: string
+    technician: string,
   ) => void;
   setCurrentInspection: (inspection: Inspection | null) => void;
   setSignature: (signature: string) => void;
@@ -53,7 +54,7 @@ interface InspectionState {
   setLastDefaults: (
     protectionType: ProtectionType,
     amperage: Amperage,
-    kFactor: number
+    kFactor: number,
   ) => void;
 }
 
@@ -63,12 +64,12 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
   inspections: [],
   isOnline: navigator.onLine,
   pendingSyncCount: 0,
-  lastProtectionType: 'WNP',
+  lastProtectionType: "WNP",
   lastAmperage: 16,
   lastKFactor: DEFAULT_K_FACTORS.WNP,
 
   // ===== INSPECTION MANAGEMENT =====
-  
+
   createNewInspection: (address, apartmentNumber, technician) => {
     set({
       currentInspection: {
@@ -102,7 +103,8 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
 
   addMeasurement: (zsValue, noGrounding = false) => {
     const state = get();
-    const { currentInspection, lastProtectionType, lastAmperage, lastKFactor } = state;
+    const { currentInspection, lastProtectionType, lastAmperage, lastKFactor } =
+      state;
 
     if (!currentInspection) return;
 
@@ -116,7 +118,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       lastAmperage,
       lastKFactor,
       zsValue,
-      noGrounding
+      noGrounding,
     );
 
     set({
@@ -136,7 +138,11 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     const updatedMeasurements = currentInspection.measurements.map((m) => {
       if (m.id === id) {
         const zsDop = calculateZsDop(m.protectionType, m.amperage);
-        const result = determineMeasurementResult(zsValue, zsDop, m.noGrounding || false);
+        const result = determineMeasurementResult(
+          zsValue,
+          zsDop,
+          m.noGrounding || false,
+        );
 
         return {
           ...m,
@@ -179,7 +185,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     const { currentInspection, inspections } = get();
 
     if (!currentInspection) {
-      throw new Error('Brak danych do zapisania');
+      throw new Error("Brak danych do zapisania");
     }
 
     // Generate ID locally for offline support
@@ -205,9 +211,12 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     if (currentInspection.id) {
       // UPDATE: Update existing item
       const updatedList = inspections.map((insp) =>
-        insp.id === currentInspection.id ? optimisticInspection : insp
+        insp.id === currentInspection.id ? optimisticInspection : insp,
       );
-      set({ inspections: updatedList, currentInspection: optimisticInspection });
+      set({
+        inspections: updatedList,
+        currentInspection: optimisticInspection,
+      });
     } else {
       // CREATE: Add new item to the beginning
       set({
@@ -222,11 +231,14 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
 
     // Fire-and-forget: Save to Firebase in background
     saveInspectionToFirestore(currentInspection, savedId)
-      .then(() => {
+      .then(async () => {
+        // Mark as synced in Firestore
+        await markInspectionAsSynced(savedId);
+
         console.log(`✅ Inspection ${savedId} synced successfully`);
         const currentState = get();
         const syncedList = currentState.inspections.map((insp) =>
-          insp.id === savedId ? { ...insp, synced: true } : insp
+          insp.id === savedId ? { ...insp, synced: true } : insp,
         );
         set({
           inspections: syncedList,
@@ -245,8 +257,8 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       })
       .catch((error) => {
         console.error(`❌ Sync failed for inspection ${savedId}:`, error);
-        if (error?.code === 'unavailable') {
-          console.log('📴 Offline mode: Data queued for sync when online');
+        if (error?.code === "unavailable") {
+          console.log("📴 Offline mode: Data queued for sync when online");
         }
       });
   },
@@ -259,7 +271,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
         pendingSyncCount: inspections.filter((i) => !i.synced).length,
       });
     } catch (error) {
-      console.error('Error loading inspections:', error);
+      console.error("Error loading inspections:", error);
       // Don't throw error to avoid blocking UI in offline mode
     }
   },
@@ -274,7 +286,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
         inspections: inspections.filter((i) => i.id !== id),
       });
     } catch (error) {
-      console.error('Error deleting inspection:', error);
+      console.error("Error deleting inspection:", error);
       throw error;
     }
   },
@@ -286,7 +298,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     const pendingInspections = inspections.filter((i) => !i.synced);
 
     console.log(
-      `🔄 Retrying sync for ${pendingInspections.length} pending inspections...`
+      `🔄 Retrying sync for ${pendingInspections.length} pending inspections...`,
     );
 
     // Try to sync each pending inspection
@@ -298,7 +310,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       if (success) {
         const currentState = get();
         const syncedList = currentState.inspections.map((insp) =>
-          insp.id === inspection.id ? { ...insp, synced: true } : insp
+          insp.id === inspection.id ? { ...insp, synced: true } : insp,
         );
         set({
           inspections: syncedList,
@@ -313,7 +325,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
 
     // Auto-retry when coming back online
     if (status) {
-      console.log('🌐 Connection restored! Auto-retrying pending syncs...');
+      console.log("🌐 Connection restored! Auto-retrying pending syncs...");
       const { retryPendingSync } = get();
       retryPendingSync();
     }
