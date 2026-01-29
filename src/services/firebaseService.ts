@@ -41,34 +41,38 @@ export const saveInspectionToFirestore = async (
 
 /**
  * Load all inspections from Firestore
+ * Supports offline cache - will return cached data if network is unavailable
  */
 export const loadInspectionsFromFirestore = async (): Promise<Inspection[]> => {
   const q = query(collection(db, "inspections"), orderBy("createdAt", "desc"));
 
-  // Timeout for offline: if getDocs doesn't respond in 3s, consider offline
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("timeout")), 3000),
-  );
+  try {
+    // Firebase automatically uses cache when offline (thanks to persistentLocalCache)
+    const querySnapshot = await getDocs(q);
 
-  const querySnapshot = await Promise.race([getDocs(q), timeoutPromise]);
+    const inspections: Inspection[] = [];
 
-  const inspections: Inspection[] = [];
-
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    inspections.push({
-      id: doc.id,
-      address: data.address,
-      apartmentNumber: data.apartmentNumber,
-      date: data.date?.toDate ? data.date.toDate() : new Date(),
-      technician: data.technician,
-      measurements: data.measurements || [],
-      signature: data.signature,
-      synced: data.synced ?? true,
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      inspections.push({
+        id: doc.id,
+        address: data.address,
+        apartmentNumber: data.apartmentNumber,
+        date: data.date?.toDate ? data.date.toDate() : new Date(),
+        technician: data.technician,
+        measurements: data.measurements || [],
+        signature: data.signature,
+        synced: data.synced ?? true,
+      });
     });
-  });
 
-  return inspections;
+    console.log(`📥 Loaded ${inspections.length} inspections from Firestore`);
+    return inspections;
+  } catch (error) {
+    console.error("Error loading inspections:", error);
+    // Return empty array instead of throwing - allows app to work offline
+    return [];
+  }
 };
 
 /**

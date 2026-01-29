@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { useInspectionStore } from '../store/useInspectionStore';
-import { DashboardHeader, DashboardStats, InspectionsList, CreateInspectionModal } from './organisms';
+import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Plus } from 'lucide-react'
+import { useInspectionStore } from '../store/useInspectionStore'
+import {
+  DashboardHeader,
+  DashboardStats,
+  InspectionsList,
+  CreateInspectionModal,
+} from './organisms'
+import { authReady } from '../firebase'
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const {
     inspections,
     loadInspections,
@@ -14,39 +20,47 @@ export const Dashboard: React.FC = () => {
     isOnline,
     pendingSyncCount,
     retryPendingSync,
-  } = useInspectionStore();
+  } = useInspectionStore()
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true)
+  const [showNewModal, setShowNewModal] = useState(false)
 
+  // Load inspections on mount (runs only once)
+  // Wait for auth before loading data to avoid permission errors
   useEffect(() => {
-    loadInspections().finally(() => setIsLoading(false));
-  }, [loadInspections]);
+    authReady.then(() => loadInspections()).finally(() => setIsLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  const handleCreateNew = (address: string, apartmentNumber: string, technician: string) => {
-    createNewInspection(address, apartmentNumber, technician);
-    setShowNewModal(false);
-    navigate('/measurement');
-  };
+  const handleCreateNew = (
+    address: string,
+    apartmentNumber: string,
+    technician: string
+  ) => {
+    createNewInspection(address, apartmentNumber, technician)
+    setShowNewModal(false)
+    navigate('/measurement')
+  }
 
   const handleDelete = async (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
       try {
-        await deleteInspection(id);
+        await deleteInspection(id)
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        alert('Błąd podczas usuwania: ' + errorMessage);
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error'
+        alert('Błąd podczas usuwania: ' + errorMessage)
       }
     }
-  };
+  }
 
   const handleRefresh = async () => {
-    setIsLoading(true);
-    await loadInspections();
-    setIsLoading(false);
-  };
+    setIsLoading(true)
+    await loadInspections()
+    setIsLoading(false)
+  }
 
-  const syncedCount = inspections.filter((i) => i.synced).length;
+  const syncedCount = inspections.filter((i) => i.synced).length
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -89,5 +103,5 @@ export const Dashboard: React.FC = () => {
         onCreate={handleCreateNew}
       />
     </div>
-  );
-};
+  )
+}

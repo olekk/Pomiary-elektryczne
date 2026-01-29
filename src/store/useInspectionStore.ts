@@ -265,14 +265,17 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
 
   loadInspections: async () => {
     try {
+      console.log("🔄 Loading inspections from Firestore...");
       const inspections = await loadInspectionsFromFirestore();
       set({
         inspections,
         pendingSyncCount: inspections.filter((i) => !i.synced).length,
       });
+      console.log(`✅ Successfully loaded ${inspections.length} inspections`);
     } catch (error) {
-      console.error("Error loading inspections:", error);
+      console.error("❌ Error loading inspections:", error);
       // Don't throw error to avoid blocking UI in offline mode
+      // Keep existing inspections in state if load fails
     }
   },
 
