@@ -13,8 +13,16 @@ export interface Measurement {
   noGrounding?: boolean // Brak uziemienia
 }
 
+export interface Project {
+  id: string
+  name: string
+  createdAt: Date
+  status: 'active' | 'archived'
+}
+
 export interface Inspection {
   id?: string
+  projectId: string // WYMAGANE - każdy pomiar musi należeć do projektu
   address: string
   apartmentNumber: string
   date: Date

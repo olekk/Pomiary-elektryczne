@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { User } from 'firebase/auth'
-import type { Inspection, ProtectionType, Amperage } from '../types'
+import type { Inspection, Project, ProtectionType, Amperage } from '../types'
 import { DEFAULT_K_FACTORS } from '../types'
 import {
   saveInspectionToFirestore,
@@ -8,6 +8,9 @@ import {
   deleteInspectionFromFirestore,
   retrySyncInspection,
   markInspectionAsSynced,
+  saveProjectToFirestore,
+  loadProjectsFromFirestore,
+  deleteProjectFromFirestore,
 } from '../services'
 import {
   generateInspectionId,
@@ -19,12 +22,22 @@ import {
 } from '../utils'
 
 interface InspectionState {
-  // State
+  // State - Auth
   user: User | null
+
+  // State - Projects
+  projects: Project[]
+  currentProjectId: string | null
+
+  // State - Inspections
   currentInspection: Inspection | null
   inspections: Inspection[]
+
+  // State - Offline
   isOnline: boolean
   pendingSyncCount: number
+
+  // State - Settings
   lastProtectionType: ProtectionType
   lastAmperage: Amperage
   lastKFactor: number
@@ -32,8 +45,15 @@ interface InspectionState {
   // Actions - Auth Management
   setUser: (user: User | null) => void
 
+  // Actions - Project Management
+  createNewProject: (name: string) => Promise<void>
+  loadProjects: () => Promise<void>
+  deleteProject: (id: string) => Promise<void>
+  setCurrentProjectId: (projectId: string | null) => void
+
   // Actions - Inspection Management
   createNewInspection: (
+    projectId: string,
     address: string,
     apartmentNumber: string,
     technician: string
@@ -48,7 +68,7 @@ interface InspectionState {
 
   // Actions - Persistence
   saveToFirestore: () => Promise<void>
-  loadInspections: () => Promise<void>
+  loadInspections: (projectId: string) => Promise<void>
   deleteInspection: (id: string) => Promise<void>
 
   // Actions - Sync Management
@@ -64,12 +84,22 @@ interface InspectionState {
 }
 
 export const useInspectionStore = create<InspectionState>((set, get) => ({
-  // Initial State
+  // Initial State - Auth
   user: null,
+
+  // Initial State - Projects
+  projects: [],
+  currentProjectId: null,
+
+  // Initial State - Inspections
   currentInspection: null,
   inspections: [],
+
+  // Initial State - Offline
   isOnline: navigator.onLine,
   pendingSyncCount: 0,
+
+  // Initial State - Settings
   lastProtectionType: 'WNP',
   lastAmperage: 16,
   lastKFactor: DEFAULT_K_FACTORS.WNP,
@@ -80,11 +110,69 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     set({ user })
   },
 
+  // ===== PROJECT MANAGEMENT =====
+
+  createNewProject: async (name) => {
+    const projectId = `proj_${Date.now()}`
+    const newProject: Project = {
+      id: projectId,
+      name,
+      createdAt: new Date(),
+      status: 'active',
+    }
+
+    // Optimistic update
+    set((state) => ({
+      projects: [newProject, ...state.projects],
+    }))
+
+    // Save to Firestore
+    try {
+      await saveProjectToFirestore(newProject)
+      console.log(`✅ Project ${projectId} saved successfully`)
+    } catch (error) {
+      console.error(`❌ Failed to save project ${projectId}:`, error)
+    }
+  },
+
+  loadProjects: async () => {
+    try {
+      console.log('🔄 Loading projects from Firestore...')
+      const projects = await loadProjectsFromFirestore()
+      set({ projects })
+      console.log(`✅ Successfully loaded ${projects.length} projects`)
+    } catch (error) {
+      console.error('❌ Error loading projects:', error)
+    }
+  },
+
+  deleteProject: async (id) => {
+    try {
+      await deleteProjectFromFirestore(id)
+
+      // Optimistic update
+      const { projects } = get()
+      set({
+        projects: projects.filter((p) => p.id !== id),
+      })
+
+      console.log(`✅ Project ${id} deleted successfully`)
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      throw error
+    }
+  },
+
+  setCurrentProjectId: (projectId) => {
+    set({ currentProjectId: projectId })
+  },
+
   // ===== INSPECTION MANAGEMENT =====
 
-  createNewInspection: (address, apartmentNumber, technician) => {
+  createNewInspection: (projectId, address, apartmentNumber, technician) => {
     set({
       currentInspection: {
+        projectId,
         address,
         apartmentNumber,
         technician,
@@ -211,6 +299,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     // Optimistic update: Update UI immediately
     const optimisticInspection: Inspection = {
       id: savedId,
+      projectId: currentInspection.projectId,
       address: currentInspection.address,
       apartmentNumber: currentInspection.apartmentNumber,
       technician: currentInspection.technician,
@@ -275,15 +364,17 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       })
   },
 
-  loadInspections: async () => {
+  loadInspections: async (projectId) => {
     try {
-      console.log('🔄 Loading inspections from Firestore...')
-      const inspections = await loadInspectionsFromFirestore()
+      console.log(`🔄 Loading inspections for project ${projectId}...`)
+      const inspections = await loadInspectionsFromFirestore(projectId)
       set({
         inspections,
         pendingSyncCount: inspections.filter((i) => !i.synced).length,
       })
-      console.log(`✅ Successfully loaded ${inspections.length} inspections`)
+      console.log(
+        `✅ Successfully loaded ${inspections.length} inspections for project ${projectId}`
+      )
     } catch (error) {
       console.error('❌ Error loading inspections:', error)
       // Don't throw error to avoid blocking UI in offline mode

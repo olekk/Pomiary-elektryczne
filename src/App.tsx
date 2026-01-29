@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
-import { Dashboard } from './components/Dashboard'
+import { ProjectsScreen } from './components/ProjectsScreen'
+import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
 import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { LoginScreen } from './components/LoginScreen'
@@ -74,7 +75,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<ProjectsScreen />} />
+        <Route path="/project/:id" element={<ProjectDetailsScreen />} />
         <Route path="/measurement" element={<MeasurementScreen />} />
         <Route path="/measurement/:id" element={<MeasurementScreen />} />
         <Route path="/summary" element={<SummaryScreen />} />

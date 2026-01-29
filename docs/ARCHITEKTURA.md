@@ -37,7 +37,8 @@ pomiary-elektryczne/
 │   │   │   ├── SignaturePanel.tsx   # Panel podpisu
 │   │   │   └── index.ts        # Re-export
 │   │   │
-│   │   ├── Dashboard.tsx       # 📄 Ekran główny (lista pomiarów)
+│   │   ├── ProjectsScreen.tsx  # 📄 Ekran główny (lista projektów)
+│   │   ├── ProjectDetailsScreen.tsx  # 📄 Szczegóły projektu (lista pomiarów)
 │   │   ├── LoginScreen.tsx     # 🔐 Ekran logowania
 │   │   ├── MeasurementScreen.tsx  # 📄 Ekran wprowadzania pomiarów
 │   │   ├── NumericKeypad.tsx   # ⌨️ Klawiatura numeryczna
@@ -212,15 +213,17 @@ service cloud.firestore {
 ## 🔄 Przepływ Danych (Data Flow)
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     USER INTERFACE                       │
-│  (LoginScreen → Dashboard → MeasurementScreen → Summary)│
-└────────────────┬────────────────────────┬───────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     USER INTERFACE                               │
+│  (LoginScreen → ProjectsScreen → ProjectDetailsScreen →         │
+│   MeasurementScreen → Summary)                                   │
+└────────────────┬────────────────────────┬─────────────────────┘
                  │                        │
                  ▼                        ▼
          ┌───────────────┐        ┌──────────────┐
          │  Zustand Store │◄──────►│ Firebase Auth│
-         │ (user + data)  │        │ + Firestore  │
+         │ (projects +    │        │ + Firestore  │
+         │  inspections)  │        │              │
          └───────────────┘        └──────────────┘
                  │                        │
                  ▼                        ▼
@@ -254,7 +257,77 @@ service cloud.firestore {
 
 ---
 
-### LoginScreen.tsx (NEW! 🔐)
+### ProjectsScreen.tsx (Główny Dashboard)
+
+**Odpowiedzialność:** Lista projektów, tworzenie nowego projektu
+
+**Stan lokalny:**
+
+- `isLoading` - status ładowania
+- `showNewModal` - widoczność modala tworzenia projektu
+- `newProjectName` - nazwa nowego projektu
+
+**Zustand actions:**
+
+- `loadProjects()` - wczytanie listy projektów
+- `createNewProject(name)` - utworzenie nowego projektu (offline ID: `proj_[timestamp]`)
+- `deleteProject(id)` - usunięcie projektu
+
+**Routing:**
+
+- `/` → ProjectsScreen (Główny ekran po zalogowaniu)
+- Kliknięcie "Otwórz projekt" → `/project/:id`
+
+**Design:**
+
+- Grid z kafelkami projektów (responsywne: 1-3 kolumny)
+- Każdy kafelek: ikona folderu, nazwa projektu, data utworzenia
+- Floating Action Button "+" do tworzenia nowego projektu
+- Modal z formularzem (nazwa projektu)
+
+---
+
+### ProjectDetailsScreen.tsx (Dawny Dashboard)
+
+**Odpowiedzialność:** Lista pomiarów dla konkretnego projektu
+
+**Zmiana od wersji Dashboard.tsx:**
+
+- Pobiera `projectId` z URL (`useParams`)
+- Wywołuje `loadInspections(projectId)` zamiast `loadInspections()`
+- Wyświetla tylko pomiary należące do danego projektu
+- Przycisk "Powrót" (← ikona) prowadzący do `/` (ProjectsScreen)
+
+**Stan lokalny:**
+
+- `isLoading` - status ładowania
+- `showNewModal` - widoczność modala
+
+**Zustand actions:**
+
+- `loadInspections(projectId)` - wczytanie listy pomiarów dla projektu
+- `createNewInspection(projectId, ...)` - utworzenie nowego pomiaru
+- `deleteInspection(id)` - usunięcie
+- `retryPendingSync()` - ponowna synchronizacja offline
+
+**Routing:**
+
+- `/project/:id` → ProjectDetailsScreen
+- Kliknięcie "+" → Modal → `/measurement`
+
+**OPTYMALIZACJA:**
+
+Pobieranie danych odbywa się z query Firestore:
+
+```typescript
+where('projectId', '==', projectId)
+```
+
+Dzięki temu pobieramy tylko **mały wycinek bazy danych**, nie wszystkie pomiary.
+
+---
+
+### LoginScreen.tsx (🔐)
 
 **Odpowiedzialność:** Ekran logowania użytkownika
 
@@ -288,37 +361,6 @@ await signInWithEmailAndPassword(auth, email, password)
 
 - Nie jest w routerze - renderowany przez `App.tsx` warunkowo
 
----
-
-### Dashboard.tsx
-
-**Odpowiedzialność:** Lista wszystkich pomiarów, tworzenie nowego
-
-**Stan lokalny:**
-
-- `isLoading` - status ładowania
-- `showNewModal` - widoczność modala
-
-**Zustand actions:**
-
-- `loadInspections()` - wczytanie listy
-- `createNewInspection()` - utworzenie nowego
-- `deleteInspection()` - usunięcie
-- `retryPendingSync()` - ponowna synchronizacja offline
-
-**Wykorzystane organizmy:**
-
-- `DashboardHeader` - nagłówek z przyciskiem wylogowania
-- `DashboardStats` - statystyki (total, synced, pending)
-- `InspectionsList` - lista pomiarów
-- `CreateInspectionModal` - modal tworzenia nowego
-
-**Routing:**
-
-- `/` → Dashboard
-- Kliknięcie "+" → Modal → `/measurement`
-
----
 
 ### MeasurementScreen.tsx
 
@@ -443,9 +485,17 @@ interface InspectionState {
   user: User | null;                    // Zalogowany użytkownik (Firebase)
   setUser: (user: User | null) => void; // Akcja: ustaw użytkownika
 
+  // ===== PROJECT STATE ===== (NEW!)
+  projects: Project[];                  // Lista projektów
+  currentProjectId: string | null;      // Aktualnie wybrany projekt
+  createNewProject: (name: string) => Promise<void>;
+  loadProjects: () => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  setCurrentProjectId: (projectId: string | null) => void;
+
   // ===== INSPECTION STATE =====
   currentInspection: Inspection | null; // Aktualnie edytowany pomiar
-  inspections: Inspection[];            // Lista wszystkich pomiarów
+  inspections: Inspection[];            // Lista pomiarów (dla konkretnego projektu)
 
   // ===== OFFLINE STATE =====
   isOnline: boolean;                    // Status połączenia
@@ -457,7 +507,7 @@ interface InspectionState {
   lastKFactor: number;                  // Ostatni współczynnik k
 
   // ===== INSPECTION ACTIONS =====
-  createNewInspection: (...) => void;
+  createNewInspection: (projectId, ...) => void; // ZMIANA: wymaga projectId
   setCurrentInspection: (...) => void;
   setSignature: (signature: string) => void;
 
@@ -468,7 +518,7 @@ interface InspectionState {
 
   // ===== PERSISTENCE ACTIONS =====
   saveToFirestore: () => Promise<void>;
-  loadInspections: () => Promise<void>;
+  loadInspections: (projectId: string) => Promise<void>; // ZMIANA: wymaga projectId
   deleteInspection: (id: string) => Promise<void>;
 
   // ===== SYNC ACTIONS =====
@@ -539,11 +589,18 @@ saveToFirestore: async () => {
 
 ## 🔥 Firebase Architecture
 
-### Firestore Schema
+### Firestore Schema (UPDATED!)
 
 ```
+projects (collection)
+├── {projectId} (document)
+│   ├── name: string              // np. "Spółdzielnia Knurów"
+│   ├── status: 'active' | 'archived'
+│   └── createdAt: Timestamp
+
 inspections (collection)
 ├── {inspectionId} (document)
+│   ├── projectId: string         // NOWE POLE - WYMAGANE
 │   ├── address: string
 │   ├── apartmentNumber: string
 │   ├── date: Timestamp
@@ -564,6 +621,38 @@ inspections (collection)
 │             noGrounding: boolean
 │           }
 │         ]
+```
+
+**KLUCZOWA ZMIANA:**
+
+Każdy `Inspection` **MUSI** mieć `projectId`. Typ TypeScript wymusza to pole:
+
+```typescript
+export interface Inspection {
+  id?: string
+  projectId: string // WYMAGANE - bez tego TypeScript rzuci błąd
+  address: string
+  // ... reszta pól
+}
+```
+
+**OPTYMALIZACJA ZAPYTAŃ:**
+
+Zapytanie do Firestore używa `where()`:
+
+```typescript
+query(
+  collection(db, 'inspections'),
+  where('projectId', '==', projectId),
+  orderBy('createdAt', 'desc')
+)
+```
+
+Dzięki temu pobieramy **tylko pomiary dla konkretnego projektu**, nie wszystkie dane z bazy.
+
+**WYMÓG INDEKSU:**
+
+Firebase może wymagać utworzenia złożonego indeksu dla `projectId` + `createdAt`. Link do tworzenia pojawi się w konsoli przy pierwszym użyciu.
 ```
 
 ### Offline Persistence
@@ -866,4 +955,60 @@ npm run dev
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
 **Wzorce:** Atomic Design, State Management (Zustand), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-01-29 (dodano Firebase Authentication)
+**Ostatnia aktualizacja:** 2026-01-30 (Faza 1: Wdrożenie struktury Projektów - Clean Slate)
+
+---
+
+## 🆕 CHANGELOG: Faza 1 - Struktura Projektów (2026-01-30)
+
+### Główne Zmiany
+
+#### 1. **Nowy Model Danych**
+
+- Dodano interfejs `Project` (`id`, `name`, `createdAt`, `status`)
+- `Inspection` ma teraz **wymagane pole** `projectId: string`
+- **Strict Mode**: Każdy pomiar MUSI należeć do projektu (TypeScript wymusza to pole)
+
+#### 2. **Nowe Ekrany**
+
+- `ProjectsScreen.tsx` - Główny ekran (lista projektów, tworzenie nowego)
+- `ProjectDetailsScreen.tsx` - Szczegóły projektu (dawny Dashboard.tsx)
+
+#### 3. **Refaktoryzacja Routingu**
+
+- `/` → `ProjectsScreen` (główny ekran po zalogowaniu)
+- `/project/:id` → `ProjectDetailsScreen` (lista pomiarów dla projektu)
+
+#### 4. **Refaktoryzacja Store (Zustand)**
+
+- Dodano stan: `projects`, `currentProjectId`
+- Dodano akcje: `createNewProject()`, `loadProjects()`, `deleteProject()`
+- `loadInspections(projectId)` - teraz wymaga `projectId` jako argument
+- `createNewInspection(projectId, ...)` - teraz wymaga `projectId`
+
+#### 5. **Optymalizacja Firebase**
+
+- Query do Firestore: `where('projectId', '==', projectId)`
+- Pobieramy tylko pomiary dla konkretnego projektu (nie wszystkie dane)
+- Nowa kolekcja: `projects` (osobna od `inspections`)
+
+#### 6. **Clean Slate**
+
+- **Usunięto wsparcie dla starych danych bez `projectId`**
+- Aplikacja wymaga czystej bazy danych (stare dane nie będą działać)
+- Każdy pomiar od teraz ma `projectId`
+
+### Decyzje Architektoniczne
+
+**DLACZEGO Clean Slate?**
+
+1. Prostota - brak logiki migracji starych danych
+2. Bezpieczeństwo - strict typing wymusza poprawność danych
+3. Wydajność - optymalizacja zapytań od początku
+4. MVP - aplikacja była testowa, brak produkcyjnych danych do zachowania
+
+**DLACZEGO Projekty?**
+
+- Organizacja pomiarów według obiektów (spółdzielnie, budynki, itp.)
+- Skalowalność - łatwiejsze zarządzanie setkami pomiarów
+- UX - intuicyjny podział danych

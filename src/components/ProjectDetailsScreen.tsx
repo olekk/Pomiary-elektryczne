@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Plus, ArrowLeft } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { useInspectionStore } from '../store/useInspectionStore'
 import {
@@ -11,8 +11,9 @@ import {
 } from './organisms'
 import { auth } from '../firebase'
 
-export const Dashboard: React.FC = () => {
+export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
+  const { id: projectId } = useParams<{ id: string }>()
   const {
     inspections,
     loadInspections,
@@ -21,23 +22,31 @@ export const Dashboard: React.FC = () => {
     isOnline,
     pendingSyncCount,
     retryPendingSync,
+    projects,
   } = useInspectionStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
 
-  // Load inspections on mount (runs only once)
+  // Load inspections for this project
   useEffect(() => {
-    loadInspections().finally(() => setIsLoading(false))
+    if (projectId) {
+      setIsLoading(true)
+      loadInspections(projectId).finally(() => setIsLoading(false))
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [projectId])
 
   const handleCreateNew = (
     address: string,
     apartmentNumber: string,
     technician: string
   ) => {
-    createNewInspection(address, apartmentNumber, technician)
+    if (!projectId) {
+      alert('Błąd: Brak ID projektu')
+      return
+    }
+    createNewInspection(projectId, address, apartmentNumber, technician)
     setShowNewModal(false)
     navigate('/measurement')
   }
@@ -55,8 +64,9 @@ export const Dashboard: React.FC = () => {
   }
 
   const handleRefresh = async () => {
+    if (!projectId) return
     setIsLoading(true)
-    await loadInspections()
+    await loadInspections(projectId)
     setIsLoading(false)
   }
 
@@ -74,8 +84,34 @@ export const Dashboard: React.FC = () => {
 
   const syncedCount = inspections.filter((i) => i.synced).length
 
+  // Znajdź nazwę projektu
+  const currentProject = projects.find((p) => p.id === projectId)
+  const projectName = currentProject?.name || 'Nieznany projekt'
+
+  // Jeśli brak projectId, przekieruj do głównego ekranu
+  if (!projectId) {
+    navigate('/')
+    return null
+  }
+
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Header z przyciskiem powrotu */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => navigate('/')}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeft size={24} className="text-gray-700" />
+        </button>
+        <div className="flex-1">
+          <h1 className="text-xl font-semibold text-gray-900">{projectName}</h1>
+          <p className="text-sm text-gray-500">
+            ID: {projectId.substring(0, 20)}...
+          </p>
+        </div>
+      </div>
+
       <DashboardHeader
         isOnline={isOnline}
         pendingSyncCount={pendingSyncCount}
