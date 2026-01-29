@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react'
 import {
   Document,
   Page,
@@ -7,40 +7,40 @@ import {
   StyleSheet,
   Image,
   Font,
-} from "@react-pdf/renderer";
-import type { Inspection } from "../types";
+} from '@react-pdf/renderer'
+import type { Inspection } from '../types'
 
 interface PdfGeneratorProps {
-  inspection: Inspection;
+  inspection: Inspection
 }
 Font.register({
-  family: "Roboto",
+  family: 'Roboto',
   fonts: [
     {
-      src: "/fonts/Roboto-Regular.ttf", // Ścieżka względem folderu public
-      fontWeight: "normal",
+      src: '/fonts/Roboto-Regular.ttf', // Ścieżka względem folderu public
+      fontWeight: 'normal',
     },
     {
-      src: "/fonts/Roboto-Bold.ttf", // Warto dodać pogrubienie dla nagłówków
-      fontWeight: "bold",
+      src: '/fonts/Roboto-Bold.ttf', // Warto dodać pogrubienie dla nagłówków
+      fontWeight: 'bold',
     },
   ],
-});
+})
 
 const styles = StyleSheet.create({
   page: {
     padding: 30,
     fontSize: 10,
-    fontFamily: "Roboto",
+    fontFamily: 'Roboto',
   },
   header: {
     marginBottom: 20,
-    borderBottom: "2pt solid #000",
+    borderBottom: '2pt solid #000',
     paddingBottom: 10,
   },
   title: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   subtitle: {
@@ -50,15 +50,15 @@ const styles = StyleSheet.create({
   infoSection: {
     marginBottom: 15,
     padding: 10,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: '#f0f0f0',
     borderRadius: 5,
   },
   infoRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginBottom: 3,
   },
   label: {
-    fontWeight: "bold",
+    fontWeight: 'bold',
     width: 120,
   },
   value: {
@@ -69,59 +69,59 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#333",
-    color: "#fff",
+    flexDirection: 'row',
+    backgroundColor: '#333',
+    color: '#fff',
     padding: 5,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     fontSize: 9,
   },
   tableRow: {
-    flexDirection: "row",
-    borderBottom: "1pt solid #ddd",
+    flexDirection: 'row',
+    borderBottom: '1pt solid #ddd',
     padding: 5,
     fontSize: 9,
   },
   tableRowAlt: {
-    flexDirection: "row",
-    borderBottom: "1pt solid #ddd",
+    flexDirection: 'row',
+    borderBottom: '1pt solid #ddd',
     padding: 5,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: '#f9f9f9',
     fontSize: 9,
   },
   tableRowPass: {
-    flexDirection: "row",
-    borderBottom: "1pt solid #ddd",
+    flexDirection: 'row',
+    borderBottom: '1pt solid #ddd',
     padding: 5,
-    backgroundColor: "#d4edda",
+    backgroundColor: '#d4edda',
     fontSize: 9,
   },
   tableRowFail: {
-    flexDirection: "row",
-    borderBottom: "1pt solid #ddd",
+    flexDirection: 'row',
+    borderBottom: '1pt solid #ddd',
     padding: 5,
-    backgroundColor: "#f8d7da",
+    backgroundColor: '#f8d7da',
     fontSize: 9,
   },
   tableRowNoGround: {
-    flexDirection: "row",
-    borderBottom: "1pt solid #ddd",
+    flexDirection: 'row',
+    borderBottom: '1pt solid #ddd',
     padding: 5,
-    backgroundColor: "#fff3cd",
+    backgroundColor: '#fff3cd',
     fontSize: 9,
   },
-  col1: { width: "8%", textAlign: "center" },
-  col2: { width: "12%", textAlign: "center" },
-  col3: { width: "12%", textAlign: "center" },
-  col4: { width: "10%", textAlign: "center" },
-  col5: { width: "18%", textAlign: "center" },
-  col6: { width: "18%", textAlign: "center" },
-  col7: { width: "12%", textAlign: "center" },
-  col8: { width: "10%", textAlign: "center" },
+  col1: { width: '8%', textAlign: 'center' },
+  col2: { width: '12%', textAlign: 'center' },
+  col3: { width: '12%', textAlign: 'center' },
+  col4: { width: '10%', textAlign: 'center' },
+  col5: { width: '18%', textAlign: 'center' },
+  col6: { width: '18%', textAlign: 'center' },
+  col7: { width: '12%', textAlign: 'center' },
+  col8: { width: '10%', textAlign: 'center' },
   footer: {
     marginTop: 30,
     paddingTop: 10,
-    borderTop: "1pt solid #000",
+    borderTop: '1pt solid #000',
   },
   signature: {
     marginTop: 20,
@@ -131,30 +131,30 @@ const styles = StyleSheet.create({
   summaryBox: {
     marginTop: 20,
     padding: 10,
-    backgroundColor: "#e3f2fd",
+    backgroundColor: '#e3f2fd',
     borderRadius: 5,
   },
   summaryTitle: {
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: 'bold',
     marginBottom: 5,
   },
   summaryText: {
     fontSize: 10,
     marginBottom: 2,
   },
-});
+})
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const passedCount = inspection.measurements.filter(
-    (m) => m.result === "TAK",
-  ).length;
+    (m) => m.result === 'TAK'
+  ).length
   const failedCount = inspection.measurements.filter(
-    (m) => m.result === "NIE",
-  ).length;
+    (m) => m.result === 'NIE'
+  ).length
   const noGroundingCount = inspection.measurements.filter(
-    (m) => m.result === "B.UZ",
-  ).length;
+    (m) => m.result === 'B.UZ'
+  ).length
 
   return (
     <Document>
@@ -180,7 +180,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Data pomiaru:</Text>
             <Text style={styles.value}>
-              {new Date(inspection.date).toLocaleDateString("pl-PL")}
+              {new Date(inspection.date).toLocaleDateString('pl-PL')}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -205,11 +205,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
           {/* Table Rows */}
           {inspection.measurements.map((m, idx) => {
-            let rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt;
+            let rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
 
-            if (m.result === "TAK") rowStyle = styles.tableRowPass;
-            else if (m.result === "NIE") rowStyle = styles.tableRowFail;
-            else if (m.result === "B.UZ") rowStyle = styles.tableRowNoGround;
+            if (m.result === 'TAK') rowStyle = styles.tableRowPass
+            else if (m.result === 'NIE') rowStyle = styles.tableRowFail
+            else if (m.result === 'B.UZ') rowStyle = styles.tableRowNoGround
 
             return (
               <View style={rowStyle} key={m.id}>
@@ -218,13 +218,13 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                 <Text style={styles.col3}>{m.amperage}</Text>
                 <Text style={styles.col4}>{m.kFactor}</Text>
                 <Text style={styles.col5}>
-                  {m.noGrounding ? "-" : m.zsValue?.toFixed(2)}
+                  {m.noGrounding ? '-' : m.zsValue?.toFixed(2)}
                 </Text>
                 <Text style={styles.col6}>{m.zsDop.toFixed(2)}</Text>
-                <Text style={styles.col7}>{m.noGrounding ? "B.UZ" : "-"}</Text>
+                <Text style={styles.col7}>{m.noGrounding ? 'B.UZ' : '-'}</Text>
                 <Text style={styles.col8}>{m.result}</Text>
               </View>
-            );
+            )
           })}
         </View>
 
@@ -259,5 +259,5 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
         </View>
       </Page>
     </Document>
-  );
-};
+  )
+}

@@ -5,6 +5,7 @@
 ### 1. Header - Status Badge
 
 #### ❌ Przed:
+
 ```
 ┌─────────────────────────────────────────┐
 │ Pomiary Elektryczne          [refresh] │
@@ -13,6 +14,7 @@
 ```
 
 #### ✅ Po:
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Pomiary Elektryczne   [📴 Offline]   [refresh]        │  ← NOWE!
@@ -31,6 +33,7 @@
 ```
 
 **Kolory:**
+
 - 📴 Offline: `bg-orange-500` (pomarańczowy)
 - ⚠️ X oczekuje: `bg-yellow-500` (żółty, clickable)
 - ☁️ Online: `bg-green-500` (zielony)
@@ -40,6 +43,7 @@
 ### 2. Stats Cards - Nowy kafelek "Pending"
 
 #### ❌ Przed (2 kafelki):
+
 ```
 ┌─────────────────┬─────────────────┐
 │ 📄 Wszystkie    │ ✅ Synced       │
@@ -48,6 +52,7 @@
 ```
 
 #### ✅ Po (3 kafelki):
+
 ```
 ┌──────────────┬──────────────┬──────────────┐
 │ 📄 Wszystkie │ ✅ Synced    │ ⏰ Pending   │  ← NOWE!
@@ -56,6 +61,7 @@
 ```
 
 **Kolory:**
+
 - Wszystkie: `text-gray-800`
 - Synced: `text-green-600`
 - Pending: `text-orange-600` ← NOWY
@@ -65,6 +71,7 @@
 ### 3. Lista pomiarów - Enhanced Status Badges
 
 #### ❌ Przed:
+
 ```
 ┌────────────────────────────────────────┐
 │ ul. Kwiatowa 15                 [🗑️]  │
@@ -75,6 +82,7 @@
 ```
 
 #### ✅ Po:
+
 ```
 ┌────────────────────────────────────────┐
 │ ul. Kwiatowa 15                 [🗑️]  │
@@ -98,6 +106,7 @@
 ```
 
 **Style:**
+
 - Synced: `bg-green-50 text-green-600` + CheckCircle
 - Pending: `bg-orange-50 text-orange-600` + Clock (animacja pulse)
 
@@ -189,6 +198,7 @@
 ## 📊 Timing Diagram (Performance)
 
 ### ❌ Przed implementacją:
+
 ```
 User clicks "Zapisz"
 │
@@ -200,6 +210,7 @@ User clicks "Zapisz"
 ```
 
 ### ✅ Po implementacji:
+
 ```
 User clicks "Zapisz"
 │
@@ -219,6 +230,7 @@ Background sync (parallel):
 ```
 
 **Kluczowe metryki:**
+
 - User-perceived latency: `100ms` (było: `∞`)
 - Improvement: `∞x faster` 🚀
 
@@ -227,6 +239,7 @@ Background sync (parallel):
 ## 🎨 Color Scheme
 
 ### Status Colors:
+
 ```css
 /* Offline */
 .offline-badge {
@@ -237,13 +250,13 @@ Background sync (parallel):
 /* Pending */
 .pending-badge {
   background: #fef3c7; /* yellow-50 */
-  color: #d97706;      /* yellow-600 */
+  color: #d97706; /* yellow-600 */
 }
 
 /* Online & Synced */
 .synced-badge {
   background: #dcfce7; /* green-50 */
-  color: #16a34a;      /* green-600 */
+  color: #16a34a; /* green-600 */
 }
 
 /* Warning (pending with action) */
@@ -258,26 +271,37 @@ Background sync (parallel):
 ## 🎭 Animacje
 
 ### 1. Pulsująca Clock (pending items):
+
 ```css
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 ```
 
 ### 2. Spinning Refresh (loading):
+
 ```css
 .animate-spin {
   animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 ```
 
@@ -286,12 +310,14 @@ Background sync (parallel):
 ## 📱 Responsive Behavior
 
 ### Desktop (> 768px):
+
 ```
 Header: [Title] ────────────── [Status Badge] [Retry] [Refresh]
 Stats:  [Card1] [Card2] [Card3]
 ```
 
 ### Mobile (< 768px):
+
 ```
 Header: [Title]
         [Status Badge] [Retry] [Refresh]
@@ -325,6 +351,7 @@ W DevTools Console użytkownik (deweloper) widzi:
 ```
 
 **Emoji legend:**
+
 - 🌐 Network online
 - 📴 Offline mode
 - ✅ Success
@@ -337,6 +364,7 @@ W DevTools Console użytkownik (deweloper) widzi:
 ## 📸 Screenshot Placeholders
 
 ### Dashboard - Offline Mode:
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Pomiary Elektryczne  [📴 Offline] [⚠️ 2 oczekuje] [🔄]│

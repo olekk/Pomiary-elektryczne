@@ -19,6 +19,7 @@
 ## Testowanie Funkcjonalności
 
 ### Dashboard
+
 - [ ] Dashboard się ładuje
 - [ ] Pokazuje listę pomiarów (pustą na start)
 - [ ] Przycisk "+" otwiera modal nowego pomiaru
@@ -26,6 +27,7 @@
 - [ ] Po wypełnieniu przechodzi do ekranu pomiarów
 
 ### Ekran Pomiarów
+
 - [ ] Wyświetla się header z adresem
 - [ ] Panel ustawień działa (WNP/BI, 16A/20A/25A, k)
 - [ ] Custom keypad działa (cyfry, kropka, cofnij, clear)
@@ -39,6 +41,7 @@
 - [ ] "Zapisz i Przejdź Dalej" zapisuje do Firestore
 
 ### Logika Elektryczna
+
 - [ ] WNP ma domyślnie k=5
 - [ ] BI ma domyślnie k=5.4
 - [ ] Zmiana typu automatycznie aktualizuje k
@@ -49,6 +52,7 @@
 - [ ] Ocena B.UZ dla braku uziemienia
 
 ### Ekran Podsumowania
+
 - [ ] Statystyki wyświetlają się poprawnie
 - [ ] Lista wszystkich punktów jest widoczna
 - [ ] Canvas podpisu działa
@@ -60,6 +64,7 @@
 - [ ] "Powrót do Listy" wraca do Dashboard
 
 ### Firebase & Offline
+
 - [ ] Dane zapisują się do Firestore
 - [ ] Dashboard pokazuje status "Synced"
 - [ ] DevTools → Application → IndexedDB pokazuje dane
@@ -68,6 +73,7 @@
 - [ ] Po powrocie online synchronizacja działa
 
 ### PWA
+
 - [ ] Service Worker rejestruje się (DevTools → Application → SW)
 - [ ] Manifest jest poprawny (DevTools → Application → Manifest)
 - [ ] Ikony się ładują
@@ -134,14 +140,16 @@ Jeśli wszystkie punkty są zaznaczone, aplikacja jest w pełni funkcjonalna i g
 ## 🔧 Debug Mode
 
 Dodaj do `src/firebase.ts` na dole:
+
 ```typescript
 // Debug: pokaż wszystkie zapisy
 db.onSnapshot(() => {
-  console.log('Firestore data changed!');
-});
+  console.log('Firestore data changed!')
+})
 ```
 
 Dodaj do `src/store/useInspectionStore.ts` w każdej akcji:
+
 ```typescript
-console.log('Action called:', actionName, params);
+console.log('Action called:', actionName, params)
 ```

@@ -1,12 +1,12 @@
-import React from 'react';
-import { FileText } from 'lucide-react';
-import { InspectionCard } from '../molecules';
-import type { Inspection } from '../../types';
+import React from 'react'
+import { FileText } from 'lucide-react'
+import { InspectionCard } from '../molecules'
+import type { Inspection } from '../../types'
 
 interface InspectionsListProps {
-  inspections: Inspection[];
-  isLoading: boolean;
-  onDelete: (id: string) => void;
+  inspections: Inspection[]
+  isLoading: boolean
+  onDelete: (id: string) => void
 }
 
 export const InspectionsList: React.FC<InspectionsListProps> = ({
@@ -15,7 +15,7 @@ export const InspectionsList: React.FC<InspectionsListProps> = ({
   onDelete,
 }) => {
   if (isLoading) {
-    return <div className="text-center text-gray-500 py-8">Ładowanie...</div>;
+    return <div className="text-center text-gray-500 py-8">Ładowanie...</div>
   }
 
   if (inspections.length === 0) {
@@ -24,7 +24,7 @@ export const InspectionsList: React.FC<InspectionsListProps> = ({
         <FileText size={48} className="mx-auto mb-2 opacity-50" />
         <p>Brak pomiarów. Utwórz nowy pomiar poniżej.</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -37,5 +37,5 @@ export const InspectionsList: React.FC<InspectionsListProps> = ({
         />
       ))}
     </div>
-  );
-};
+  )
+}

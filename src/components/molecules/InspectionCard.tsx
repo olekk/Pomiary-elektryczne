@@ -1,21 +1,30 @@
-import React from 'react';
-import { Trash2, CheckCircle, Clock } from 'lucide-react';
-import { Card, Badge } from '../atoms';
-import type { Inspection } from '../../types';
+import React from 'react'
+import { Trash2, CheckCircle, Clock } from 'lucide-react'
+import { Card, Badge } from '../atoms'
+import type { Inspection } from '../../types'
 
 interface InspectionCardProps {
-  inspection: Inspection;
-  onDelete: (id: string) => void;
+  inspection: Inspection
+  onDelete: (id: string) => void
 }
 
-export const InspectionCard: React.FC<InspectionCardProps> = ({ inspection, onDelete }) => {
+export const InspectionCard: React.FC<InspectionCardProps> = ({
+  inspection,
+  onDelete,
+}) => {
   return (
     <Card>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h3 className="font-bold text-lg text-gray-800">{inspection.address}</h3>
-          <p className="text-sm text-gray-600">Mieszkanie: {inspection.apartmentNumber}</p>
-          <p className="text-sm text-gray-600">Technik: {inspection.technician}</p>
+          <h3 className="font-bold text-lg text-gray-800">
+            {inspection.address}
+          </h3>
+          <p className="text-sm text-gray-600">
+            Mieszkanie: {inspection.apartmentNumber}
+          </p>
+          <p className="text-sm text-gray-600">
+            Technik: {inspection.technician}
+          </p>
           <div className="flex items-center gap-4 mt-2 flex-wrap">
             <span className="text-xs text-gray-500">
               {new Date(inspection.date).toLocaleDateString('pl-PL')}
@@ -42,5 +51,5 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({ inspection, onDe
         </button>
       </div>
     </Card>
-  );
-};
+  )
+}

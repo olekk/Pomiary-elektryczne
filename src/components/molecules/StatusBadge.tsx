@@ -1,10 +1,10 @@
-import React from 'react';
-import { Cloud, CloudOff, AlertCircle } from 'lucide-react';
+import React from 'react'
+import { Cloud, CloudOff, AlertCircle } from 'lucide-react'
 
 interface StatusBadgeProps {
-  isOnline: boolean;
-  pendingCount: number;
-  onRetrySync?: () => void;
+  isOnline: boolean
+  pendingCount: number
+  onRetrySync?: () => void
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
@@ -18,7 +18,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         <CloudOff size={18} />
         <span className="text-sm font-semibold">Offline</span>
       </div>
-    );
+    )
   }
 
   if (pendingCount > 0) {
@@ -30,7 +30,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         <AlertCircle size={18} />
         <span className="text-sm font-semibold">{pendingCount} oczekuje</span>
       </button>
-    );
+    )
   }
 
   return (
@@ -38,5 +38,5 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       <Cloud size={18} />
       <span className="text-sm font-semibold">Online</span>
     </div>
-  );
-};
+  )
+}

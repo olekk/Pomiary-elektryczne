@@ -20,25 +20,25 @@ Jeśli widzisz ten projekt po raz pierwszy, zacznij od:
 
 ### Dla Użytkowników
 
-| Plik | Opis | Kiedy użyć |
-|------|------|------------|
+| Plik                                                         | Opis                                 | Kiedy użyć                        |
+| ------------------------------------------------------------ | ------------------------------------ | --------------------------------- |
 | **[INSTRUKCJA_URUCHOMIENIA.md](INSTRUKCJA_URUCHOMIENIA.md)** | Szczegółowa instrukcja krok po kroku | Gdy masz problemy z uruchomieniem |
-| **[KOMENDY.txt](KOMENDY.txt)** | Lista wszystkich komend terminala | Gdy potrzebujesz szybkiej komendy |
-| **[FAQ.md](FAQ.md)** | Najczęściej zadawane pytania | Gdy masz problem lub pytanie |
-| **[CHECKLIST.md](CHECKLIST.md)** | Checklist weryfikacji | Przed wdrożeniem na produkcję |
+| **[KOMENDY.txt](KOMENDY.txt)**                               | Lista wszystkich komend terminala    | Gdy potrzebujesz szybkiej komendy |
+| **[FAQ.md](FAQ.md)**                                         | Najczęściej zadawane pytania         | Gdy masz problem lub pytanie      |
+| **[CHECKLIST.md](CHECKLIST.md)**                             | Checklist weryfikacji                | Przed wdrożeniem na produkcję     |
 
 ### Dla Developerów
 
-| Plik | Opis | Kiedy użyć |
-|------|------|------------|
-| **[ARCHITEKTURA.md](ARCHITEKTURA.md)** | Architektura kodu i przepływ danych | Gdy chcesz zrozumieć jak działa kod |
-| **[PODSUMOWANIE.md](PODSUMOWANIE.md)** | Kompletne podsumowanie projektu | Gdy chcesz zobaczyć co zostało zrobione |
-| **[DANE_TESTOWE.md](DANE_TESTOWE.md)** | Przykładowe dane do testowania | Gdy testujesz aplikację |
+| Plik                                   | Opis                                | Kiedy użyć                              |
+| -------------------------------------- | ----------------------------------- | --------------------------------------- |
+| **[ARCHITEKTURA.md](ARCHITEKTURA.md)** | Architektura kodu i przepływ danych | Gdy chcesz zrozumieć jak działa kod     |
+| **[PODSUMOWANIE.md](PODSUMOWANIE.md)** | Kompletne podsumowanie projektu     | Gdy chcesz zobaczyć co zostało zrobione |
+| **[DANE_TESTOWE.md](DANE_TESTOWE.md)** | Przykładowe dane do testowania      | Gdy testujesz aplikację                 |
 
 ### Narzędzia
 
-| Plik | Opis | Kiedy użyć |
-|------|------|------------|
+| Plik                                                 | Opis               | Kiedy użyć                     |
+| ---------------------------------------------------- | ------------------ | ------------------------------ |
 | **[IKONY_PLACEHOLDER.html](IKONY_PLACEHOLDER.html)** | Generator ikon PWA | Gdy potrzebujesz szybkich ikon |
 
 ---
@@ -77,26 +77,32 @@ Jeśli widzisz ten projekt po raz pierwszy, zacznij od:
 ## 🎯 Scenariusze Użycia
 
 ### "Chcę szybko uruchomić aplikację"
+
 1. [SZYBKI_START.md](SZYBKI_START.md)
 2. [KOMENDY.txt](KOMENDY.txt)
 
 ### "Mam problem z konfiguracją"
+
 1. [FAQ.md](FAQ.md) - sekcja "Instalacja i Konfiguracja"
 2. [INSTRUKCJA_URUCHOMIENIA.md](INSTRUKCJA_URUCHOMIENIA.md)
 
 ### "Chcę zrozumieć jak działa kod"
+
 1. [ARCHITEKTURA.md](ARCHITEKTURA.md)
 2. [PODSUMOWANIE.md](PODSUMOWANIE.md)
 
 ### "Chcę przetestować aplikację"
+
 1. [DANE_TESTOWE.md](DANE_TESTOWE.md)
 2. [CHECKLIST.md](CHECKLIST.md)
 
 ### "Mam błąd w aplikacji"
+
 1. [FAQ.md](FAQ.md) - znajdź swój problem
 2. [ARCHITEKTURA.md](ARCHITEKTURA.md) - sekcja "Security Considerations"
 
 ### "Chcę wdrożyć na produkcję"
+
 1. [CHECKLIST.md](CHECKLIST.md) - przejdź przez wszystkie punkty
 2. [FAQ.md](FAQ.md) - sekcja "Deployment"
 3. [KOMENDY.txt](KOMENDY.txt) - komendy deployment
@@ -115,16 +121,19 @@ Jeśli widzisz ten projekt po raz pierwszy, zacznij od:
 ## 🔍 Szybkie Odnośniki
 
 ### Konfiguracja
+
 - Firebase Config → [SZYBKI_START.md](SZYBKI_START.md) sekcja 1
 - Tailwind CSS → [ARCHITEKTURA.md](ARCHITEKTURA.md) sekcja "Styling"
 - PWA Manifest → [ARCHITEKTURA.md](ARCHITEKTURA.md) sekcja "PWA"
 
 ### Problemy
+
 - Firebase nie działa → [FAQ.md](FAQ.md) sekcja "Firebase"
 - PWA nie instaluje się → [FAQ.md](FAQ.md) sekcja "PWA"
 - TypeScript błędy → [FAQ.md](FAQ.md) sekcja "Kod"
 
 ### Rozwój
+
 - Dodawanie funkcji → [ARCHITEKTURA.md](ARCHITEKTURA.md) sekcja "Możliwe Rozszerzenia"
 - Optymalizacja → [ARCHITEKTURA.md](ARCHITEKTURA.md) sekcja "Performance"
 - Testing → [DANE_TESTOWE.md](DANE_TESTOWE.md)
@@ -147,21 +156,25 @@ Jeśli nie możesz znaleźć odpowiedzi:
 Jeśli jesteś nowy w:
 
 ### React
+
 - Zacznij od [React Docs](https://react.dev/learn)
 - Zobacz [ARCHITEKTURA.md](ARCHITEKTURA.md) - sekcja "Komponenty"
 - Eksperymentuj z kodem w `src/components/`
 
 ### Firebase
+
 - Zacznij od [Firebase Docs](https://firebase.google.com/docs)
 - Zobacz [FAQ.md](FAQ.md) - sekcja "Firebase"
 - Eksperymentuj w Firebase Console
 
 ### TypeScript
+
 - Zacznij od [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - Zobacz `src/types/index.ts` - proste typy
 - Eksperymentuj z typami
 
 ### PWA
+
 - Zacznij od [web.dev PWA](https://web.dev/progressive-web-apps/)
 - Zobacz `public/manifest.json` i `public/sw.js`
 - Testuj w DevTools → Application
@@ -183,12 +196,14 @@ Podczas pracy z projektem:
 ## 📝 Konwencje
 
 ### Nazewnictwo Plików
+
 - `UPPERCASE.md` - dokumentacja
 - `PascalCase.tsx` - komponenty React
 - `camelCase.ts` - utility, store, config
 - `kebab-case.css` - style
 
 ### Struktura Dokumentów
+
 - Emoji w nagłówkach dla lepszej nawigacji
 - Code blocks z syntax highlighting
 - Przykłady "Dobrze" ✅ i "Źle" ❌

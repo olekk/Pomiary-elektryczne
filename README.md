@@ -29,6 +29,7 @@ Aplikacja React PWA do wykonywania pomiarów elektrycznych w terenie z możliwo�
 
 1. Sklonuj repozytorium
 2. Zainstaluj zależności:
+
 ```bash
 npm install
 ```
@@ -40,6 +41,7 @@ npm install
    - Skopiuj konfigurację do `src/firebase.ts`
 
 4. Uruchom aplikację:
+
 ```bash
 npm run dev
 ```
@@ -60,17 +62,19 @@ npm run preview
 ## 📋 Logika Elektryczna
 
 ### Typy zabezpieczeń:
+
 - **WNP** (Wyłącznik Nadprądowy) - współczynnik k = 5
 - **BI** (Bezpiecznik Topikowy) - współczynnik k = 5.4
 
 ### Wzory:
+
 - Zs_dop = U₀ / (k × In)
 - Ocena: Zs <= Zs_dop → TAK, Zs > Zs_dop → NIE
 
 ### Tabela dopuszczalnych wartości:
 
-| Typ | 16A | 20A | 25A |
-|-----|-----|-----|-----|
+| Typ | 16A   | 20A   | 25A   |
+| --- | ----- | ----- | ----- |
 | WNP | 2.88Ω | 2.30Ω | 1.84Ω |
 | BI  | 2.66Ω | 2.13Ω | 1.70Ω |
 

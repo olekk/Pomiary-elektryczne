@@ -1,28 +1,28 @@
-import React, { useRef, useState } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
-import { Card, Button } from '../atoms';
+import React, { useRef, useState } from 'react'
+import SignatureCanvas from 'react-signature-canvas'
+import { Card, Button } from '../atoms'
 
 interface SignaturePanelProps {
-  onSave: (signature: string) => void;
+  onSave: (signature: string) => void
 }
 
 export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
-  const signatureRef = useRef<SignatureCanvas>(null);
-  const [hasSignature, setHasSignature] = useState(false);
+  const signatureRef = useRef<SignatureCanvas>(null)
+  const [hasSignature, setHasSignature] = useState(false)
 
   const handleClear = () => {
-    signatureRef.current?.clear();
-    setHasSignature(false);
-  };
+    signatureRef.current?.clear()
+    setHasSignature(false)
+  }
 
   const handleSave = () => {
     if (signatureRef.current) {
-      const dataURL = signatureRef.current.toDataURL();
-      onSave(dataURL);
-      setHasSignature(true);
-      alert('Podpis zapisany!');
+      const dataURL = signatureRef.current.toDataURL()
+      onSave(dataURL)
+      setHasSignature(true)
+      alert('Podpis zapisany!')
     }
-  };
+  }
 
   return (
     <Card>
@@ -40,10 +40,15 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
         <Button variant="secondary" fullWidth onClick={handleClear}>
           Wyczyść
         </Button>
-        <Button variant="primary" fullWidth onClick={handleSave} disabled={!hasSignature}>
+        <Button
+          variant="primary"
+          fullWidth
+          onClick={handleSave}
+          disabled={!hasSignature}
+        >
           Zapisz podpis
         </Button>
       </div>
     </Card>
-  );
-};
+  )
+}

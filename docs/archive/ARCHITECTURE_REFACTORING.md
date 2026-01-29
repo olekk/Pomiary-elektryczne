@@ -30,6 +30,7 @@ src/
 **Purpose**: Smallest, reusable UI components that cannot be broken down further.
 
 **Components**:
+
 - `Button` - Reusable button with variants (primary, secondary, danger, success, warning)
 - `Badge` - Status badges with color variants
 - `Input` - Text input with label and error handling
@@ -37,6 +38,7 @@ src/
 - `Select` - Dropdown selector with label
 
 **Example Usage**:
+
 ```tsx
 import { Button, Input, Card } from './components/atoms';
 
@@ -56,6 +58,7 @@ import { Button, Input, Card } from './components/atoms';
 **Purpose**: Simple combinations of atoms that form functional units.
 
 **Components**:
+
 - `StatsCard` - Statistics display with icon, label, and value
 - `StatusBadge` - Online/offline/pending status indicator
 - `MeasurementListItem` - Single measurement display with actions
@@ -64,6 +67,7 @@ import { Button, Input, Card } from './components/atoms';
 - `InspectionCard` - Inspection summary card with actions
 
 **Example Usage**:
+
 ```tsx
 import { StatsCard, StatusBadge } from './components/molecules';
 
@@ -74,10 +78,10 @@ import { StatsCard, StatusBadge } from './components/molecules';
   iconColor="text-blue-600"
 />
 
-<StatusBadge 
-  isOnline={true} 
-  pendingCount={3} 
-  onRetrySync={handleRetry} 
+<StatusBadge
+  isOnline={true}
+  pendingCount={3}
+  onRetrySync={handleRetry}
 />
 ```
 
@@ -86,6 +90,7 @@ import { StatsCard, StatusBadge } from './components/molecules';
 **Purpose**: Complex components combining atoms and molecules for specific functionality.
 
 **Components**:
+
 - `DashboardHeader` - Main navigation header with status
 - `DashboardStats` - Statistics overview panel
 - `InspectionsList` - List of inspections with actions
@@ -94,6 +99,7 @@ import { StatsCard, StatusBadge } from './components/molecules';
 - `SignaturePanel` - Signature capture interface
 
 **Example Usage**:
+
 ```tsx
 import { DashboardHeader, CreateInspectionModal } from './components/organisms';
 
@@ -119,16 +125,18 @@ import { DashboardHeader, CreateInspectionModal } from './components/organisms';
 ### `firebaseService.ts`
 
 Manages all Firebase Firestore operations:
+
 - `saveInspectionToFirestore()` - Save inspection data
 - `loadInspectionsFromFirestore()` - Load all inspections
 - `deleteInspectionFromFirestore()` - Delete inspection
 - `retrySyncInspection()` - Retry failed sync
 
 **Example**:
-```tsx
-import { saveInspectionToFirestore } from '../services';
 
-await saveInspectionToFirestore(inspection, inspectionId);
+```tsx
+import { saveInspectionToFirestore } from '../services'
+
+await saveInspectionToFirestore(inspection, inspectionId)
 ```
 
 ## Utilities (`src/utils/`)
@@ -136,10 +144,12 @@ await saveInspectionToFirestore(inspection, inspectionId);
 **Purpose**: Business logic, calculations, and helper functions.
 
 ### `idGenerator.ts`
+
 - `generateInspectionId()` - Create unique inspection ID
 - `generateMeasurementId()` - Create unique measurement ID
 
 ### `measurementCalculations.ts`
+
 - `calculateZsDop()` - Calculate allowable Zs value
 - `determineMeasurementResult()` - Determine TAK/NIE/B.UZ result
 - `createMeasurement()` - Factory function for measurements
@@ -147,21 +157,30 @@ await saveInspectionToFirestore(inspection, inspectionId);
 - `countMeasurementsByResult()` - Statistics calculation
 
 ### `validators.ts`
+
 - `isNotEmpty()` - String validation
 - `validateInspectionForm()` - Form validation
 - `validateMeasurementValue()` - Measurement input validation
 
 **Example**:
-```tsx
-import { validateMeasurementValue, createMeasurement } from '../utils';
 
-const validation = validateMeasurementValue(inputValue);
+```tsx
+import { validateMeasurementValue, createMeasurement } from '../utils'
+
+const validation = validateMeasurementValue(inputValue)
 if (!validation.isValid) {
-  alert(validation.error);
-  return;
+  alert(validation.error)
+  return
 }
 
-const measurement = createMeasurement(id, pointNumber, type, amperage, k, zsValue);
+const measurement = createMeasurement(
+  id,
+  pointNumber,
+  type,
+  amperage,
+  k,
+  zsValue
+)
 ```
 
 ## State Management (`src/store/`)
@@ -169,6 +188,7 @@ const measurement = createMeasurement(id, pointNumber, type, amperage, k, zsValu
 The store has been refactored to use services and utilities, making it cleaner and more maintainable.
 
 **Key improvements**:
+
 - Separated Firebase operations into services
 - Extracted business logic into utilities
 - Clear separation of concerns
@@ -178,25 +198,30 @@ The store has been refactored to use services and utilities, making it cleaner a
 ## Benefits of This Architecture
 
 ### 1. **Reusability**
+
 - Atoms and molecules can be used across different pages
 - Consistent UI/UX throughout the application
 
 ### 2. **Maintainability**
+
 - Each component has a single responsibility
 - Easy to locate and fix bugs
 - Clear file organization
 
 ### 3. **Testability**
+
 - Small, focused units are easier to test
 - Business logic separated from UI
 - Services can be mocked easily
 
 ### 4. **Scalability**
+
 - New features can reuse existing components
 - Easy to add new atoms/molecules/organisms
 - Clear patterns to follow
 
 ### 5. **Code Quality**
+
 - Reduced duplication
 - Better type safety
 - Consistent naming conventions
@@ -204,28 +229,31 @@ The store has been refactored to use services and utilities, making it cleaner a
 
 ## Code Metrics Improvement
 
-| Component | Before | After | Reduction |
-|-----------|--------|-------|-----------|
-| Dashboard | 296 lines | 64 lines | **78%** |
-| MeasurementScreen | 254 lines | 134 lines | **47%** |
-| SummaryScreen | 206 lines | 116 lines | **44%** |
-| Store | 419 lines | 245 lines | **42%** |
+| Component         | Before    | After     | Reduction |
+| ----------------- | --------- | --------- | --------- |
+| Dashboard         | 296 lines | 64 lines  | **78%**   |
+| MeasurementScreen | 254 lines | 134 lines | **47%**   |
+| SummaryScreen     | 206 lines | 116 lines | **44%**   |
+| Store             | 419 lines | 245 lines | **42%**   |
 
 ## Best Practices
 
 ### When to Create a New Component
 
 **Create an Atom when**:
+
 - You have a basic UI element used in multiple places
 - The component has no business logic
 - It's a wrapper around HTML elements with styling
 
 **Create a Molecule when**:
+
 - You combine 2-3 atoms repeatedly
 - The component has simple, focused functionality
 - It can be reused in different contexts
 
 **Create an Organism when**:
+
 - The component is complex and page-specific
 - It combines multiple molecules and atoms
 - It contains business logic or state management
@@ -241,23 +269,23 @@ The store has been refactored to use services and utilities, making it cleaner a
 
 ```tsx
 // 1. External libraries
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 // 2. Components (atoms → molecules → organisms)
-import { Button, Card } from './atoms';
-import { StatsCard } from './molecules';
-import { DashboardHeader } from './organisms';
+import { Button, Card } from './atoms'
+import { StatsCard } from './molecules'
+import { DashboardHeader } from './organisms'
 
 // 3. Services and utilities
-import { saveInspection } from '../services';
-import { validateForm } from '../utils';
+import { saveInspection } from '../services'
+import { validateForm } from '../utils'
 
 // 4. Types
-import type { Inspection } from '../types';
+import type { Inspection } from '../types'
 
 // 5. Styles (if any)
-import './styles.css';
+import './styles.css'
 ```
 
 ## Migration Guide

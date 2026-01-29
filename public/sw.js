@@ -1,21 +1,16 @@
-const CACHE_NAME = 'pomiary-elektryczne-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/index.css',
-];
+const CACHE_NAME = 'pomiary-elektryczne-v1'
+const urlsToCache = ['/', '/index.html', '/src/main.tsx', '/src/index.css']
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
-      return cache.addAll(urlsToCache);
+      console.log('Opened cache')
+      return cache.addAll(urlsToCache)
     })
-  );
-  self.skipWaiting();
-});
+  )
+  self.skipWaiting()
+})
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
@@ -23,41 +18,41 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => {
       // Cache hit - return response
       if (response) {
-        return response;
+        return response
       }
 
       return fetch(event.request).then((response) => {
         // Check if valid response
         if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
+          return response
         }
 
         // Clone the response
-        const responseToCache = response.clone();
+        const responseToCache = response.clone()
 
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+          cache.put(event.request, responseToCache)
+        })
 
-        return response;
-      });
+        return response
+      })
     })
-  );
-});
+  )
+})
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+  const cacheWhitelist = [CACHE_NAME]
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
+            return caches.delete(cacheName)
           }
         })
-      );
+      )
     })
-  );
-  self.clients.claim();
-});
+  )
+  self.clients.claim()
+})

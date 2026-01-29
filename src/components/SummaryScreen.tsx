@@ -1,49 +1,55 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Home, FileDown, CheckCircle } from 'lucide-react';
-import { useInspectionStore } from '../store/useInspectionStore';
-import { SignaturePanel } from './organisms';
-import { CompactMeasurementListItem } from './molecules';
-import { Button, Card } from './atoms';
-import { PdfGenerator } from './PdfGenerator';
-import { pdf } from '@react-pdf/renderer';
-import { countMeasurementsByResult } from '../utils';
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Home, FileDown, CheckCircle } from 'lucide-react'
+import { useInspectionStore } from '../store/useInspectionStore'
+import { SignaturePanel } from './organisms'
+import { CompactMeasurementListItem } from './molecules'
+import { Button, Card } from './atoms'
+import { PdfGenerator } from './PdfGenerator'
+import { pdf } from '@react-pdf/renderer'
+import { countMeasurementsByResult } from '../utils'
 
 export const SummaryScreen: React.FC = () => {
-  const navigate = useNavigate();
-  const { currentInspection, setSignature } = useInspectionStore();
+  const navigate = useNavigate()
+  const { currentInspection, setSignature } = useInspectionStore()
 
   if (!currentInspection) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Brak danych do wyświetlenia</p>
-          <Button variant="primary" onClick={() => navigate('/')} icon={<Home size={20} />}>
+          <Button
+            variant="primary"
+            onClick={() => navigate('/')}
+            icon={<Home size={20} />}
+          >
             Powrót do listy
           </Button>
         </div>
       </div>
-    );
+    )
   }
 
   const handleGeneratePDF = async () => {
     try {
-      const blob = await pdf(<PdfGenerator inspection={currentInspection} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Pomiar_${currentInspection.apartmentNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
-      link.click();
-      URL.revokeObjectURL(url);
+      const blob = await pdf(
+        <PdfGenerator inspection={currentInspection} />
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Pomiar_${currentInspection.apartmentNumber}_${new Date().toISOString().split('T')[0]}.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Błąd podczas generowania PDF');
+      console.error('Error generating PDF:', error)
+      alert('Błąd podczas generowania PDF')
     }
-  };
+  }
 
   const { passed, failed, noGrounding } = countMeasurementsByResult(
     currentInspection.measurements
-  );
+  )
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -74,7 +80,9 @@ export const SummaryScreen: React.FC = () => {
               <div className="text-xs text-gray-600">Negatywne</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">{noGrounding}</div>
+              <div className="text-3xl font-bold text-orange-600">
+                {noGrounding}
+              </div>
               <div className="text-xs text-gray-600">B.UZ</div>
             </div>
           </div>
@@ -117,5 +125,5 @@ export const SummaryScreen: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

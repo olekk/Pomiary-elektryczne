@@ -3,17 +3,20 @@
 ## ✅ Co zostało zaimplementowane
 
 ### Strategia #1: Client-Side ID Generation + setDoc()
+
 - ✅ Generowanie ID po stronie klienta (`generateInspectionId()`)
 - ✅ Użycie `setDoc()` zamiast `addDoc()` - nie blokuje w offline
 - ✅ Optimistic Updates - UI aktualizuje się natychmiast
 - ✅ Fire-and-forget zapis do Firebase - brak blokowania
 
 ### Auto-Retry Mechanism
+
 - ✅ Monitoring online/offline status (`window.addEventListener`)
 - ✅ Auto-retry przy powrocie online
 - ✅ Manual retry button w headerze (gdy są pending operations)
 
 ### UI Improvements
+
 - ✅ **Ikonka Cloud-Off** gdy aplikacja jest offline
 - ✅ **Badge z liczbą pending operations** (oczekujących na sync)
 - ✅ **3 kafelki statystyk**: Wszystkie / Synced / Pending
@@ -25,6 +28,7 @@
 ## 🧪 Plan testowania
 
 ### Test 1: Zapis w trybie Offline
+
 **Cel:** Sprawdzić czy zapis działa natychmiast bez "kręcenia się"
 
 1. Otwórz aplikację: http://127.0.0.1:5173/
@@ -41,6 +45,7 @@
 9. Kliknij **"Zapisz"**
 
 **Oczekiwany rezultat:**
+
 - ✅ UI **nie blokuje się** na "Zapisywanie..."
 - ✅ Przejście do Dashboard jest **natychmiastowe**
 - ✅ Pomiar pojawia się na liście z **pomarańczowym badge "Oczekuje na sync"**
@@ -50,12 +55,14 @@
 ---
 
 ### Test 2: Auto-Retry przy powrocie Online
+
 **Cel:** Sprawdzić automatyczną synchronizację
 
 1. W DevTools Network, zmień **Offline** na **No throttling**
 2. Poczekaj 2-3 sekundy
 
 **Oczekiwany rezultat:**
+
 - ✅ Header zmienia się na **zieloną ikonkę "Online"**
 - ✅ Console log: "🌐 Connection restored! Auto-retrying pending syncs..."
 - ✅ Po chwili badge "Oczekuje na sync" zmienia się na **zielony "Synced"**
@@ -66,6 +73,7 @@
 ---
 
 ### Test 3: Manual Retry
+
 **Cel:** Sprawdzić ręczne wymuszenie synchronizacji
 
 1. W trybie Offline utwórz 2-3 pomiary
@@ -73,6 +81,7 @@
 3. Kliknij **żółty badge "X oczekuje"** w headerze
 
 **Oczekiwany rezultat:**
+
 - ✅ Console log: "🔄 Retrying sync for X pending inspections..."
 - ✅ Wszystkie pending pomiary zmieniają status na "Synced"
 - ✅ Badge w headerze znika
@@ -80,6 +89,7 @@
 ---
 
 ### Test 4: Długi czas Offline (symulacja pracy w terenie)
+
 **Cel:** Sprawdzić czy można normalnie pracować bez sieci
 
 1. Przejdź w tryb Offline (DevTools Network)
@@ -90,6 +100,7 @@
 6. Sprawdź czy dane się zachowały (dzięki Firebase Persistence Cache)
 
 **Oczekiwany rezultat:**
+
 - ✅ Wszystkie operacje działają płynnie
 - ✅ Brak "kręcenia się"
 - ✅ **Kafelek "Pending"** pokazuje poprawną liczbę
@@ -99,6 +110,7 @@
 ---
 
 ### Test 5: Sprawdzenie Firebase Console
+
 **Cel:** Weryfikacja czy dane trafiły do Firestore
 
 1. Po wykonaniu testów i powrocie online
@@ -108,6 +120,7 @@
 5. Sprawdź kolekcję `inspections`
 
 **Oczekiwany rezultat:**
+
 - ✅ Wszystkie pomiary są w bazie
 - ✅ ID są w formacie: `insp_[timestamp]_[random]`
 - ✅ Pole `synced` = false (lub brak tego pola w nowszej wersji)
@@ -118,25 +131,27 @@
 ## 🔍 Debugging (jeśli coś nie działa)
 
 ### Console Logs do monitorowania:
+
 Otwórz DevTools Console i szukaj tych logów:
 
 ```javascript
 // Online/Offline events
-"🌐 Network: ONLINE"
-"📴 Network: OFFLINE"
+'🌐 Network: ONLINE'
+'📴 Network: OFFLINE'
 
 // Synchronizacja
-"✅ Inspection insp_xxx synced successfully"
-"❌ Sync failed for inspection insp_xxx"
-"📴 Offline mode: Data queued for sync when online"
+'✅ Inspection insp_xxx synced successfully'
+'❌ Sync failed for inspection insp_xxx'
+'📴 Offline mode: Data queued for sync when online'
 
 // Auto-retry
-"🌐 Connection restored! Auto-retrying pending syncs..."
-"🔄 Retrying sync for X pending inspections..."
-"✅ Retry successful for inspection insp_xxx"
+'🌐 Connection restored! Auto-retrying pending syncs...'
+'🔄 Retrying sync for X pending inspections...'
+'✅ Retry successful for inspection insp_xxx'
 ```
 
 ### Sprawdzenie stanu store (w Console):
+
 ```javascript
 // W React DevTools lub Console (jeśli używasz Redux DevTools)
 // Możesz też dodać tymczasowo:
@@ -148,18 +163,22 @@ console.log(useInspectionStore.getState())
 ## 📊 Metryki sukcesu
 
 ✅ **Kryterium 1: Brak blokowania UI**
+
 - Czas zapisu w offline: < 100ms (instant)
 - Brak "kręcenia się" loadera
 
 ✅ **Kryterium 2: Transparentność dla użytkownika**
+
 - Użytkownik widzi co się dzieje (ikony, badge, kolory)
 - Może pracować normalnie bez sieci
 
 ✅ **Kryterium 3: Auto-recovery**
+
 - Przy powrocie online wszystko się syncuje automatycznie
 - Brak utraty danych
 
 ✅ **Kryterium 4: Persistence**
+
 - Dane przetrwają odświeżenie strony
 - Firebase cache działa poprawnie
 
@@ -182,22 +201,26 @@ console.log(useInspectionStore.getState())
 ### Kluczowe zmiany w kodzie:
 
 **1. `useInspectionStore.ts`:**
+
 - `generateInspectionId()` - funkcja generująca ID
 - `saveToFirestore()` - używa `setDoc()` zamiast `addDoc()`
 - Optimistic Updates - UI aktualizuje się przed Firebase
 - Fire-and-forget - `.then()` i `.catch()` bez `await`
 
 **2. `App.tsx`:**
+
 - Listener na `online`/`offline` events
 - Auto-retry przy powrocie online
 
 **3. `Dashboard.tsx`:**
+
 - Wyświetlanie online/offline status
 - Badge z pending count
 - Manual retry button
 - 3 kafelki statystyk
 
 ### Best Practices zastosowane:
+
 1. ✅ Client-side ID generation
 2. ✅ Optimistic UI updates
 3. ✅ Fire-and-forget writes

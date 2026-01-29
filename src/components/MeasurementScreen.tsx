@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Save } from 'lucide-react';
-import { NumericKeypad } from './NumericKeypad';
-import { useInspectionStore } from '../store/useInspectionStore';
-import { MeasurementSettings } from './organisms';
-import { MeasurementListItem } from './molecules';
-import { Button, Card } from './atoms';
-import type { ProtectionType, Amperage } from '../types';
-import { validateMeasurementValue } from '../utils';
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Save } from 'lucide-react'
+import { NumericKeypad } from './NumericKeypad'
+import { useInspectionStore } from '../store/useInspectionStore'
+import { MeasurementSettings } from './organisms'
+import { MeasurementListItem } from './molecules'
+import { Button, Card } from './atoms'
+import type { ProtectionType, Amperage } from '../types'
+import { validateMeasurementValue } from '../utils'
 
 export const MeasurementScreen: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const {
     currentInspection,
@@ -21,78 +21,80 @@ export const MeasurementScreen: React.FC = () => {
     lastKFactor,
     setLastDefaults,
     saveToFirestore,
-  } = useInspectionStore();
+  } = useInspectionStore()
 
-  const [inputValue, setInputValue] = useState('0');
-  const [isSaving, setIsSaving] = useState(false);
+  const [inputValue, setInputValue] = useState('0')
+  const [isSaving, setIsSaving] = useState(false)
 
   // Settings for next measurement (Smart Defaults)
-  const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>(lastProtectionType);
-  const [nextAmperage, setNextAmperage] = useState<Amperage>(lastAmperage);
-  const [nextKFactor, setNextKFactor] = useState<number>(lastKFactor);
+  const [nextProtectionType, setNextProtectionType] =
+    useState<ProtectionType>(lastProtectionType)
+  const [nextAmperage, setNextAmperage] = useState<Amperage>(lastAmperage)
+  const [nextKFactor, setNextKFactor] = useState<number>(lastKFactor)
 
   useEffect(() => {
     if (!currentInspection) {
-      navigate('/');
+      navigate('/')
     }
-  }, [currentInspection, navigate]);
+  }, [currentInspection, navigate])
 
   const handleEnterMeasurement = () => {
-    const validation = validateMeasurementValue(inputValue);
-    
+    const validation = validateMeasurementValue(inputValue)
+
     if (!validation.isValid) {
-      alert(validation.error);
-      return;
+      alert(validation.error)
+      return
     }
 
-    const zsValue = parseFloat(inputValue);
+    const zsValue = parseFloat(inputValue)
 
     // Update store defaults
-    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor);
+    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor)
 
     // Add measurement
-    addMeasurement(zsValue);
+    addMeasurement(zsValue)
 
     // Reset input
-    setInputValue('0');
-  };
+    setInputValue('0')
+  }
 
   const handleNoGrounding = () => {
     // Update store defaults
-    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor);
+    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor)
 
     // Add B.UZ measurement
-    addMeasurement(null, true);
+    addMeasurement(null, true)
 
     // Reset input
-    setInputValue('0');
-  };
+    setInputValue('0')
+  }
 
   const handleSave = async () => {
     if (!currentInspection || currentInspection.measurements.length === 0) {
-      alert('Dodaj przynajmniej jeden pomiar!');
-      return;
+      alert('Dodaj przynajmniej jeden pomiar!')
+      return
     }
 
-    setIsSaving(true);
+    setIsSaving(true)
 
     try {
-      console.log('Rozpoczynam zapis...', currentInspection);
-      await saveToFirestore();
-      console.log('Zapis zakończony sukcesem');
-      alert('Zapisano pomiar!');
-      navigate('/summary');
+      console.log('Rozpoczynam zapis...', currentInspection)
+      await saveToFirestore()
+      console.log('Zapis zakończony sukcesem')
+      alert('Zapisano pomiar!')
+      navigate('/summary')
     } catch (error: unknown) {
-      console.error('Błąd zapisu w komponencie:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      alert(errorMessage || 'Błąd podczas zapisywania. Spróbuj ponownie.');
+      console.error('Błąd zapisu w komponencie:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error'
+      alert(errorMessage || 'Błąd podczas zapisywania. Spróbuj ponownie.')
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  };
+  }
 
   if (!currentInspection) {
-    return <div className="p-4">Ładowanie...</div>;
+    return <div className="p-4">Ładowanie...</div>
   }
 
   return (
@@ -162,5 +164,5 @@ export const MeasurementScreen: React.FC = () => {
         </Button>
       </Card>
     </div>
-  );
-};
+  )
+}

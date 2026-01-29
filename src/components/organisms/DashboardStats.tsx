@@ -1,11 +1,11 @@
-import React from 'react';
-import { FileText, CheckCircle, Clock } from 'lucide-react';
-import { StatsCard } from '../molecules';
+import React from 'react'
+import { FileText, CheckCircle, Clock } from 'lucide-react'
+import { StatsCard } from '../molecules'
 
 interface DashboardStatsProps {
-  totalCount: number;
-  syncedCount: number;
-  pendingCount: number;
+  totalCount: number
+  syncedCount: number
+  pendingCount: number
 }
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({
@@ -35,5 +35,5 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
         valueColor="text-orange-600"
       />
     </div>
-  );
-};
+  )
+}

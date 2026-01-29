@@ -1,11 +1,11 @@
-import React from 'react';
-import { Trash2 } from 'lucide-react';
-import type { Measurement } from '../../types';
+import React from 'react'
+import { Trash2 } from 'lucide-react'
+import type { Measurement } from '../../types'
 
 interface MeasurementListItemProps {
-  measurement: Measurement;
-  onDelete?: (id: string) => void;
-  showDelete?: boolean;
+  measurement: Measurement
+  onDelete?: (id: string) => void
+  showDelete?: boolean
 }
 
 export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
@@ -18,14 +18,14 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
       ? 'border-green-500'
       : m.result === 'B.UZ'
         ? 'border-orange-500'
-        : 'border-red-500';
+        : 'border-red-500'
 
   const resultColor =
     m.result === 'TAK'
       ? 'text-green-600'
       : m.result === 'B.UZ'
         ? 'text-orange-600'
-        : 'text-red-600';
+        : 'text-red-600'
 
   return (
     <div
@@ -47,8 +47,8 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
           ) : (
             <>
               Zs:{' '}
-              <span className="font-semibold">{m.zsValue?.toFixed(2)} Ω</span> (dop:{' '}
-              {m.zsDop.toFixed(2)} Ω)
+              <span className="font-semibold">{m.zsValue?.toFixed(2)} Ω</span>{' '}
+              (dop: {m.zsDop.toFixed(2)} Ω)
             </>
           )}
         </div>
@@ -62,36 +62,36 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
         </button>
       )}
     </div>
-  );
-};
-
-interface CompactMeasurementListItemProps {
-  measurement: Measurement;
+  )
 }
 
-export const CompactMeasurementListItem: React.FC<CompactMeasurementListItemProps> = ({
-  measurement: m,
-}) => {
+interface CompactMeasurementListItemProps {
+  measurement: Measurement
+}
+
+export const CompactMeasurementListItem: React.FC<
+  CompactMeasurementListItemProps
+> = ({ measurement: m }) => {
   const borderColor =
     m.result === 'TAK'
       ? 'border-green-500'
       : m.result === 'B.UZ'
         ? 'border-orange-500'
-        : 'border-red-500';
+        : 'border-red-500'
 
   const bgColor =
     m.result === 'TAK'
       ? 'bg-green-50'
       : m.result === 'B.UZ'
         ? 'bg-orange-50'
-        : 'bg-red-50';
+        : 'bg-red-50'
 
   const resultColor =
     m.result === 'TAK'
       ? 'text-green-600'
       : m.result === 'B.UZ'
         ? 'text-orange-600'
-        : 'text-red-600';
+        : 'text-red-600'
 
   return (
     <div className={`p-2 rounded border-l-4 ${borderColor} ${bgColor}`}>
@@ -108,5 +108,5 @@ export const CompactMeasurementListItem: React.FC<CompactMeasurementListItemProp
         </div>
       )}
     </div>
-  );
-};
+  )
+}

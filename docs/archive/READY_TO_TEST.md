@@ -9,21 +9,25 @@
 ## 📦 Co zostało zaimplementowane
 
 ### ✅ 1. Client-Side ID Generation + setDoc()
+
 - Brak blokowania UI w offline
 - Instant save (< 100ms)
 - Format ID: `insp_[timestamp]_[random]`
 
 ### ✅ 2. Optimistic UI Updates
+
 - UI aktualizuje się natychmiast
 - Flag `synced: false` dla pending items
 - Fire-and-forget zapis w tle
 
 ### ✅ 3. Auto-Retry Mechanism
+
 - Monitoring online/offline status
 - Auto-sync przy powrocie online
 - Manual retry button
 
 ### ✅ 4. Visual Feedback
+
 - **Ikonka Cloud-Off** 📴 gdy offline (pomarańczowa)
 - **Badge "X oczekuje"** ⚠️ z liczbą pending (żółty, clickable)
 - **Ikonka Cloud** ☁️ gdy online (zielona)
@@ -35,6 +39,7 @@
 ## 🚀 JAK PRZETESTOWAĆ
 
 ### Quick Start:
+
 ```bash
 npm run dev
 ```
@@ -42,6 +47,7 @@ npm run dev
 Aplikacja dostępna na: **http://127.0.0.1:5173/**
 
 ### Test Offline:
+
 1. Otwórz DevTools (F12)
 2. Network tab → **Offline**
 3. Utwórz pomiar i zapisz
@@ -55,33 +61,38 @@ Aplikacja dostępna na: **http://127.0.0.1:5173/**
 ## 📚 DOKUMENTACJA
 
 ### 1. 📘 **OFFLINE_STRATEGY_IMPLEMENTATION.md**
-   - Pełna dokumentacja techniczna
-   - Wyjaśnienie problemu i rozwiązania
-   - Best practices
-   - Metryki wydajności
+
+- Pełna dokumentacja techniczna
+- Wyjaśnienie problemu i rozwiązania
+- Best practices
+- Metryki wydajności
 
 ### 2. 📗 **INSTRUKCJA_TESTOWANIA_OFFLINE.md**
-   - Step-by-step testing guide
-   - 5 scenariuszy testowych
-   - Expected results
-   - Debugging tips
+
+- Step-by-step testing guide
+- 5 scenariuszy testowych
+- Expected results
+- Debugging tips
 
 ### 3. 📙 **OFFLINE_VISUAL_GUIDE.md**
-   - Before & After screenshots (text)
-   - Flow diagrams
-   - Timing diagrams
-   - Color scheme & animations
+
+- Before & After screenshots (text)
+- Flow diagrams
+- Timing diagrams
+- Color scheme & animations
 
 ### 4. 📕 **CHANGELOG_OFFLINE.md**
-   - Lista wszystkich zmian
-   - Migration guide
-   - Files changed summary
+
+- Lista wszystkich zmian
+- Migration guide
+- Files changed summary
 
 ---
 
 ## 📂 ZMODYFIKOWANE PLIKI
 
 ### Core Changes:
+
 ```
 src/store/useInspectionStore.ts  ← Główne zmiany (setDoc, optimistic updates)
 src/App.tsx                      ← Online/Offline monitoring
@@ -89,6 +100,7 @@ src/components/Dashboard.tsx     ← Visual feedback (badges, icons)
 ```
 
 ### Documentation:
+
 ```
 OFFLINE_STRATEGY_IMPLEMENTATION.md  ← Technical docs
 INSTRUKCJA_TESTOWANIA_OFFLINE.md   ← Testing guide
@@ -102,10 +114,12 @@ READY_TO_TEST.md                   ← Ten plik
 ## ⚡ KLUCZOWE METRYKI
 
 ### Przed:
+
 - ⏳ Zapis w offline: **∞** (blokada)
 - 😡 Doświadczenie użytkownika: **FRUSTRACJA**
 
 ### Po:
+
 - ⚡ Zapis w offline: **< 100ms** (instant)
 - 😊 Doświadczenie użytkownika: **PŁYNNE**
 
@@ -116,6 +130,7 @@ READY_TO_TEST.md                   ← Ten plik
 ## 🎨 NOWE ELEMENTY UI
 
 ### Header:
+
 ```
 [📴 Offline]        ← Pomarańczowy badge gdy offline
 [⚠️ 3 oczekuje]     ← Żółty badge z pending count (clickable)
@@ -123,11 +138,13 @@ READY_TO_TEST.md                   ← Ten plik
 ```
 
 ### Stats (3 kafelki):
+
 ```
 [📄 Wszystkie]  [✅ Synced]  [⏰ Pending] ← NOWY!
 ```
 
 ### Lista pomiarów:
+
 ```
 [✅ Synced]            ← Zielony badge z tłem
 [⏰ Oczekuje na sync]  ← Pomarańczowy, pulsująca ikona
@@ -158,12 +175,14 @@ Pełna instrukcja: `INSTRUKCJA_TESTOWANIA_OFFLINE.md`
 ## ✅ STATUS
 
 **Code Quality:**
+
 - ✅ TypeScript: No errors
 - ✅ ESLint: No errors
 - ✅ Build: OK (dev mode)
 - ✅ Tests: Manual testing required
 
 **Production Readiness:**
+
 - ✅ Core functionality: READY
 - ✅ Error handling: READY
 - ✅ User feedback: READY
@@ -183,6 +202,7 @@ Pełna instrukcja: `INSTRUKCJA_TESTOWANIA_OFFLINE.md`
 ## 💬 PYTANIA?
 
 Jeśli coś nie działa:
+
 1. Sprawdź Console logs (🌐📴✅❌🔄)
 2. Zobacz `INSTRUKCJA_TESTOWANIA_OFFLINE.md` → Debugging
 3. Przeczytaj `OFFLINE_STRATEGY_IMPLEMENTATION.md` → Technical Details

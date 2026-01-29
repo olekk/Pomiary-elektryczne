@@ -1,7 +1,9 @@
 # 🔧 Naprawa Błędu Zapisu na iPhone
 
 ## Problem
+
 Po kliknięciu "Zapisz i Przejdź Dalej" na iPhone pojawia się błąd:
+
 ```
 Błąd podczas zapisywania. Spróbuj ponownie.
 ```
@@ -54,6 +56,7 @@ Po ustawieniu reguł:
 ### Sprawdź Console w Safari (iOS)
 
 **Na komputerze Mac:**
+
 1. Podłącz iPhone kablem
 2. Otwórz Safari na Mac
 3. Menu → Develop → [Twój iPhone] → [Karta z aplikacją]
@@ -62,6 +65,7 @@ Po ustawieniu reguł:
 6. Zobacz błędy w Console
 
 **Szukaj:**
+
 - `permission-denied` → Reguły Firestore źle skonfigurowane
 - `unavailable` → Brak internetu
 - `unauthenticated` → Anonymous Auth nie działa
@@ -71,11 +75,13 @@ Po ustawieniu reguł:
 ### Sprawdź Połączenie z Internetem
 
 Na iPhone:
+
 1. Otwórz Safari
 2. Spróbuj wejść na google.com
 3. Jeśli nie działa - sprawdź WiFi
 
 W aplikacji:
+
 1. Sprawdź czy iPhone ma dostęp do WiFi
 2. Spróbuj wyłączyć i włączyć WiFi
 3. Spróbuj z danymi mobilnymi
@@ -108,18 +114,22 @@ Aby sprawdzić czy Firebase działa:
 ## 🐛 Najczęstsze Przyczyny i Rozwiązania
 
 ### 1. Permission Denied
+
 **Przyczyna:** Brak właściwych reguł Firestore
 **Rozwiązanie:** Ustaw reguły z pliku `FIRESTORE_RULES.txt`
 
 ### 2. Unauthenticated
+
 **Przyczyna:** Anonymous Auth nie jest włączony
 **Rozwiązanie:** Włącz Anonymous Auth w Firebase Console
 
 ### 3. Network Error
+
 **Przyczyna:** Brak internetu lub firewall
 **Rozwiązanie:** Sprawdź połączenie, spróbuj z innej sieci
 
 ### 4. Invalid Data
+
 **Przyczyna:** Nieprawidłowe dane w pomiarze
 **Rozwiązanie:** Sprawdź czy wszystkie pola są wypełnione (adres, mieszkanie, technik)
 
@@ -173,12 +183,14 @@ Oczekiwany rezultat: ✅ Sukces!
 ### Logi Debug
 
 Aplikacja wyświetla teraz szczegółowe logi w Console:
+
 - "Rozpoczynam zapis..." - przed zapisem
 - "Saving to Firestore:" - dane wysyłane
 - "Created document:" lub "Updated document:" - sukces
 - "Error code:" i "Error message:" - w przypadku błędu
 
 **Jak zobaczyć logi na iPhone?**
+
 - Potrzebujesz Mac + Safari Inspector (patrz wyżej)
 - Lub użyj emulatora/symulatora iOS
 
@@ -187,12 +199,14 @@ Aplikacja wyświetla teraz szczegółowe logi w Console:
 ## 🎉 Po Naprawie
 
 Gdy wszystko działa:
+
 1. Aplikacja zapisuje dane do Firestore
 2. Dane są dostępne offline
 3. Synchronizacja działa automatycznie
 4. Można generować PDF
 
 **Test offline:**
+
 1. Zapisz pomiar z internetem
 2. Włącz tryb samolotowy
 3. Utwórz nowy pomiar

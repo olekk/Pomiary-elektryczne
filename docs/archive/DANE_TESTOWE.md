@@ -3,6 +3,7 @@
 ## Przykładowe Dane do Testowania
 
 ### Mieszkanie 1 - Wszystkie Pomiary Pozytywne
+
 ```
 Adres: ul. Kwiatowa 15
 Mieszkanie: 42
@@ -17,6 +18,7 @@ Pomiary:
 ```
 
 ### Mieszkanie 2 - Mix Wyników
+
 ```
 Adres: ul. Słoneczna 8
 Mieszkanie: 15
@@ -31,6 +33,7 @@ Pomiary:
 ```
 
 ### Mieszkanie 3 - Różne Amperaże
+
 ```
 Adres: al. Niepodległości 100
 Mieszkanie: 7
@@ -46,6 +49,7 @@ Pomiary:
 ```
 
 ### Mieszkanie 4 - Przypadki Brzegowe
+
 ```
 Adres: ul. Polna 3
 Mieszkanie: 101
@@ -60,6 +64,7 @@ Pomiary:
 ```
 
 ### Mieszkanie 5 - Wszystkie Negatywne
+
 ```
 Adres: ul. Cicha 22
 Mieszkanie: 5
@@ -76,12 +81,14 @@ Pomiary:
 ## Scenariusze Testowe
 
 ### Scenariusz 1: Szybkie Wprowadzanie (Smart Defaults)
+
 1. Utwórz nowy pomiar
 2. Ustaw: WNP, 16A
 3. Wprowadź 5 pomiarów z wartościami: 0.45, 0.85, 1.20, 1.50, 2.10
 4. **Oczekiwany rezultat:** Wszystkie ustawienia kopiują się automatycznie, wpisujesz tylko wartości
 
 ### Scenariusz 2: Zmiana Typu w Trakcie
+
 1. Utwórz nowy pomiar
 2. Dodaj 2 pomiary WNP 16A
 3. Zmień na BI 16A
@@ -89,6 +96,7 @@ Pomiary:
 5. **Oczekiwany rezultat:** Współczynnik k zmienia się z 5 na 5.4, Zs_dop się aktualizuje
 
 ### Scenariusz 3: Brak Uziemienia
+
 1. Utwórz nowy pomiar
 2. Dodaj 2 normalne pomiary
 3. Kliknij "Brak Uziemienia (B.UZ)"
@@ -96,6 +104,7 @@ Pomiary:
 5. **Oczekiwany rezultat:** Punkt z oceną B.UZ, kolor pomarańczowy
 
 ### Scenariusz 4: Offline Mode
+
 1. Utwórz pomiar z 3 punktami
 2. Zapisz
 3. Wyłącz internet (DevTools → Network → Offline)
@@ -107,6 +116,7 @@ Pomiary:
 9. **Oczekiwany rezultat:** Status zmienia się na "Synced"
 
 ### Scenariusz 5: Generowanie PDF
+
 1. Utwórz pomiar z 5 punktami
 2. Zapisz
 3. Dodaj podpis
@@ -116,11 +126,13 @@ Pomiary:
 ## Wartości Graniczne do Testowania
 
 ### WNP (k=5, U₀=230V)
+
 - 16A: Zs_dop = 230/(5×16) = 2.875Ω ≈ 2.88Ω
 - 20A: Zs_dop = 230/(5×20) = 2.30Ω
 - 25A: Zs_dop = 230/(5×25) = 1.84Ω
 
 ### BI (k=5.4, U₀=230V)
+
 - 16A: Zs_dop = 230/(5.4×16) = 2.662Ω ≈ 2.66Ω
 - 20A: Zs_dop = 230/(5.4×20) = 2.13Ω
 - 25A: Zs_dop = 230/(5.4×25) = 1.70Ω
@@ -128,26 +140,31 @@ Pomiary:
 ## Testy Edge Cases
 
 ### Test 1: Bardzo małe wartości
+
 ```
 Zs = 0.01Ω → TAK (wszystkie typy)
 ```
 
 ### Test 2: Bardzo duże wartości
+
 ```
 Zs = 999.99Ω → NIE (wszystkie typy)
 ```
 
 ### Test 3: Wartości dziesiętne
+
 ```
 Zs = 1.234567Ω → Powinno zaokrąglić do 1.23Ω w wyświetlaniu
 ```
 
 ### Test 4: Zero
+
 ```
 Zs = 0Ω → Powinno być odrzucone (niepoprawny pomiar)
 ```
 
 ### Test 5: Wartości ujemne
+
 ```
 Zs = -1.5Ω → Powinno być odrzucone (niemożliwe fizycznie)
 ```

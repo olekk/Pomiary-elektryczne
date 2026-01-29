@@ -1,14 +1,14 @@
-import React from 'react';
-import { Select, Card } from '../atoms';
-import type { ProtectionType, Amperage } from '../../types';
+import React from 'react'
+import { Select, Card } from '../atoms'
+import type { ProtectionType, Amperage } from '../../types'
 
 interface MeasurementSettingsProps {
-  protectionType: ProtectionType;
-  amperage: Amperage;
-  kFactor: number;
-  onProtectionTypeChange: (value: ProtectionType) => void;
-  onAmperageChange: (value: Amperage) => void;
-  onKFactorChange: (value: number) => void;
+  protectionType: ProtectionType
+  amperage: Amperage
+  kFactor: number
+  onProtectionTypeChange: (value: ProtectionType) => void
+  onAmperageChange: (value: Amperage) => void
+  onKFactorChange: (value: number) => void
 }
 
 export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
@@ -29,7 +29,9 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
         <Select
           label="Zabezpieczenie"
           value={protectionType}
-          onChange={(e) => onProtectionTypeChange(e.target.value as ProtectionType)}
+          onChange={(e) =>
+            onProtectionTypeChange(e.target.value as ProtectionType)
+          }
           options={[
             { value: 'WNP', label: 'WNP' },
             { value: 'BI', label: 'BI' },
@@ -58,5 +60,5 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
         />
       </div>
     </Card>
-  );
-};
+  )
+}

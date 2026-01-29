@@ -1,11 +1,11 @@
-import React from "react";
-import { Delete, AlertCircle } from "lucide-react";
+import React from 'react'
+import { Delete, AlertCircle } from 'lucide-react'
 
 interface NumericKeypadProps {
-  value: string;
-  onValueChange: (value: string) => void;
-  onEnter: () => void;
-  onNoGrounding: () => void;
+  value: string
+  onValueChange: (value: string) => void
+  onEnter: () => void
+  onNoGrounding: () => void
 }
 
 export const NumericKeypad: React.FC<NumericKeypadProps> = ({
@@ -15,28 +15,28 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
   onNoGrounding,
 }) => {
   const handlePress = (digit: string) => {
-    if (digit === "." && value.includes(".")) return;
-    if (value === "0" && digit !== ".") {
-      onValueChange(digit);
+    if (digit === '.' && value.includes('.')) return
+    if (value === '0' && digit !== '.') {
+      onValueChange(digit)
     } else {
-      onValueChange(value + digit);
+      onValueChange(value + digit)
     }
-  };
+  }
 
   const handleBackspace = () => {
-    onValueChange(value.slice(0, -1) || "0");
-  };
+    onValueChange(value.slice(0, -1) || '0')
+  }
 
   const handleClear = () => {
-    onValueChange("0");
-  };
+    onValueChange('0')
+  }
 
   const buttons = [
-    ["7", "8", "9"],
-    ["4", "5", "6"],
-    ["1", "2", "3"],
-    ["C", "0", "."],
-  ];
+    ['7', '8', '9'],
+    ['4', '5', '6'],
+    ['1', '2', '3'],
+    ['C', '0', '.'],
+  ]
 
   return (
     <div className="w-full bg-gray-50 p-4 rounded-lg shadow-inner">
@@ -55,8 +55,8 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
               <button
                 key={btn}
                 onClick={() => {
-                  if (btn === "C") handleClear();
-                  else handlePress(btn);
+                  if (btn === 'C') handleClear()
+                  else handlePress(btn)
                 }}
                 className="bg-white hover:bg-gray-100 active:bg-gray-200 text-2xl font-semibold text-gray-800 p-6 rounded-lg shadow-md border border-gray-300 transition-colors"
               >
@@ -91,5 +91,5 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
         </button>
       </div>
     </div>
-  );
-};
+  )
+}

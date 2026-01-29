@@ -8,52 +8,52 @@ import {
   Timestamp,
   deleteDoc,
   updateDoc,
-} from "firebase/firestore";
-import { db } from "../firebase";
-import type { Inspection } from "../types";
+} from 'firebase/firestore'
+import { db } from '../firebase'
+import type { Inspection } from '../types'
 
 /**
  * Save an inspection to Firestore
  */
 export const saveInspectionToFirestore = async (
   inspection: Inspection,
-  inspectionId: string,
+  inspectionId: string
 ): Promise<void> => {
   const dateToSave =
     inspection.date instanceof Date
       ? inspection.date
-      : new Date(inspection.date);
+      : new Date(inspection.date)
 
   const dataToSave = {
-    address: inspection.address || "",
-    apartmentNumber: inspection.apartmentNumber || "",
+    address: inspection.address || '',
+    apartmentNumber: inspection.apartmentNumber || '',
     date: Timestamp.fromDate(dateToSave),
-    technician: inspection.technician || "",
+    technician: inspection.technician || '',
     measurements: inspection.measurements || [],
-    signature: inspection.signature || "",
+    signature: inspection.signature || '',
     synced: false,
     createdAt: Timestamp.now(),
-  };
+  }
 
-  const docRef = doc(db, "inspections", inspectionId);
-  await setDoc(docRef, dataToSave, { merge: true });
-};
+  const docRef = doc(db, 'inspections', inspectionId)
+  await setDoc(docRef, dataToSave, { merge: true })
+}
 
 /**
  * Load all inspections from Firestore
  * Supports offline cache - will return cached data if network is unavailable
  */
 export const loadInspectionsFromFirestore = async (): Promise<Inspection[]> => {
-  const q = query(collection(db, "inspections"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, 'inspections'), orderBy('createdAt', 'desc'))
 
   try {
     // Firebase automatically uses cache when offline (thanks to persistentLocalCache)
-    const querySnapshot = await getDocs(q);
+    const querySnapshot = await getDocs(q)
 
-    const inspections: Inspection[] = [];
+    const inspections: Inspection[] = []
 
     querySnapshot.forEach((doc) => {
-      const data = doc.data();
+      const data = doc.data()
       inspections.push({
         id: doc.id,
         address: data.address,
@@ -63,50 +63,50 @@ export const loadInspectionsFromFirestore = async (): Promise<Inspection[]> => {
         measurements: data.measurements || [],
         signature: data.signature,
         synced: data.synced ?? true,
-      });
-    });
+      })
+    })
 
-    console.log(`📥 Loaded ${inspections.length} inspections from Firestore`);
-    return inspections;
+    console.log(`📥 Loaded ${inspections.length} inspections from Firestore`)
+    return inspections
   } catch (error) {
-    console.error("Error loading inspections:", error);
+    console.error('Error loading inspections:', error)
     // Return empty array instead of throwing - allows app to work offline
-    return [];
+    return []
   }
-};
+}
 
 /**
  * Delete an inspection from Firestore
  */
 export const deleteInspectionFromFirestore = async (
-  id: string,
+  id: string
 ): Promise<void> => {
-  await deleteDoc(doc(db, "inspections", id));
-};
+  await deleteDoc(doc(db, 'inspections', id))
+}
 
 /**
  * Mark inspection as synced in Firestore
  */
 export const markInspectionAsSynced = async (id: string): Promise<void> => {
-  const docRef = doc(db, "inspections", id);
-  await updateDoc(docRef, { synced: true });
-};
+  const docRef = doc(db, 'inspections', id)
+  await updateDoc(docRef, { synced: true })
+}
 
 /**
  * Retry syncing a pending inspection
  */
 export const retrySyncInspection = async (
-  inspection: Inspection,
+  inspection: Inspection
 ): Promise<boolean> => {
-  if (!inspection.id) return false;
+  if (!inspection.id) return false
 
   try {
-    await saveInspectionToFirestore(inspection, inspection.id);
-    await markInspectionAsSynced(inspection.id);
-    console.log(`✅ Retry successful for inspection ${inspection.id}`);
-    return true;
+    await saveInspectionToFirestore(inspection, inspection.id)
+    await markInspectionAsSynced(inspection.id)
+    console.log(`✅ Retry successful for inspection ${inspection.id}`)
+    return true
   } catch (error) {
-    console.error(`❌ Retry failed for inspection ${inspection.id}:`, error);
-    return false;
+    console.error(`❌ Retry failed for inspection ${inspection.id}:`, error)
+    return false
   }
-};
+}

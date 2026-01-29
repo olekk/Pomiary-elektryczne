@@ -14,16 +14,17 @@ Otwórz `src/firebase.ts` i zastąp placeholdery:
 
 ```typescript
 const firebaseConfig = {
-  apiKey: "TWÓJ_API_KEY",
-  authDomain: "TWÓJ_PROJECT_ID.firebaseapp.com",
-  projectId: "TWÓJ_PROJECT_ID",
-  storageBucket: "TWÓJ_PROJECT_ID.appspot.com",
-  messagingSenderId: "TWÓJ_MESSAGING_SENDER_ID",
-  appId: "TWÓJ_APP_ID"
-};
+  apiKey: 'TWÓJ_API_KEY',
+  authDomain: 'TWÓJ_PROJECT_ID.firebaseapp.com',
+  projectId: 'TWÓJ_PROJECT_ID',
+  storageBucket: 'TWÓJ_PROJECT_ID.appspot.com',
+  messagingSenderId: 'TWÓJ_MESSAGING_SENDER_ID',
+  appId: 'TWÓJ_APP_ID',
+}
 ```
 
 **Gdzie to zdobyć?**
+
 1. https://console.firebase.google.com/
 2. Utwórz projekt
 3. Włącz Firestore + Authentication (Anonymous)
@@ -48,6 +49,7 @@ Otwórz: http://localhost:3000
 ## 📊 Co Zostało Zrobione?
 
 ### ✅ Funkcjonalność
+
 - [x] Wprowadzanie pomiarów z custom keypad
 - [x] Smart Defaults (kopiowanie ustawień)
 - [x] Automatyczna ocena (TAK/NIE/B.UZ)
@@ -58,6 +60,7 @@ Otwórz: http://localhost:3000
 - [x] PWA (instalowalna na telefonie)
 
 ### ✅ Technologie
+
 - [x] React 19 + TypeScript
 - [x] Vite (build tool)
 - [x] Tailwind CSS 4.x
@@ -69,6 +72,7 @@ Otwórz: http://localhost:3000
 - [x] PWA Manifest
 
 ### ✅ Dokumentacja
+
 - [x] README.md
 - [x] Instrukcja uruchomienia
 - [x] FAQ
@@ -110,34 +114,40 @@ pomiary-elektryczne/
 
 ## 📖 Dokumentacja
 
-| Plik | Opis |
-|------|------|
+| Plik                                               | Opis                         |
+| -------------------------------------------------- | ---------------------------- |
 | **[INDEX_DOKUMENTACJI.md](INDEX_DOKUMENTACJI.md)** | 📚 Nawigacja po dokumentacji |
-| **[SZYBKI_START.md](SZYBKI_START.md)** | 🚀 Quick start guide |
-| **[FAQ.md](FAQ.md)** | ❓ Najczęstsze problemy |
-| **[ARCHITEKTURA.md](ARCHITEKTURA.md)** | 🏗️ Jak działa kod |
-| **[CHECKLIST.md](CHECKLIST.md)** | ✅ Weryfikacja przed deploy |
+| **[SZYBKI_START.md](SZYBKI_START.md)**             | 🚀 Quick start guide         |
+| **[FAQ.md](FAQ.md)**                               | ❓ Najczęstsze problemy      |
+| **[ARCHITEKTURA.md](ARCHITEKTURA.md)**             | 🏗️ Jak działa kod            |
+| **[CHECKLIST.md](CHECKLIST.md)**                   | ✅ Weryfikacja przed deploy  |
 
 ---
 
 ## 🎯 Główne Funkcje
 
 ### 1. Smart Defaults
+
 Po dodaniu pierwszego pomiaru, aplikacja automatycznie kopiuje ustawienia (typ, amperaż, k) do następnego punktu. **Wpisujesz tylko wartość Zs!**
 
 ### 2. Custom Keypad
+
 Duże przyciski na ekranie zamiast systemowej klawiatury. Szybkie i wygodne wprowadzanie danych jedną ręką.
 
 ### 3. Offline-First
+
 Wszystko działa offline. Dane zapisują się lokalnie i synchronizują automatycznie po odzyskaniu zasięgu.
 
 ### 4. Automatyczna Ocena
+
 Aplikacja sama wylicza Zs_dop i ocenia wynik:
+
 - 🟢 TAK - Zs ≤ Zs_dop
 - 🔴 NIE - Zs > Zs_dop
 - 🟠 B.UZ - Brak uziemienia
 
 ### 5. PDF z Normami
+
 Generowanie profesjonalnego raportu zgodnego z PN-HD 60364-6:2008.
 
 ---
@@ -145,10 +155,12 @@ Generowanie profesjonalnego raportu zgodnego z PN-HD 60364-6:2008.
 ## 🔢 Logika Elektryczna
 
 ### Typy Zabezpieczeń
+
 - **WNP** (Wyłącznik Nadprądowy) - k = 5
 - **BI** (Bezpiecznik Topikowy) - k = 5.4
 
 ### Wzór
+
 ```
 Zs_dop = U₀ / (k × In)
 gdzie U₀ = 230V
@@ -156,8 +168,8 @@ gdzie U₀ = 230V
 
 ### Tabela Wartości Dopuszczalnych
 
-| Typ | 16A | 20A | 25A |
-|-----|-----|-----|-----|
+| Typ | 16A   | 20A   | 25A   |
+| --- | ----- | ----- | ----- |
 | WNP | 2.88Ω | 2.30Ω | 1.84Ω |
 | BI  | 2.66Ω | 2.13Ω | 1.70Ω |
 
@@ -166,6 +178,7 @@ gdzie U₀ = 230V
 ## 🧪 Testowanie
 
 ### Szybki Test
+
 1. Uruchom: `npm run dev`
 2. Kliknij "+" (nowy pomiar)
 3. Wypełnij: ul. Testowa 1, mieszkanie 42, Jan Kowalski
@@ -180,6 +193,7 @@ gdzie U₀ = 230V
 **Oczekiwany rezultat:** PDF z 3 pomiarami i podpisem pobiera się na dysk.
 
 ### Test Offline
+
 1. DevTools (F12) → Network → Offline
 2. Odśwież stronę
 3. Aplikacja dalej działa! ✅
@@ -191,12 +205,14 @@ Więcej testów: [DANE_TESTOWE.md](DANE_TESTOWE.md)
 ## 📱 Instalacja jako PWA
 
 ### iOS (Safari)
+
 1. Otwórz aplikację w Safari
 2. Kliknij przycisk "Udostępnij" (kwadrat ze strzałką)
 3. "Dodaj do ekranu głównego"
 4. Potwierdź
 
 ### Android (Chrome)
+
 1. Otwórz aplikację w Chrome
 2. Menu (3 kropki) → "Zainstaluj aplikację"
 3. Potwierdź
@@ -206,15 +222,19 @@ Więcej testów: [DANE_TESTOWE.md](DANE_TESTOWE.md)
 ## 🐛 Najczęstsze Problemy
 
 ### "Firebase: Error (auth/operation-not-allowed)"
+
 ➡️ Nie włączyłeś Anonymous Auth w Firebase Console
 
 ### "Missing or insufficient permissions"
+
 ➡️ Ustaw Firestore Rules na test mode
 
 ### "Service Worker się nie rejestruje"
+
 ➡️ Sprawdź czy plik `public/sw.js` istnieje
 
 ### "Tailwind style nie działają"
+
 ➡️ Restart dev server: `npm run dev`
 
 **Więcej:** [FAQ.md](FAQ.md)
@@ -224,6 +244,7 @@ Więcej testów: [DANE_TESTOWE.md](DANE_TESTOWE.md)
 ## 🚀 Deployment
 
 ### Firebase Hosting
+
 ```bash
 firebase init hosting
 npm run build
@@ -231,11 +252,13 @@ firebase deploy
 ```
 
 ### Vercel
+
 ```bash
 vercel
 ```
 
 ### Netlify
+
 ```bash
 npm run build
 # Przeciągnij folder 'dist' na netlify.com
@@ -301,6 +324,7 @@ Pełna checklist: [CHECKLIST.md](CHECKLIST.md)
 Masz teraz w pełni funkcjonalną aplikację PWA do pomiarów elektrycznych!
 
 **Następne kroki:**
+
 1. Skonfiguruj Firebase → [SZYBKI_START.md](SZYBKI_START.md)
 2. Uruchom aplikację → `npm run dev`
 3. Przetestuj funkcje → [DANE_TESTOWE.md](DANE_TESTOWE.md)

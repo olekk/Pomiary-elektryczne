@@ -1,14 +1,14 @@
-import React from 'react';
-import { Input, Select } from '../atoms';
+import React from 'react'
+import { Input, Select } from '../atoms'
 
 interface FormFieldProps {
-  label: string;
-  type?: 'text' | 'select';
-  value: string | number;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  options?: Array<{ value: string | number; label: string }>;
-  required?: boolean;
+  label: string
+  type?: 'text' | 'select'
+  value: string | number
+  onChange: (value: string) => void
+  placeholder?: string
+  options?: Array<{ value: string | number; label: string }>
+  required?: boolean
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -29,7 +29,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         options={options}
         required={required}
       />
-    );
+    )
   }
 
   return (
@@ -41,5 +41,5 @@ export const FormField: React.FC<FormFieldProps> = ({
       placeholder={placeholder}
       required={required}
     />
-  );
-};
+  )
+}

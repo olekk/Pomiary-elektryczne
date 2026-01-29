@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { Button, Input } from '../atoms';
+import React, { useState } from 'react'
+import { Button, Input } from '../atoms'
 
 interface CreateInspectionModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreate: (address: string, apartmentNumber: string, technician: string) => void;
+  isOpen: boolean
+  onClose: () => void
+  onCreate: (
+    address: string,
+    apartmentNumber: string,
+    technician: string
+  ) => void
 }
 
 export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
@@ -12,30 +16,30 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   onClose,
   onCreate,
 }) => {
-  const [address, setAddress] = useState('');
-  const [apartmentNumber, setApartmentNumber] = useState('');
-  const [technician, setTechnician] = useState('');
+  const [address, setAddress] = useState('')
+  const [apartmentNumber, setApartmentNumber] = useState('')
+  const [technician, setTechnician] = useState('')
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const handleSubmit = () => {
     if (!address.trim() || !apartmentNumber.trim() || !technician.trim()) {
-      alert('Wypełnij wszystkie pola!');
-      return;
+      alert('Wypełnij wszystkie pola!')
+      return
     }
 
-    onCreate(address, apartmentNumber, technician);
-    setAddress('');
-    setApartmentNumber('');
-    setTechnician('');
-  };
+    onCreate(address, apartmentNumber, technician)
+    setAddress('')
+    setApartmentNumber('')
+    setTechnician('')
+  }
 
   const handleClose = () => {
-    setAddress('');
-    setApartmentNumber('');
-    setTechnician('');
-    onClose();
-  };
+    setAddress('')
+    setApartmentNumber('')
+    setTechnician('')
+    onClose()
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -78,5 +82,5 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

@@ -1,12 +1,12 @@
-import React from 'react';
-import { Card } from '../atoms';
+import React from 'react'
+import { Card } from '../atoms'
 
 interface StatsCardProps {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  iconColor?: string;
-  valueColor?: string;
+  icon: React.ReactNode
+  label: string
+  value: number
+  iconColor?: string
+  valueColor?: string
 }
 
 export const StatsCard: React.FC<StatsCardProps> = ({
@@ -24,5 +24,5 @@ export const StatsCard: React.FC<StatsCardProps> = ({
       </div>
       <div className={`text-2xl font-bold ${valueColor}`}>{value}</div>
     </Card>
-  );
-};
+  )
+}
