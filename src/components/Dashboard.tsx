@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus } from 'lucide-react'
+import { signOut } from 'firebase/auth'
 import { useInspectionStore } from '../store/useInspectionStore'
 import {
   DashboardHeader,
@@ -8,7 +9,7 @@ import {
   InspectionsList,
   CreateInspectionModal,
 } from './organisms'
-import { authReady } from '../firebase'
+import { auth } from '../firebase'
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate()
@@ -26,9 +27,8 @@ export const Dashboard: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false)
 
   // Load inspections on mount (runs only once)
-  // Wait for auth before loading data to avoid permission errors
   useEffect(() => {
-    authReady.then(() => loadInspections()).finally(() => setIsLoading(false))
+    loadInspections().finally(() => setIsLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -60,6 +60,18 @@ export const Dashboard: React.FC = () => {
     setIsLoading(false)
   }
 
+  const handleLogout = async () => {
+    if (confirm('Czy na pewno chcesz się wylogować?')) {
+      try {
+        await signOut(auth)
+        // onAuthStateChanged w App.tsx automatycznie przekieruje do LoginScreen
+      } catch (error) {
+        console.error('Błąd wylogowania:', error)
+        alert('Błąd podczas wylogowania')
+      }
+    }
+  }
+
   const syncedCount = inspections.filter((i) => i.synced).length
 
   return (
@@ -70,6 +82,7 @@ export const Dashboard: React.FC = () => {
         isLoading={isLoading}
         onRefresh={handleRefresh}
         onRetrySync={retryPendingSync}
+        onLogout={handleLogout}
       />
 
       <div className="p-4">

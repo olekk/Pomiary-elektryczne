@@ -1,13 +1,14 @@
-import React from "react";
-import { RefreshCw } from "lucide-react";
-import { StatusBadge } from "../molecules";
+import React from 'react'
+import { RefreshCw, LogOut } from 'lucide-react'
+import { StatusBadge } from '../molecules'
 
 interface DashboardHeaderProps {
-  isOnline: boolean;
-  pendingSyncCount: number;
-  isLoading: boolean;
-  onRefresh: () => void;
-  onRetrySync: () => void;
+  isOnline: boolean
+  pendingSyncCount: number
+  isLoading: boolean
+  onRefresh: () => void
+  onRetrySync: () => void
+  onLogout: () => void
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
@@ -16,6 +17,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   isLoading,
   onRefresh,
   onRetrySync,
+  onLogout,
 }) => {
   return (
     <div className="bg-blue-600 text-white p-4 shadow-lg">
@@ -39,11 +41,20 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             onClick={onRefresh}
             className="p-2 hover:bg-blue-700 active:bg-blue-800 rounded-full transition-colors"
             disabled={isLoading}
+            title="Odśwież listę"
           >
-            <RefreshCw size={24} className={isLoading ? "animate-spin" : ""} />
+            <RefreshCw size={24} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="p-2 hover:bg-blue-700 active:bg-blue-800 rounded-full transition-colors"
+            title="Wyloguj"
+          >
+            <LogOut size={24} />
           </button>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}

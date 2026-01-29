@@ -36,3 +36,13 @@ Strictly adhere to the following structure. Do not place UI components randomly.
 
 - When creating a new feature, think: "Can I build this from existing Atoms?"
 - If creating a new component, define its `Props` interface first.
+
+# DOCUMENTATION MAINTENANCE
+
+When implementing significant changes (new features, data model changes, refactoring store, authentication logic, or offline strategy):
+
+1. ALWAYS review `ARCHITEKTURA.md` first to understand the current context.
+2. AFTER the implementation, UPDATE `ARCHITEKTURA.md` to reflect the new state.
+3. Keep the documentation concise but technical. Focus on "How it works" not "What changed".
+4. If a new file structure is introduced, update the "Project Structure" section.
+5. If the Firestore data model changes, update the "Data Schema" section.

@@ -4,7 +4,7 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
 } from 'firebase/firestore'
-import { getAuth, signInAnonymously } from 'firebase/auth'
+import { getAuth } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAxBgF6W_NKGQGvCepAI7fLgGknDOeShfk',
@@ -28,16 +28,8 @@ const db = initializeFirestore(app, {
 })
 
 // 3. Inicjalizacja Auth
+// Firebase Auth automatycznie cache'uje sesję w LocalStorage (działa offline)
 const auth = getAuth(app)
 
-// Promise do czekania na zakończenie uwierzytelnienia
-const authReady = signInAnonymously(auth)
-  .then(() => {
-    console.log('✅ Firebase Auth: Logged in anonymously')
-  })
-  .catch((error) => {
-    console.error('❌ Błąd logowania anonimowego:', error)
-  })
-
 // Eksportujemy instancje, aby używać ich w innych plikach
-export { app, db, auth, authReady }
+export { app, db, auth }
