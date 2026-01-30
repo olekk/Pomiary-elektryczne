@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut, RefreshCw } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase'
-import { useInspectionStore } from '../../store/useInspectionStore'
+import { useAppStore } from '../../store/useAppStore'
 import { StatusBadge } from '../molecules'
 
 interface MainLayoutProps {
@@ -19,7 +19,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   showBackBtn = false,
   onRefresh,
 }) => {
-  const { isOnline, pendingSyncCount, retryPendingSync } = useInspectionStore()
+  const { isOnline, pendingSyncCount, retryPendingSync } = useAppStore()
   const [isRefreshing, setIsRefreshing] = React.useState(false)
 
   const handleLogout = async () => {

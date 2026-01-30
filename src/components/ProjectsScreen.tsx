@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Loader, Trash2 } from 'lucide-react'
-import { useInspectionStore } from '../store/useInspectionStore'
+import { useAppStore } from '../store/useAppStore'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
   const { projects, loadProjects, createNewProject, deleteProject } =
-    useInspectionStore()
+    useAppStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)

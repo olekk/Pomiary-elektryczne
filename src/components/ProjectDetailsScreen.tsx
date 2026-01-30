@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { useInspectionStore } from '../store/useInspectionStore'
+import { useAppStore } from '../store/useAppStore'
 import { MainLayout } from './layout/MainLayout'
 import {
   DashboardStats,
@@ -19,7 +19,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     deleteInspection,
     pendingSyncCount,
     projects,
-  } = useInspectionStore()
+  } = useAppStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)

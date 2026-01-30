@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Home, FileDown, CheckCircle } from 'lucide-react'
-import { useInspectionStore } from '../store/useInspectionStore'
+import { useAppStore } from '../store/useAppStore'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -12,7 +12,7 @@ import { countMeasurementsByResult } from '../utils'
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
   const { currentInspection, setSignature, saveToFirestore } =
-    useInspectionStore()
+    useAppStore()
 
   const projectId = currentInspection?.projectId
 

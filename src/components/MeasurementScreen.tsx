@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
-import { useInspectionStore } from '../store/useInspectionStore'
+import { useAppStore } from '../store/useAppStore'
 import { MeasurementSettings } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -21,7 +21,7 @@ export const MeasurementScreen: React.FC = () => {
     lastKFactor,
     setLastDefaults,
     saveToFirestore,
-  } = useInspectionStore()
+  } = useAppStore()
 
   const [inputValue, setInputValue] = useState('0')
   const [isSaving, setIsSaving] = useState(false)

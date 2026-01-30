@@ -7,10 +7,10 @@ import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
 import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { LoginScreen } from './components/LoginScreen'
-import { useInspectionStore } from './store/useInspectionStore'
+import { useAppStore } from './store/useAppStore'
 
 function App() {
-  const { setOnlineStatus, setUser, user } = useInspectionStore()
+  const { setOnlineStatus, setUser, user } = useAppStore()
   const [isAuthChecking, setIsAuthChecking] = useState(true)
 
   // ===== MONITORING ONLINE/OFFLINE STATUS =====

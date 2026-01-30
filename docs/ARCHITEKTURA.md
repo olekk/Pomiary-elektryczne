@@ -55,8 +55,15 @@ pomiary-elektryczne/
 │   │   ├── validators.ts       # Walidacja danych
 │   │   └── index.ts            # Re-export
 │   │
-│   ├── store/                  # 🗄️ State management
-│   │   └── useInspectionStore.ts  # Zustand store (user + inspections)
+│   ├── store/                  # 🗄️ State management (Slices Pattern)
+│   │   ├── slices/             # Store slices
+│   │   │   ├── authSlice.ts    # Autoryzacja (user)
+│   │   │   ├── projectSlice.ts # Projekty
+│   │   │   ├── inspectionSlice.ts  # Przeglądy i pomiary
+│   │   │   ├── offlineSlice.ts # Offline & settings
+│   │   │   └── index.ts        # Re-export
+│   │   ├── useAppStore.ts      # Główny store (łączy wszystkie slice'y)
+│   │   └── index.ts            # Re-export
 │   │
 │   ├── types/                  # 📝 TypeScript types
 │   │   └── index.ts            # Typy i stałe
@@ -166,14 +173,19 @@ const handleLogout = async () => {
 // Przycisk wylogowania w DashboardHeader (ikona LogOut)
 ```
 
-#### 5. **useInspectionStore.ts - User State**
+#### 5. **useAppStore.ts - User State (via AuthSlice)**
+
+Store zarządza stanem użytkownika poprzez `authSlice`:
 
 ```typescript
-interface InspectionState {
+// authSlice.ts
+interface AuthSlice {
   user: User | null // Firebase User
   setUser: (user: User | null) => void
-  // ... reszta stanu
 }
+
+// useAppStore.ts - łączy wszystkie slice'y
+type AppStore = AuthSlice & ProjectSlice & InspectionSlice & OfflineSlice
 ```
 
 ### Offline Support
@@ -787,10 +799,10 @@ self.addEventListener('fetch', (event) => {
 ### Unit Tests (przykład - nie zaimplementowane)
 
 ```typescript
-// useInspectionStore.test.ts
+// useAppStore.test.ts (InspectionSlice)
 describe('addMeasurement', () => {
   it('should add measurement with correct result', () => {
-    const store = useInspectionStore.getState()
+    const store = useAppStore.getState()
     store.addMeasurement(0.45)
 
     const measurements = store.currentInspection?.measurements
@@ -897,13 +909,26 @@ utils/
 └── validators.ts               → Pure functions (walidacja)
 ```
 
-### Store Layer
+### Store Layer (Slices Pattern)
 
 ```
 store/
-└── useInspectionStore.ts  → Global state (user + inspections + offline)
-                            → Orchestrates services + utils
+├── slices/
+│   ├── authSlice.ts         → Stan autoryzacji (user)
+│   ├── projectSlice.ts      → Stan projektów (projects, currentProjectId)
+│   ├── inspectionSlice.ts   → Stan przeglądów (inspections, currentInspection, measurements)
+│   ├── offlineSlice.ts      → Stan offline i ustawienia (isOnline, lastDefaults)
+│   └── index.ts             → Re-export
+│
+└── useAppStore.ts           → Główny store łączący wszystkie slice'y
+                             → Wykorzystuje Zustand do zarządzania stanem
+                             → Orchestruje services + utils
 ```
+
+**Wzorzec Slices:**
+- Każdy slice odpowiada za konkretną domenę biznesową (Single Responsibility)
+- Slice'y mogą komunikować się między sobą przez `get()` i `set()`
+- `useAppStore` łączy wszystkie slice'y w jeden spójny store
 
 ---
 
