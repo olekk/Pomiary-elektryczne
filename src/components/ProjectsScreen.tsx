@@ -45,7 +45,11 @@ export const ProjectsScreen: React.FC = () => {
   }
 
   const handleDeleteProject = async (id: string, name: string) => {
-    if (confirm(`Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`)) {
+    if (
+      confirm(
+        `Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`
+      )
+    ) {
       try {
         await deleteProject(id)
       } catch (error: unknown) {
@@ -92,15 +96,14 @@ export const ProjectsScreen: React.FC = () => {
             <p className="text-gray-500 mb-6">
               Utwórz pierwszy projekt, aby rozpocząć
             </p>
-            <Button onClick={() => setShowNewModal(true)}>
-              <Plus size={20} />
-              Nowy Projekt
-            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project) => (
-              <Card key={project.id} className="hover:shadow-lg transition-shadow">
+              <Card
+                key={project.id}
+                className="hover:shadow-lg transition-shadow"
+              >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -112,7 +115,9 @@ export const ProjectsScreen: React.FC = () => {
                           {project.name}
                         </h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(project.createdAt).toLocaleDateString('pl-PL')}
+                          {new Date(project.createdAt).toLocaleDateString(
+                            'pl-PL'
+                          )}
                         </p>
                       </div>
                     </div>
@@ -142,15 +147,13 @@ export const ProjectsScreen: React.FC = () => {
       </div>
 
       {/* Floating Action Button */}
-      {projects.length > 0 && (
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
-          style={{ width: '64px', height: '64px' }}
-        >
-          <Plus size={32} />
-        </button>
-      )}
+      <button
+        onClick={() => setShowNewModal(true)}
+        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
+        style={{ width: '64px', height: '64px' }}
+      >
+        <Plus size={32} />
+      </button>
 
       {/* Modal - Nowy Projekt */}
       {showNewModal && (
