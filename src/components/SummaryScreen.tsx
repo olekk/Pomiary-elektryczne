@@ -13,11 +13,21 @@ export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
   const { currentInspection, setSignature } = useInspectionStore()
 
+  const projectId = currentInspection?.projectId
+
+  const handleReturnToProject = () => {
+    if (projectId) {
+      navigate(`/project/${projectId}`)
+    } else {
+      navigate('/')
+    }
+  }
+
   if (!currentInspection) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">Brak danych do wyświetlenia</p>
+          <p className="text-slate-400 mb-4">Brak danych do wyświetlenia</p>
           <Button
             variant="primary"
             onClick={() => navigate('/')}
@@ -52,14 +62,14 @@ export const SummaryScreen: React.FC = () => {
   )
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-slate-950">
       {/* Header */}
-      <div className="bg-green-600 text-white p-4 shadow-lg">
+      <div className="bg-green-900 border-b border-green-800 text-slate-100 p-4 shadow-lg">
         <div className="flex items-center gap-3">
           <CheckCircle size={32} />
           <div>
             <h1 className="text-xl font-bold">Pomiar Zakończony</h1>
-            <p className="text-sm opacity-90">
+            <p className="text-sm text-green-300">
               {currentInspection.address} / {currentInspection.apartmentNumber}
             </p>
           </div>
@@ -69,28 +79,28 @@ export const SummaryScreen: React.FC = () => {
       {/* Summary Stats */}
       <div className="p-4">
         <Card className="mb-4">
-          <h2 className="font-bold text-lg mb-3">Podsumowanie</h2>
+          <h2 className="font-bold text-lg text-slate-100 mb-3">Podsumowanie</h2>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{passed}</div>
-              <div className="text-xs text-gray-600">Pozytywne</div>
+              <div className="text-3xl font-bold text-green-400">{passed}</div>
+              <div className="text-xs text-slate-400">Pozytywne</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{failed}</div>
-              <div className="text-xs text-gray-600">Negatywne</div>
+              <div className="text-3xl font-bold text-red-400">{failed}</div>
+              <div className="text-xs text-slate-400">Negatywne</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">
+              <div className="text-3xl font-bold text-orange-400">
                 {noGrounding}
               </div>
-              <div className="text-xs text-gray-600">B.UZ</div>
+              <div className="text-xs text-slate-400">B.UZ</div>
             </div>
           </div>
         </Card>
 
         {/* Measurements List */}
         <Card className="mb-4">
-          <h3 className="font-bold mb-3">Wszystkie punkty pomiarowe</h3>
+          <h3 className="font-bold text-slate-100 mb-3">Wszystkie punkty pomiarowe</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {currentInspection.measurements.map((m) => (
               <CompactMeasurementListItem key={m.id} measurement={m} />
@@ -117,10 +127,10 @@ export const SummaryScreen: React.FC = () => {
             variant="primary"
             size="lg"
             fullWidth
-            onClick={() => navigate('/')}
+            onClick={handleReturnToProject}
             icon={<Home size={24} />}
           >
-            Powrót do Listy
+            Powrót do Projektu
           </Button>
         </div>
       </div>

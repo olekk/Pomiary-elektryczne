@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FolderOpen, LogOut, Loader, Trash2 } from 'lucide-react'
-import { signOut } from 'firebase/auth'
+import { Plus, FolderOpen, Loader, Trash2 } from 'lucide-react'
 import { useInspectionStore } from '../store/useInspectionStore'
-import { auth } from '../firebase'
+import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
-import { Card } from './atoms'
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -22,15 +20,10 @@ export const ProjectsScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleLogout = async () => {
-    if (confirm('Czy na pewno chcesz się wylogować?')) {
-      try {
-        await signOut(auth)
-      } catch (error) {
-        console.error('Błąd wylogowania:', error)
-        alert('Błąd podczas wylogowania')
-      }
-    }
+  const handleRefresh = async () => {
+    setIsLoading(true)
+    await loadProjects()
+    setIsLoading(false)
   }
 
   const handleCreateProject = async () => {
@@ -61,86 +54,65 @@ export const ProjectsScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Projekty</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Wybierz projekt lub utwórz nowy
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Wyloguj"
-          >
-            <LogOut size={24} className="text-gray-700" />
-          </button>
-        </div>
-      </div>
-
+    <MainLayout title="Moje Projekty" onRefresh={handleRefresh}>
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 min-h-full">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader className="animate-spin text-blue-600" size={32} />
           </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-12">
-            <FolderOpen size={64} className="mx-auto text-gray-300 mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            <FolderOpen size={64} className="mx-auto text-slate-600 mb-4" />
+            <h2 className="text-xl font-semibold text-slate-200 mb-2">
               Brak projektów
             </h2>
-            <p className="text-gray-500 mb-6">
+            <p className="text-slate-400 mb-6">
               Utwórz pierwszy projekt, aby rozpocząć
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project) => (
-              <Card
+              <div
                 key={project.id}
-                className="hover:shadow-lg transition-shadow"
+                className="bg-slate-800 rounded-lg p-6 hover:bg-slate-700 transition-colors border border-slate-700"
               >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-blue-100 rounded-lg">
-                        <FolderOpen size={24} className="text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {project.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(project.createdAt).toLocaleDateString(
-                            'pl-PL'
-                          )}
-                        </p>
-                      </div>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-900 rounded-lg">
+                      <FolderOpen size={24} className="text-blue-400" />
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteProject(project.id, project.name)
-                      }}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Usuń projekt"
-                    >
-                      <Trash2 size={18} className="text-red-600" />
-                    </button>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-100">
+                        {project.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {new Date(project.createdAt).toLocaleDateString(
+                          'pl-PL'
+                        )}
+                      </p>
+                    </div>
                   </div>
-
-                  <Button
-                    onClick={() => navigate(`/project/${project.id}`)}
-                    className="w-full"
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteProject(project.id, project.name)
+                    }}
+                    className="p-2 hover:bg-red-900 rounded-lg transition-colors"
+                    title="Usuń projekt"
                   >
-                    Otwórz projekt
-                  </Button>
+                    <Trash2 size={18} className="text-red-400" />
+                  </button>
                 </div>
-              </Card>
+
+                <Button
+                  onClick={() => navigate(`/project/${project.id}`)}
+                  className="w-full"
+                >
+                  Otwórz projekt
+                </Button>
+              </div>
             ))}
           </div>
         )}
@@ -157,13 +129,13 @@ export const ProjectsScreen: React.FC = () => {
 
       {/* Modal - Nowy Projekt */}
       {showNewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full p-6 border border-slate-700">
+            <h2 className="text-xl font-bold text-slate-100 mb-4">
               Nowy Projekt
             </h2>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-300 mb-2">
                 Nazwa projektu
               </label>
               <input
@@ -171,7 +143,7 @@ export const ProjectsScreen: React.FC = () => {
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 placeholder="np. Spółdzielnia Knurów"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
@@ -186,7 +158,7 @@ export const ProjectsScreen: React.FC = () => {
                   setShowNewModal(false)
                   setNewProjectName('')
                 }}
-                className="flex-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                className="flex-1 bg-slate-700 text-slate-200 hover:bg-slate-600"
               >
                 Anuluj
               </Button>
@@ -197,6 +169,6 @@ export const ProjectsScreen: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </MainLayout>
   )
 }

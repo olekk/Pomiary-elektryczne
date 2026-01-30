@@ -19,10 +19,10 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-xs text-gray-600 mb-1">{label}</label>
+        <label className="block text-xs text-slate-400 mb-1">{label}</label>
       )}
       <select
-        className={`w-full p-2 border border-gray-300 rounded text-sm font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+        className={`w-full p-2 border border-slate-700 rounded text-sm font-semibold bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
         {...props}
       >
         {options.map((option) => (

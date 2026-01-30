@@ -15,12 +15,12 @@ export const InspectionsList: React.FC<InspectionsListProps> = ({
   onDelete,
 }) => {
   if (isLoading) {
-    return <div className="text-center text-gray-500 py-8">Ładowanie...</div>
+    return <div className="text-center text-slate-400 py-8">Ładowanie...</div>
   }
 
   if (inspections.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-8">
+      <div className="text-center text-slate-400 py-8">
         <FileText size={48} className="mx-auto mb-2 opacity-50" />
         <p>Brak pomiarów. Utwórz nowy pomiar poniżej.</p>
       </div>

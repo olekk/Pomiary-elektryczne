@@ -42,9 +42,9 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Nowy Pomiar</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
+        <h2 className="text-xl font-bold text-slate-100 mb-4">Nowy Pomiar</h2>
 
         <div className="space-y-4">
           <Input

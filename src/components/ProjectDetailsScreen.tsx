@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, ArrowLeft } from 'lucide-react'
-import { signOut } from 'firebase/auth'
+import { Plus } from 'lucide-react'
 import { useInspectionStore } from '../store/useInspectionStore'
+import { MainLayout } from './layout/MainLayout'
 import {
-  DashboardHeader,
   DashboardStats,
   InspectionsList,
   CreateInspectionModal,
 } from './organisms'
-import { auth } from '../firebase'
 
 export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -19,9 +17,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     loadInspections,
     createNewInspection,
     deleteInspection,
-    isOnline,
     pendingSyncCount,
-    retryPendingSync,
     projects,
   } = useInspectionStore()
 
@@ -70,18 +66,6 @@ export const ProjectDetailsScreen: React.FC = () => {
     setIsLoading(false)
   }
 
-  const handleLogout = async () => {
-    if (confirm('Czy na pewno chcesz się wylogować?')) {
-      try {
-        await signOut(auth)
-        // onAuthStateChanged w App.tsx automatycznie przekieruje do LoginScreen
-      } catch (error) {
-        console.error('Błąd wylogowania:', error)
-        alert('Błąd podczas wylogowania')
-      }
-    }
-  }
-
   const syncedCount = inspections.filter((i) => i.synced).length
 
   // Znajdź nazwę projektu
@@ -95,32 +79,7 @@ export const ProjectDetailsScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header z przyciskiem powrotu */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={() => navigate('/')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={24} className="text-gray-700" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-xl font-semibold text-gray-900">{projectName}</h1>
-          <p className="text-sm text-gray-500">
-            ID: {projectId.substring(0, 20)}...
-          </p>
-        </div>
-      </div>
-
-      <DashboardHeader
-        isOnline={isOnline}
-        pendingSyncCount={pendingSyncCount}
-        isLoading={isLoading}
-        onRefresh={handleRefresh}
-        onRetrySync={retryPendingSync}
-        onLogout={handleLogout}
-      />
-
+    <MainLayout title={projectName} showBackBtn={true} onRefresh={handleRefresh}>
       <div className="p-4">
         <DashboardStats
           totalCount={inspections.length}
@@ -151,6 +110,6 @@ export const ProjectDetailsScreen: React.FC = () => {
         onClose={() => setShowNewModal(false)}
         onCreate={handleCreateNew}
       />
-    </div>
+    </MainLayout>
   )
 }

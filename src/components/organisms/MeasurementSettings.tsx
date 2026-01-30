@@ -21,7 +21,7 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
 }) => {
   return (
     <Card className="shadow-md">
-      <h2 className="text-sm font-semibold text-gray-600 mb-3">
+      <h2 className="text-sm font-semibold text-slate-300 mb-3">
         Ustawienia następnego punktu
       </h2>
 

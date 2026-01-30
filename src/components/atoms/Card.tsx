@@ -13,7 +13,7 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-white rounded-lg shadow ${padding ? 'p-4' : ''} ${className}`}
+      className={`bg-slate-800 rounded-lg shadow-lg border border-slate-700 ${padding ? 'p-4' : ''} ${className}`}
     >
       {children}
     </div>

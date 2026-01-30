@@ -98,19 +98,19 @@ export const MeasurementScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
       {/* Header */}
-      <div className="bg-blue-600 text-white p-4 shadow-lg">
+      <div className="bg-slate-900 border-b border-slate-800 text-slate-100 p-4 shadow-lg">
         <h1 className="text-xl font-bold">
           {currentInspection.address} / {currentInspection.apartmentNumber}
         </h1>
-        <p className="text-sm opacity-90">
+        <p className="text-sm text-slate-400">
           Pomiary: {currentInspection.measurements.length}
         </p>
       </div>
 
       {/* Settings Panel */}
-      <div className="p-4 bg-white shadow-md">
+      <div className="p-4 bg-slate-900 border-b border-slate-800">
         <MeasurementSettings
           protectionType={nextProtectionType}
           amperage={nextAmperage}
@@ -124,7 +124,7 @@ export const MeasurementScreen: React.FC = () => {
       {/* Measurements List */}
       <div className="flex-1 overflow-y-auto p-4">
         {currentInspection.measurements.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
+          <div className="text-center text-slate-400 mt-8">
             <p>Brak pomiarów. Wprowadź pierwszy pomiar poniżej.</p>
           </div>
         ) : (

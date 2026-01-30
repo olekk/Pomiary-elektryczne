@@ -29,19 +29,19 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
 
   return (
     <div
-      className={`bg-white p-3 rounded-lg shadow flex items-center justify-between border-l-4 ${borderColor}`}
+      className={`bg-slate-800 p-3 rounded-lg border border-slate-700 flex items-center justify-between border-l-4 ${borderColor}`}
     >
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-lg">#{m.pointNumber}</span>
-          <span className="text-sm text-gray-600">
+          <span className="font-bold text-lg text-slate-100">#{m.pointNumber}</span>
+          <span className="text-sm text-slate-400">
             {m.protectionType} {m.amperage}A
           </span>
           <span className={`ml-auto font-bold text-lg ${resultColor}`}>
             {m.result}
           </span>
         </div>
-        <div className="text-sm text-gray-700 mt-1">
+        <div className="text-sm text-slate-300 mt-1">
           {m.noGrounding ? (
             <span>Brak uziemienia</span>
           ) : (
@@ -56,7 +56,7 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
       {showDelete && onDelete && (
         <button
           onClick={() => onDelete(m.id)}
-          className="ml-2 p-2 text-red-500 hover:bg-red-50 active:bg-red-100 rounded cursor-pointer transition-colors"
+          className="ml-2 p-2 text-red-400 hover:bg-red-900 active:bg-red-800 rounded cursor-pointer transition-colors"
         >
           <Trash2 size={20} />
         </button>
@@ -81,29 +81,29 @@ export const CompactMeasurementListItem: React.FC<
 
   const bgColor =
     m.result === 'TAK'
-      ? 'bg-green-50'
+      ? 'bg-green-900/20'
       : m.result === 'B.UZ'
-        ? 'bg-orange-50'
-        : 'bg-red-50'
+        ? 'bg-orange-900/20'
+        : 'bg-red-900/20'
 
   const resultColor =
     m.result === 'TAK'
-      ? 'text-green-600'
+      ? 'text-green-400'
       : m.result === 'B.UZ'
-        ? 'text-orange-600'
-        : 'text-red-600'
+        ? 'text-orange-400'
+        : 'text-red-400'
 
   return (
     <div className={`p-2 rounded border-l-4 ${borderColor} ${bgColor}`}>
       <div className="flex items-center justify-between">
-        <span className="font-semibold">#{m.pointNumber}</span>
-        <span className="text-sm text-gray-600">
+        <span className="font-semibold text-slate-100">#{m.pointNumber}</span>
+        <span className="text-sm text-slate-400">
           {m.protectionType} {m.amperage}A
         </span>
         <span className={`font-bold ${resultColor}`}>{m.result}</span>
       </div>
       {!m.noGrounding && (
-        <div className="text-xs text-gray-600 mt-1">
+        <div className="text-xs text-slate-400 mt-1">
           Zs: {m.zsValue?.toFixed(2)} Ω (dop: {m.zsDop.toFixed(2)} Ω)
         </div>
       )}

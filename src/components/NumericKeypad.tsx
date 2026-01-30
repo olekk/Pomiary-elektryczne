@@ -39,10 +39,10 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
   ]
 
   return (
-    <div className="w-full bg-gray-50 p-4 rounded-lg shadow-inner">
+    <div className="w-full bg-slate-900 p-4 rounded-lg border border-slate-700">
       {/* Display */}
-      <div className="bg-white rounded-lg mb-4 p-6 text-right border-2 border-blue-200">
-        <div className="text-4xl font-bold text-gray-800 font-mono">
+      <div className="bg-slate-800 rounded-lg mb-4 p-6 text-right border border-slate-700">
+        <div className="text-4xl font-bold text-slate-100 font-mono">
           {value} Ω
         </div>
       </div>
@@ -58,7 +58,7 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
                   if (btn === 'C') handleClear()
                   else handlePress(btn)
                 }}
-                className="bg-white hover:bg-gray-100 active:bg-gray-200 text-2xl font-semibold text-gray-800 p-6 rounded-lg shadow-md border border-gray-300 transition-colors"
+                className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-2xl font-semibold text-slate-100 p-6 rounded-lg border border-slate-700 transition-colors"
               >
                 {btn}
               </button>

@@ -13,8 +13,8 @@ export const StatsCard: React.FC<StatsCardProps> = ({
   icon,
   label,
   value,
-  iconColor = 'text-gray-600',
-  valueColor = 'text-gray-800',
+  iconColor = 'text-slate-400',
+  valueColor = 'text-slate-100',
 }) => {
   return (
     <Card>

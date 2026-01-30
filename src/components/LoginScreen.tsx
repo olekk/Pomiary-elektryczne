@@ -57,14 +57,14 @@ export const LoginScreen: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="bg-slate-900 rounded-2xl shadow-xl border border-slate-800 p-8 w-full max-w-md">
         {/* Logo / Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-slate-100 mb-2">
             Pomiary Elektryczne
           </h1>
-          <p className="text-gray-600">Zaloguj się do aplikacji</p>
+          <p className="text-slate-400">Zaloguj się do aplikacji</p>
         </div>
 
         {/* Login Form */}
@@ -93,9 +93,9 @@ export const LoginScreen: React.FC = () => {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="bg-red-900/20 border border-red-800 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{error}</p>
             </div>
           )}
 
@@ -120,7 +120,7 @@ export const LoginScreen: React.FC = () => {
         <div className="mt-6 text-center">
           <button
             type="button"
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
+            className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
             onClick={() => alert('Skontaktuj się z administratorem systemu')}
           >
             Zapomniałeś hasła?
@@ -128,8 +128,8 @@ export const LoginScreen: React.FC = () => {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">
+        <div className="mt-8 pt-6 border-t border-slate-800">
+          <p className="text-xs text-slate-500 text-center">
             Konta są zarządzane przez administratora.
             <br />
             Skontaktuj się z działem IT, jeśli potrzebujesz dostępu.

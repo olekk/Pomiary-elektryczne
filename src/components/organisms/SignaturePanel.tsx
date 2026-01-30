@@ -26,12 +26,12 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
 
   return (
     <Card>
-      <h3 className="font-bold mb-3">Podpis</h3>
-      <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+      <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
+      <div className="border-2 border-slate-600 rounded-lg overflow-hidden">
         <SignatureCanvas
           ref={signatureRef}
           canvasProps={{
-            className: 'w-full h-48 bg-white',
+            className: 'w-full h-48 bg-white cursor-crosshair',
           }}
           onEnd={() => setHasSignature(true)}
         />
