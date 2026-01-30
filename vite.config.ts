@@ -13,7 +13,7 @@ export default defineConfig({
         'apple-touch-icon.png',
         'masked-icon.svg',
         '**/*.ttf',
-      ], // <--- DODAJ **/*.ttf
+      ],
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,ttf,woff2}'],
         maximumFileSizeToCacheInBytes: 3000000,

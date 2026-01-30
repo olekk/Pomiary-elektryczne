@@ -7,12 +7,13 @@ import { Button } from './atoms'
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { projects, loadProjects, createNewProject, deleteProject } =
+  const { projects, loadProjects, createNewProject, deleteProject, isOnline } =
     useAppStore()
 
   const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Load projects on mount
   useEffect(() => {
@@ -21,6 +22,12 @@ export const ProjectsScreen: React.FC = () => {
   }, [])
 
   const handleRefresh = async () => {
+    // Guard: Don't refresh if offline (MainLayout already blocks button, but double-check)
+    if (!isOnline) {
+      console.log('📴 Refresh blocked: offline mode')
+      return
+    }
+
     setIsLoading(true)
     await loadProjects()
     setIsLoading(false)
@@ -32,9 +39,16 @@ export const ProjectsScreen: React.FC = () => {
       return
     }
 
-    await createNewProject(newProjectName.trim())
-    setNewProjectName('')
-    setShowNewModal(false)
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      await createNewProject(newProjectName.trim())
+      setNewProjectName('')
+      setShowNewModal(false)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDeleteProject = async (id: string, name: string) => {
@@ -159,11 +173,16 @@ export const ProjectsScreen: React.FC = () => {
                   setNewProjectName('')
                 }}
                 className="flex-1 bg-slate-700 text-slate-200 hover:bg-slate-600"
+                disabled={isSubmitting}
               >
                 Anuluj
               </Button>
-              <Button onClick={handleCreateProject} className="flex-1">
-                Utwórz
+              <Button 
+                onClick={handleCreateProject} 
+                className="flex-1"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Tworzenie...' : 'Utwórz'}
               </Button>
             </div>
           </div>

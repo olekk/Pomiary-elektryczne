@@ -33,28 +33,35 @@ export const createProjectSlice: StateCreator<
       status: 'active',
     }
 
-    // Optimistic update
+    // Optimistic update: Update UI immediately
     set((state) => ({
       projects: [newProject, ...state.projects],
     }))
 
-    // Save to Firestore
-    try {
-      await saveProjectToFirestore(newProject)
-      console.log(`✅ Project ${projectId} saved successfully`)
-    } catch (error) {
-      console.error(`❌ Failed to save project ${projectId}:`, error)
-    }
+    // Fire-and-forget: Save to Firestore in background
+    saveProjectToFirestore(newProject)
+      .then(() => {
+        console.log(`✅ Project ${projectId} saved successfully`)
+      })
+      .catch((error) => {
+        console.error(`❌ Failed to save project ${projectId}:`, error)
+        if (error?.code === 'unavailable') {
+          console.log('📴 Offline mode: Data queued for sync when online')
+        }
+      })
   },
 
   loadProjects: async () => {
     try {
       console.log('🔄 Loading projects from Firestore...')
+      // Firebase SDK automatically uses cache when offline (persistentLocalCache)
       const projects = await loadProjectsFromFirestore()
       set({ projects })
       console.log(`✅ Successfully loaded ${projects.length} projects`)
     } catch (error) {
       console.error('❌ Error loading projects:', error)
+      // Don't throw error to avoid blocking UI in offline mode
+      // Keep existing projects in state if load fails
     }
   },
 

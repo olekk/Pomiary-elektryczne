@@ -245,6 +245,7 @@ export const createInspectionSlice: StateCreator<
   loadInspections: async (projectId) => {
     try {
       console.log(`🔄 Loading inspections for project ${projectId}...`)
+      // Firebase SDK automatically uses cache when offline (persistentLocalCache)
       const inspections = await loadInspectionsFromFirestore(projectId)
       set({
         inspections,

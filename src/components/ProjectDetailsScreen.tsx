@@ -19,6 +19,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     deleteInspection,
     pendingSyncCount,
     projects,
+    isOnline,
   } = useAppStore()
 
   const [isLoading, setIsLoading] = useState(true)
@@ -61,6 +62,13 @@ export const ProjectDetailsScreen: React.FC = () => {
 
   const handleRefresh = async () => {
     if (!projectId) return
+    
+    // Guard: Don't refresh if offline (MainLayout already blocks button, but double-check)
+    if (!isOnline) {
+      console.log('📴 Refresh blocked: offline mode')
+      return
+    }
+
     setIsLoading(true)
     await loadInspections(projectId)
     setIsLoading(false)

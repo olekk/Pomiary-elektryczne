@@ -37,6 +37,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   }
 
   const handleRefresh = async () => {
+    // Guard: Don't refresh if offline
+    if (!isOnline) {
+      console.log('📴 Refresh blocked: offline mode')
+      return
+    }
+
     setIsRefreshing(true)
     try {
       // 1. Retry pending sync (zawsze)
@@ -97,13 +103,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             {onRefresh && (
               <button
                 onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-                title="Odśwież"
+                disabled={isRefreshing || !isOnline}
+                className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!isOnline ? 'Brak połączenia' : 'Odśwież'}
               >
                 <RefreshCw
                   size={20}
-                  className={`text-slate-100 ${isRefreshing ? 'animate-spin' : ''}`}
+                  className={`text-slate-100 ${
+                    isRefreshing ? 'animate-spin' : ''
+                  }`}
                 />
               </button>
             )}
@@ -127,9 +135,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       <footer className="bg-slate-900 border-t border-slate-800 px-4 py-3">
         <div className="text-center text-xs text-slate-500">
           <p>Pomiary Elektryczne v1.0.0</p>
-          <p className="mt-1">
-            Build: {new Date().toLocaleDateString('pl-PL')}
-          </p>
+          <p className="mt-1">Build: {__BUILD_DATE__}</p>
         </div>
       </footer>
     </div>
