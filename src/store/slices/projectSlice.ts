@@ -52,31 +52,16 @@ export const createProjectSlice: StateCreator<
   },
 
   loadProjects: async () => {
-    const isOnline = (get() as any).isOnline ?? navigator.onLine
-    console.log(`🔍 loadProjects START. Online: ${isOnline}`)
-    
     try {
-      console.log(`🔍 Checking cache...`)
-      console.log('🔥 Querying Firestore...')
-      
+      console.log('🔄 Loading projects from Firestore...')
       // Firebase SDK automatically uses cache when offline (persistentLocalCache)
       const projects = await loadProjectsFromFirestore()
-      
-      console.log(`✅ Firestore query completed. Received ${projects.length} projects`)
-      
       set({ projects })
       console.log(`✅ Successfully loaded ${projects.length} projects`)
     } catch (error) {
-      console.error('❌ Error caught in loadProjects:', error)
-      console.error('❌ Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        code: (error as any)?.code,
-        name: error instanceof Error ? error.name : 'N/A'
-      })
+      console.error('❌ Error loading projects:', error)
       // Don't throw error to avoid blocking UI in offline mode
       // Keep existing projects in state if load fails
-    } finally {
-      console.log('🏁 Finally block executed in loadProjects.')
     }
   },
 
