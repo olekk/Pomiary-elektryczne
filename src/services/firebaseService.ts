@@ -1,14 +1,9 @@
 import {
-  collection,
   setDoc,
   doc,
-  getDocs,
-  query,
-  orderBy,
   Timestamp,
   deleteDoc,
   updateDoc,
-  where,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, Project } from '../types'
@@ -32,34 +27,6 @@ export const saveProjectToFirestore = async (
 
   const docRef = doc(db, 'projects', project.id)
   await setDoc(docRef, dataToSave, { merge: true })
-}
-
-/**
- * Load all projects from Firestore
- */
-export const loadProjectsFromFirestore = async (): Promise<Project[]> => {
-  const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'))
-
-  try {
-    const querySnapshot = await getDocs(q)
-    const projects: Project[] = []
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data()
-      projects.push({
-        id: doc.id,
-        name: data.name,
-        status: data.status || 'active',
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-      })
-    })
-
-    console.log(`📥 Loaded ${projects.length} projects from Firestore`)
-    return projects
-  } catch (error) {
-    console.error('Error loading projects:', error)
-    return []
-  }
 }
 
 /**
@@ -95,52 +62,6 @@ export const saveInspectionToFirestore = async (
 
   const docRef = doc(db, 'inspections', inspectionId)
   await setDoc(docRef, dataToSave, { merge: true })
-}
-
-/**
- * Load inspections for a specific project from Firestore
- * Supports offline cache - will return cached data if network is unavailable
- * OPTYMALIZACJA: Pobiera tylko pomiary należące do konkretnego projektu
- */
-export const loadInspectionsFromFirestore = async (
-  projectId: string
-): Promise<Inspection[]> => {
-  const q = query(
-    collection(db, 'inspections'),
-    where('projectId', '==', projectId),
-    orderBy('createdAt', 'desc')
-  )
-
-  try {
-    // Firebase automatically uses cache when offline (thanks to persistentLocalCache)
-    const querySnapshot = await getDocs(q)
-
-    const inspections: Inspection[] = []
-
-    querySnapshot.forEach((doc) => {
-      const data = doc.data()
-      inspections.push({
-        id: doc.id,
-        projectId: data.projectId,
-        address: data.address,
-        apartmentNumber: data.apartmentNumber,
-        date: data.date?.toDate ? data.date.toDate() : new Date(),
-        technician: data.technician,
-        measurements: data.measurements || [],
-        signature: data.signature,
-        synced: data.synced ?? true,
-      })
-    })
-
-    console.log(
-      `📥 Loaded ${inspections.length} inspections for project ${projectId}`
-    )
-    return inspections
-  } catch (error) {
-    console.error('Error loading inspections:', error)
-    // Return empty array instead of throwing - allows app to work offline
-    return []
-  }
 }
 
 /**

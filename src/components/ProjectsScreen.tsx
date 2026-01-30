@@ -7,31 +7,27 @@ import { Button } from './atoms'
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { projects, loadProjects, createNewProject, deleteProject, isOnline } =
-    useAppStore()
+  const {
+    projects,
+    isLoadingProjects,
+    subscribeToProjects,
+    unsubscribeFromProjects,
+    createNewProject,
+    deleteProject,
+  } = useAppStore()
 
-  const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load projects on mount
+  // Subscribe to projects on mount, unsubscribe on unmount (Offline-First)
   useEffect(() => {
-    loadProjects().finally(() => setIsLoading(false))
+    subscribeToProjects()
+    return () => {
+      unsubscribeFromProjects()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  const handleRefresh = async () => {
-    // Guard: Don't refresh if offline (MainLayout already blocks button, but double-check)
-    if (!isOnline) {
-      console.log('📴 Refresh blocked: offline mode')
-      return
-    }
-
-    setIsLoading(true)
-    await loadProjects()
-    setIsLoading(false)
-  }
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
@@ -68,10 +64,10 @@ export const ProjectsScreen: React.FC = () => {
   }
 
   return (
-    <MainLayout title="Moje Projekty" onRefresh={handleRefresh}>
+    <MainLayout title="Moje Projekty">
       {/* Content */}
       <div className="p-4 min-h-full">
-        {isLoading ? (
+        {isLoadingProjects ? (
           <div className="flex items-center justify-center py-12">
             <Loader className="animate-spin text-blue-600" size={32} />
           </div>

@@ -1,5 +1,57 @@
 # 🏗️ Architektura Aplikacji - Pomiary Elektryczne
 
+## ⚡ Kluczowa Architektura: Offline-First z Realtime Listeners
+
+### Fundamentalna zmiana (2026)
+
+Aplikacja używa **`onSnapshot` (Realtime Listeners)** zamiast tradycyjnego `getDocs` (Request-Response):
+
+**PRZED (Request-Response):**
+```typescript
+❌ loadProjects() → getDocs() → Wisi w nieskończoność offline
+❌ loadInspections() → getDocs() → Nieskończony spinner
+❌ Ręczne sprawdzanie navigator.onLine
+❌ Manualny refresh button
+```
+
+**TERAZ (Offline-First):**
+```typescript
+✅ subscribeToProjects() → onSnapshot() → Natychmiast zwraca cache
+✅ subscribeToInspections() → onSnapshot() → Auto-sync w tle
+✅ Firebase sam obsługuje offline/online
+✅ Realtime updates bez odświeżania
+✅ Automatyczny cleanup (unsubscribe)
+```
+
+### Zalety architektury:
+
+1. **Brak nieskończonego spinnera offline** - `onSnapshot` natychmiast zwraca dane z cache
+2. **Automatyczna synchronizacja** - dane aktualizują się w czasie rzeczywistym
+3. **Prostszy kod** - brak warunkowej logiki `if (navigator.onLine)`
+4. **Lepsza UX** - użytkownik widzi dane natychmiast (cache), a potem aktualizacje (serwer)
+5. **Memory-safe** - automatyczny cleanup przez `useEffect` return function
+
+### Struktura Read Operations:
+
+```
+Komponenty UI
+    │
+    ├─► useEffect (mount)
+    │       │
+    │       └─► subscribeToProjects/Inspections()
+    │               │
+    │               └─► onSnapshot(query)
+    │                       │
+    │                       ├─► 1st emit: Cache ⚡ (offline OK)
+    │                       └─► 2nd emit: Server 🌐 (auto-sync)
+    │
+    └─► useEffect cleanup (unmount)
+            │
+            └─► unsubscribeFromProjects/Inspections()
+```
+
+---
+
 ## 📁 Struktura Projektu (Atomic Design)
 
 ```
@@ -46,7 +98,7 @@ pomiary-elektryczne/
 │   │   └── SummaryScreen.tsx   # 📄 Podsumowanie
 │   │
 │   ├── services/               # 🔥 Integracje zewnętrzne
-│   │   ├── firebaseService.ts  # CRUD operations (Firestore)
+│   │   ├── firebaseService.ts  # Write operations (Firestore)
 │   │   └── index.ts            # Re-export
 │   │
 │   ├── utils/                  # 🛠️ Pure functions
@@ -222,7 +274,9 @@ service cloud.firestore {
 
 ---
 
-## 🔄 Przepływ Danych (Data Flow)
+## 🔄 Przepływ Danych (Data Flow) - Offline-First Architecture
+
+### Architektura Realtime Listeners (onSnapshot)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -234,16 +288,42 @@ service cloud.firestore {
                  ▼                        ▼
          ┌───────────────┐        ┌──────────────┐
          │  Zustand Store │◄──────►│ Firebase Auth│
-         │ (projects +    │        │ + Firestore  │
-         │  inspections)  │        │              │
-         └───────────────┘        └──────────────┘
-                 │                        │
-                 ▼                        ▼
+         │  (Slices)      │        │              │
+         │                │        └──────────────┘
+         │ - projectSlice │               
+         │   └─► onSnapshot        ┌──────────────┐
+         │       (projects)  ◄─────┤  Firestore   │
+         │                          │  (Cloud)     │
+         │ - inspectionSlice        └──────┬───────┘
+         │   └─► onSnapshot                │
+         │       (inspections) ◄───────────┘
+         └───────────────┘                 │
+                 │                         │
+                 ▼                         ▼
          ┌───────────────┐        ┌──────────────┐
-         │  IndexedDB    │        │    Cloud     │
-         │  (Offline)    │        │  (Online)    │
+         │  IndexedDB    │◄───────┤ Persistence  │
+         │  (Cache)      │        │   Layer      │
          └───────────────┘        └──────────────┘
+              ⚡ 1st emit               🌐 2nd emit
+           (fromCache: true)       (fromCache: false)
 ```
+
+### Kluczowe zasady:
+
+1. **Write Operations** → `firebaseService.ts`
+   - Zapisywanie, usuwanie, aktualizacja danych
+   
+2. **Read Operations** → `onSnapshot` w slices
+   - Natychmiastowe dane z cache (offline)
+   - Automatyczna synchronizacja z serwerem (online)
+   
+3. **Realtime Updates** → Automatyczne
+   - Zmiany w Firestore natychmiast aktualizują UI
+   - Brak ręcznego odświeżania
+
+4. **Cleanup** → Automatyczny
+   - `useEffect` return function wywołuje `unsubscribe()`
+   - Cleanup przy wylogowaniu w `MainLayout`
 
 ## 🧩 Komponenty - Szczegóły (Atomic Design)
 
@@ -281,7 +361,8 @@ service cloud.firestore {
 
 **Zustand actions:**
 
-- `loadProjects()` - wczytanie listy projektów
+- `subscribeToProjects()` - subskrypcja do projektów (Realtime Listener)
+- `unsubscribeFromProjects()` - cleanup subskrypcji
 - `createNewProject(name)` - utworzenie nowego projektu (offline ID: `proj_[timestamp]`)
 - `deleteProject(id)` - usunięcie projektu
 
@@ -306,9 +387,10 @@ service cloud.firestore {
 **Zmiana od wersji Dashboard.tsx:**
 
 - Pobiera `projectId` z URL (`useParams`)
-- Wywołuje `loadInspections(projectId)` zamiast `loadInspections()`
+- Subskrybuje inspekcje dla projektu: `subscribeToInspections(projectId)`
 - Wyświetla tylko pomiary należące do danego projektu
 - Przycisk "Powrót" (← ikona) prowadzący do `/` (ProjectsScreen)
+- Automatyczny cleanup subskrypcji przy opuszczeniu ekranu
 
 **Stan lokalny:**
 
@@ -317,7 +399,8 @@ service cloud.firestore {
 
 **Zustand actions:**
 
-- `loadInspections(projectId)` - wczytanie listy pomiarów dla projektu
+- `subscribeToInspections(projectId)` - subskrypcja do inspekcji (Realtime Listener)
+- `unsubscribeFromInspections()` - cleanup subskrypcji
 - `createNewInspection(projectId, ...)` - utworzenie nowego pomiaru
 - `deleteInspection(id)` - usunięcie
 - `retryPendingSync()` - ponowna synchronizacja offline
@@ -497,17 +580,20 @@ interface InspectionState {
   user: User | null;                    // Zalogowany użytkownik (Firebase)
   setUser: (user: User | null) => void; // Akcja: ustaw użytkownika
 
-  // ===== PROJECT STATE ===== (NEW!)
+  // ===== PROJECT STATE ===== (Offline-First)
   projects: Project[];                  // Lista projektów
   currentProjectId: string | null;      // Aktualnie wybrany projekt
+  isLoadingProjects: boolean;           // Status ładowania projektów
   createNewProject: (name: string) => Promise<void>;
-  loadProjects: () => Promise<void>;
+  subscribeToProjects: () => void;      // Realtime Listener (onSnapshot)
+  unsubscribeFromProjects: () => void;  // Cleanup subskrypcji
   deleteProject: (id: string) => Promise<void>;
   setCurrentProjectId: (projectId: string | null) => void;
 
-  // ===== INSPECTION STATE =====
+  // ===== INSPECTION STATE ===== (Offline-First)
   currentInspection: Inspection | null; // Aktualnie edytowany pomiar
   inspections: Inspection[];            // Lista pomiarów (dla konkretnego projektu)
+  isLoadingInspections: boolean;        // Status ładowania inspekcji
 
   // ===== OFFLINE STATE =====
   isOnline: boolean;                    // Status połączenia
@@ -530,7 +616,8 @@ interface InspectionState {
 
   // ===== PERSISTENCE ACTIONS =====
   saveToFirestore: () => Promise<void>;
-  loadInspections: (projectId: string) => Promise<void>; // ZMIANA: wymaga projectId
+  subscribeToInspections: (projectId: string) => void; // Realtime Listener (onSnapshot)
+  unsubscribeFromInspections: () => void; // Cleanup subskrypcji
   deleteInspection: (id: string) => Promise<void>;
 
   // ===== SYNC ACTIONS =====
@@ -595,7 +682,7 @@ saveToFirestore: async () => {
     await addDoc(collection(db, 'inspections'), dataToSave)
   }
 
-  await get().loadInspections()
+  // onSnapshot automatically updates inspections list - no manual reload needed!
 }
 ```
 
@@ -667,7 +754,55 @@ Dzięki temu pobieramy **tylko pomiary dla konkretnego projektu**, nie wszystkie
 Firebase może wymagać utworzenia złożonego indeksu dla `projectId` + `createdAt`. Link do tworzenia pojawi się w konsoli przy pierwszym użyciu.
 ```
 
-### Offline Persistence
+### Offline-First Architecture (Realtime Listeners)
+
+**Architektura pobierania danych:**
+
+Aplikacja używa **`onSnapshot` (Realtime Listeners)** zamiast tradycyjnego `getDocs` (Request-Response):
+
+```typescript
+// projectSlice.ts
+subscribeToProjects: () => {
+  const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'))
+  
+  unsubscribeProjects = onSnapshot(q, (snapshot) => {
+    // ✅ Wykonuje się 2 razy:
+    // 1. Natychmiast z cache (fromCache: true) - OFFLINE SUPPORT
+    // 2. Po synchronizacji z serwerem (fromCache: false) - ONLINE SYNC
+    
+    const projects = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    set({ projects, isLoadingProjects: false })
+  }, (error) => {
+    console.error('Subscription error:', error)
+    set({ isLoadingProjects: false })
+  })
+}
+```
+
+**Zalety onSnapshot:**
+
+1. ✅ **Natychmiastowe dane z cache** - brak nieskończonego spinnera offline
+2. ✅ **Automatyczna synchronizacja** - dane aktualizują się w czasie rzeczywistym
+3. ✅ **Brak ręcznego sprawdzania `navigator.onLine`** - Firebase obsługuje to sam
+4. ✅ **Automatyczny cleanup** - `useEffect` return function wywołuje `unsubscribe()`
+
+**Cleanup przy wylogowaniu:**
+
+```typescript
+// MainLayout.tsx
+const handleLogout = async () => {
+  // KLUCZOWE: Cleanup subskrypcji przed wylogowaniem
+  unsubscribeFromProjects()
+  unsubscribeFromInspections()
+  await signOut(auth)
+}
+```
+
+**Offline Persistence:**
 
 ```typescript
 // firebase.ts
@@ -682,9 +817,10 @@ enableIndexedDbPersistence(db).catch((err) => {
 
 **Jak działa:**
 
-1. Zapis → Firestore zapisuje lokalnie do IndexedDB
-2. Offline → Dane dostępne z IndexedDB
-3. Online → Automatyczna synchronizacja do Cloud Firestore
+1. **Zapis** → Firestore zapisuje lokalnie do IndexedDB
+2. **Offline** → `onSnapshot` natychmiast zwraca dane z cache
+3. **Online** → `onSnapshot` automatycznie synchronizuje z serwerem i emituje nowy snapshot
+4. **Realtime** → Zmiany w Firestore natychmiast aktualizują UI (bez odświeżania)
 
 ## 🎨 Styling Architecture
 
@@ -896,9 +1032,22 @@ components/
 
 ```
 services/
-└── firebaseService.ts  → TYLKO Firebase operations (CRUD)
+└── firebaseService.ts  → TYLKO Write Operations (Create, Update, Delete)
+                         → Read operations (onSnapshot) w slices
                          → Izolacja od UI
 ```
+
+**firebaseService.ts** zawiera tylko:
+- ✅ `saveProjectToFirestore()` - zapisywanie projektów
+- ✅ `saveInspectionToFirestore()` - zapisywanie inspekcji
+- ✅ `deleteProjectFromFirestore()` - usuwanie projektów
+- ✅ `deleteInspectionFromFirestore()` - usuwanie inspekcji
+- ✅ `markInspectionAsSynced()` - oznaczanie jako zsynchronizowane
+- ✅ `retrySyncInspection()` - retry synchronizacji
+
+**Read operations** (`onSnapshot`) są w **slices**:
+- `projectSlice.ts` → `subscribeToProjects()`
+- `inspectionSlice.ts` → `subscribeToInspections(projectId)`
 
 ### Utils Layer
 
@@ -1007,9 +1156,12 @@ npm run dev
 #### 4. **Refaktoryzacja Store (Zustand)**
 
 - Dodano stan: `projects`, `currentProjectId`
-- Dodano akcje: `createNewProject()`, `loadProjects()`, `deleteProject()`
-- `loadInspections(projectId)` - teraz wymaga `projectId` jako argument
-- `createNewInspection(projectId, ...)` - teraz wymaga `projectId`
+- **2026: Migracja na Offline-First:**
+  - ❌ Usunięto: `loadProjects()`, `loadInspections()` (Request-Response)
+  - ✅ Dodano: `subscribeToProjects()`, `subscribeToInspections()` (Realtime Listeners)
+  - ✅ Dodano: `unsubscribeFromProjects()`, `unsubscribeFromInspections()` (Cleanup)
+  - ✅ Dodano: `isLoadingProjects`, `isLoadingInspections` (Stan ładowania)
+- `createNewInspection(projectId, ...)` - wymaga `projectId`
 
 #### 5. **Optymalizacja Firebase**
 

@@ -14,22 +14,24 @@ export const ProjectDetailsScreen: React.FC = () => {
   const { id: projectId } = useParams<{ id: string }>()
   const {
     inspections,
-    loadInspections,
+    isLoadingInspections,
+    subscribeToInspections,
+    unsubscribeFromInspections,
     createNewInspection,
     deleteInspection,
     pendingSyncCount,
     projects,
-    isOnline,
   } = useAppStore()
 
-  const [isLoading, setIsLoading] = useState(true)
   const [showNewModal, setShowNewModal] = useState(false)
 
-  // Load inspections for this project
+  // Subscribe to inspections for this project (Offline-First)
   useEffect(() => {
     if (projectId) {
-      setIsLoading(true)
-      loadInspections(projectId).finally(() => setIsLoading(false))
+      subscribeToInspections(projectId)
+    }
+    return () => {
+      unsubscribeFromInspections()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
@@ -60,20 +62,6 @@ export const ProjectDetailsScreen: React.FC = () => {
     }
   }
 
-  const handleRefresh = async () => {
-    if (!projectId) return
-    
-    // Guard: Don't refresh if offline (MainLayout already blocks button, but double-check)
-    if (!isOnline) {
-      console.log('📴 Refresh blocked: offline mode')
-      return
-    }
-
-    setIsLoading(true)
-    await loadInspections(projectId)
-    setIsLoading(false)
-  }
-
   const syncedCount = inspections.filter((i) => i.synced).length
 
   // Znajdź nazwę projektu
@@ -87,7 +75,7 @@ export const ProjectDetailsScreen: React.FC = () => {
   }
 
   return (
-    <MainLayout title={projectName} showBackBtn={true} onRefresh={handleRefresh}>
+    <MainLayout title={projectName} showBackBtn={true}>
       <div className="p-4">
         <DashboardStats
           totalCount={inspections.length}
@@ -99,7 +87,7 @@ export const ProjectDetailsScreen: React.FC = () => {
       <div className="p-4">
         <InspectionsList
           inspections={inspections}
-          isLoading={isLoading}
+          isLoading={isLoadingInspections}
           onDelete={handleDelete}
         />
       </div>

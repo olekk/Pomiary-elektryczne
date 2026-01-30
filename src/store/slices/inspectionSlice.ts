@@ -1,8 +1,8 @@
 import type { StateCreator } from 'zustand'
 import type { Inspection } from '../../types'
+import type { Unsubscribe } from 'firebase/firestore'
 import {
   saveInspectionToFirestore,
-  loadInspectionsFromFirestore,
   deleteInspectionFromFirestore,
   markInspectionAsSynced,
 } from '../../services'
@@ -14,11 +14,17 @@ import {
   calculateZsDop,
   determineMeasurementResult,
 } from '../../utils'
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import { db } from '../../firebase'
+
+// Module-level unsubscribe reference for cleanup
+let unsubscribeInspections: Unsubscribe | null = null
 
 export interface InspectionSlice {
   currentInspection: Inspection | null
   inspections: Inspection[]
   pendingSyncCount: number
+  isLoadingInspections: boolean
   createNewInspection: (
     projectId: string,
     address: string,
@@ -31,7 +37,8 @@ export interface InspectionSlice {
   updateMeasurement: (id: string, zsValue: number | null) => void
   removeMeasurement: (id: string) => void
   saveToFirestore: (signatureOverride?: string) => Promise<void>
-  loadInspections: (projectId: string) => Promise<void>
+  subscribeToInspections: (projectId: string) => void
+  unsubscribeFromInspections: () => void
   deleteInspection: (id: string) => Promise<void>
 }
 
@@ -44,6 +51,7 @@ export const createInspectionSlice: StateCreator<
   currentInspection: null,
   inspections: [],
   pendingSyncCount: 0,
+  isLoadingInspections: true,
 
   createNewInspection: (projectId, address, apartmentNumber, technician) => {
     set({
@@ -242,22 +250,77 @@ export const createInspectionSlice: StateCreator<
       })
   },
 
-  loadInspections: async (projectId) => {
-    try {
-      console.log(`🔄 Loading inspections for project ${projectId}...`)
-      // Firebase SDK automatically uses cache when offline (persistentLocalCache)
-      const inspections = await loadInspectionsFromFirestore(projectId)
-      set({
-        inspections,
-        pendingSyncCount: inspections.filter((i) => !i.synced).length,
-      })
-      console.log(
-        `✅ Successfully loaded ${inspections.length} inspections for project ${projectId}`
-      )
-    } catch (error) {
-      console.error('❌ Error loading inspections:', error)
-      // Don't throw error to avoid blocking UI in offline mode
-      // Keep existing inspections in state if load fails
+  /**
+   * Subscribe to inspections with Realtime Listener (Offline-First)
+   * - Immediately returns cached data
+   * - Automatically syncs with server in background
+   * - No need to manually check navigator.onLine
+   */
+  subscribeToInspections: (projectId: string) => {
+    console.log(`🔔 Subscribing to inspections for project ${projectId} (Offline-First)...`)
+    set({ isLoadingInspections: true })
+
+    // Cleanup existing subscription to avoid duplicates
+    if (unsubscribeInspections) {
+      console.log('🧹 Cleaning up existing inspections subscription')
+      unsubscribeInspections()
+    }
+
+    const q = query(
+      collection(db, 'inspections'),
+      where('projectId', '==', projectId),
+      orderBy('createdAt', 'desc')
+    )
+
+    unsubscribeInspections = onSnapshot(
+      q,
+      (snapshot) => {
+        const inspections: Inspection[] = []
+
+        snapshot.forEach((doc) => {
+          const data = doc.data()
+          inspections.push({
+            id: doc.id,
+            projectId: data.projectId,
+            address: data.address,
+            apartmentNumber: data.apartmentNumber,
+            date: data.date?.toDate ? data.date.toDate() : new Date(),
+            technician: data.technician,
+            measurements: data.measurements || [],
+            signature: data.signature,
+            synced: data.synced ?? true,
+          })
+        })
+
+        const pendingCount = inspections.filter((i) => !i.synced).length
+
+        console.log(
+          `📥 Inspections snapshot received: ${inspections.length} inspections, ${pendingCount} pending (fromCache: ${snapshot.metadata.fromCache})`
+        )
+
+        set({
+          inspections,
+          pendingSyncCount: pendingCount,
+          isLoadingInspections: false,
+        })
+      },
+      (error) => {
+        console.error('❌ Inspections subscription error:', error.code, error.message)
+        // Set loading to false even on error to prevent infinite spinner
+        set({ isLoadingInspections: false })
+      }
+    )
+  },
+
+  /**
+   * Unsubscribe from inspections realtime listener
+   * Call this on component unmount or when switching projects
+   */
+  unsubscribeFromInspections: () => {
+    console.log('🔕 Unsubscribing from inspections')
+    if (unsubscribeInspections) {
+      unsubscribeInspections()
+      unsubscribeInspections = null
     }
   },
 

@@ -10,24 +10,29 @@ interface MainLayoutProps {
   children: React.ReactNode
   title: string
   showBackBtn?: boolean
-  onRefresh?: () => void | Promise<void>
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
   children,
   title,
   showBackBtn = false,
-  onRefresh,
 }) => {
   // Atomowe selektory Zustand dla optymalizacji re-renderów
   const isOnline = useAppStore((state) => state.isOnline)
   const pendingSyncCount = useAppStore((state) => state.pendingSyncCount)
   const retryPendingSync = useAppStore((state) => state.retryPendingSync)
+  const unsubscribeFromProjects = useAppStore((state) => state.unsubscribeFromProjects)
+  const unsubscribeFromInspections = useAppStore((state) => state.unsubscribeFromInspections)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
 
   const handleLogout = async () => {
     if (confirm('Czy na pewno chcesz się wylogować?')) {
       try {
+        // Cleanup: Unsubscribe from all realtime listeners before logout
+        console.log('🧹 Cleaning up subscriptions before logout...')
+        unsubscribeFromProjects()
+        unsubscribeFromInspections()
+        
         await signOut(auth)
       } catch (error) {
         console.error('Błąd wylogowania:', error)
@@ -37,21 +42,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   }
 
   const handleRefresh = async () => {
-    // Guard: Don't refresh if offline
-    if (!isOnline) {
-      console.log('📴 Refresh blocked: offline mode')
+    // Guard: Don't refresh if offline or no pending syncs
+    if (!isOnline || pendingSyncCount === 0) {
+      console.log('📴 Refresh skipped: offline or no pending syncs')
       return
     }
 
     setIsRefreshing(true)
     try {
-      // 1. Retry pending sync (zawsze)
+      // With onSnapshot, data is always synced automatically
+      // Refresh button only retries pending syncs
       await retryPendingSync()
-
-      // 2. Wywołaj kontekstowe odświeżenie (jeśli przekazane)
-      if (onRefresh) {
-        await onRefresh()
-      }
     } catch (error) {
       console.error('Błąd odświeżania:', error)
     } finally {
@@ -99,13 +100,13 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               onRetrySync={retryPendingSync}
             />
 
-            {/* Refresh Button */}
-            {onRefresh && (
+            {/* Refresh Button - Only show when there are pending syncs */}
+            {pendingSyncCount > 0 && (
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing || !isOnline}
                 className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!isOnline ? 'Brak połączenia' : 'Odśwież'}
+                title={!isOnline ? 'Brak połączenia' : 'Ponów synchronizację'}
               >
                 <RefreshCw
                   size={20}
