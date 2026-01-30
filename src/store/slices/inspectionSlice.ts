@@ -243,21 +243,37 @@ export const createInspectionSlice: StateCreator<
   },
 
   loadInspections: async (projectId) => {
+    const isOnline = (get() as any).isOnline ?? navigator.onLine
+    console.log(`🔍 loadInspections START. ProjectId: ${projectId}, Online: ${isOnline}`)
+    
     try {
-      console.log(`🔄 Loading inspections for project ${projectId}...`)
+      console.log(`🔍 Checking cache...`)
+      console.log(`🔥 Querying Firestore...`)
+      
       // Firebase SDK automatically uses cache when offline (persistentLocalCache)
       const inspections = await loadInspectionsFromFirestore(projectId)
+      
+      console.log(`✅ Firestore query completed. Received ${inspections.length} inspections`)
+      
       set({
         inspections,
         pendingSyncCount: inspections.filter((i) => !i.synced).length,
       })
+      
       console.log(
         `✅ Successfully loaded ${inspections.length} inspections for project ${projectId}`
       )
     } catch (error) {
-      console.error('❌ Error loading inspections:', error)
+      console.error('❌ Error caught in loadInspections:', error)
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        code: (error as any)?.code,
+        name: error instanceof Error ? error.name : 'N/A'
+      })
       // Don't throw error to avoid blocking UI in offline mode
       // Keep existing inspections in state if load fails
+    } finally {
+      console.log('🏁 Finally block executed in loadInspections.')
     }
   },
 
