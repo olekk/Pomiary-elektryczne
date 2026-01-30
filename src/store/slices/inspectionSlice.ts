@@ -251,14 +251,24 @@ export const createInspectionSlice: StateCreator<
   },
 
   /**
-   * Subscribe to inspections with Realtime Listener (Offline-First)
-   * - Immediately returns cached data
-   * - Automatically syncs with server in background
-   * - No need to manually check navigator.onLine
+   * Subscribe to inspections with Realtime Listener (Offline-First + Stale-While-Revalidate)
+   * - Shows stale data immediately (no spinner if we have data)
+   * - Updates in background when fresh data arrives
+   * - includeMetadataChanges: true for faster offline responsiveness
    */
   subscribeToInspections: (projectId: string) => {
-    console.log(`🔔 Subscribing to inspections for project ${projectId} (Offline-First)...`)
-    set({ isLoadingInspections: true })
+    console.log(`🔔 Subscribing to inspections for project ${projectId} (Stale-While-Revalidate)...`)
+    
+    const { inspections } = get()
+    
+    // 🎯 STALE-WHILE-REVALIDATE: Only show spinner if list is empty
+    // If we have stale data, display it immediately and update in background
+    if (inspections.length === 0) {
+      console.log('📭 No stale data - showing spinner')
+      set({ isLoadingInspections: true })
+    } else {
+      console.log(`♻️  Showing ${inspections.length} stale inspections while revalidating`)
+    }
 
     // Cleanup existing subscription to avoid duplicates
     if (unsubscribeInspections) {
@@ -274,6 +284,10 @@ export const createInspectionSlice: StateCreator<
 
     unsubscribeInspections = onSnapshot(
       q,
+      {
+        // 🚀 Include metadata changes for faster offline updates (pending writes)
+        includeMetadataChanges: true,
+      },
       (snapshot) => {
         const inspections: Inspection[] = []
 
@@ -295,7 +309,7 @@ export const createInspectionSlice: StateCreator<
         const pendingCount = inspections.filter((i) => !i.synced).length
 
         console.log(
-          `📥 Inspections snapshot received: ${inspections.length} inspections, ${pendingCount} pending (fromCache: ${snapshot.metadata.fromCache})`
+          `📥 Inspections snapshot: ${inspections.length} inspections, ${pendingCount} pending (fromCache: ${snapshot.metadata.fromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites})`
         )
 
         set({

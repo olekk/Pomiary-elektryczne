@@ -60,14 +60,24 @@ export const createProjectSlice: StateCreator<
   },
 
   /**
-   * Subscribe to projects with Realtime Listener (Offline-First)
-   * - Immediately returns cached data
-   * - Automatically syncs with server in background
-   * - No need to manually check navigator.onLine
+   * Subscribe to projects with Realtime Listener (Offline-First + Stale-While-Revalidate)
+   * - Shows stale data immediately (no spinner if we have data)
+   * - Updates in background when fresh data arrives
+   * - includeMetadataChanges: true for faster offline responsiveness
    */
   subscribeToProjects: () => {
-    console.log('🔔 Subscribing to projects (Offline-First)...')
-    set({ isLoadingProjects: true })
+    console.log('🔔 Subscribing to projects (Stale-While-Revalidate)...')
+    
+    const { projects } = get()
+    
+    // 🎯 STALE-WHILE-REVALIDATE: Only show spinner if list is empty
+    // If we have stale data, display it immediately and update in background
+    if (projects.length === 0) {
+      console.log('📭 No stale data - showing spinner')
+      set({ isLoadingProjects: true })
+    } else {
+      console.log(`♻️  Showing ${projects.length} stale projects while revalidating`)
+    }
 
     // Cleanup existing subscription to avoid duplicates
     if (unsubscribeProjects) {
@@ -79,6 +89,10 @@ export const createProjectSlice: StateCreator<
 
     unsubscribeProjects = onSnapshot(
       q,
+      {
+        // 🚀 Include metadata changes for faster offline updates (pending writes)
+        includeMetadataChanges: true,
+      },
       (snapshot) => {
         const projects: Project[] = []
 
@@ -95,7 +109,7 @@ export const createProjectSlice: StateCreator<
         })
 
         console.log(
-          `📥 Projects snapshot received: ${projects.length} projects (fromCache: ${snapshot.metadata.fromCache})`
+          `📥 Projects snapshot: ${projects.length} projects (fromCache: ${snapshot.metadata.fromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites})`
         )
 
         set({ projects, isLoadingProjects: false })

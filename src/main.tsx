@@ -26,6 +26,8 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    {/* Fix for VConsole switch position */}
+    <style>{`.vc-switch { right: inherit !important; }`}</style>
     <App />
   </StrictMode>
 )
