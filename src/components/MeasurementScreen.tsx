@@ -78,13 +78,10 @@ export const MeasurementScreen: React.FC = () => {
     setIsSaving(true)
 
     try {
-      console.log('Rozpoczynam zapis...', currentInspection)
       await saveToFirestore()
-      console.log('Zapis zakończony sukcesem')
-      alert('Zapisano pomiar!')
       navigate('/summary')
     } catch (error: unknown) {
-      console.error('Błąd zapisu w komponencie:', error)
+      console.error('Błąd zapisu:', error)
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error'
       alert(errorMessage || 'Błąd podczas zapisywania. Spróbuj ponownie.')

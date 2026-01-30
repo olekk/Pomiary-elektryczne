@@ -67,7 +67,7 @@ interface InspectionState {
   removeMeasurement: (id: string) => void
 
   // Actions - Persistence
-  saveToFirestore: () => Promise<void>
+  saveToFirestore: (signatureOverride?: string) => Promise<void>
   loadInspections: (projectId: string) => Promise<void>
   deleteInspection: (id: string) => Promise<void>
 
@@ -188,15 +188,11 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
   },
 
   setSignature: (signature) => {
-    const { currentInspection } = get()
-    if (currentInspection) {
-      set({
-        currentInspection: {
-          ...currentInspection,
-          signature,
-        },
-      })
-    }
+    set((state) => ({
+      currentInspection: state.currentInspection
+        ? { ...state.currentInspection, signature: signature }
+        : null,
+    }))
   },
 
   // ===== MEASUREMENT MANAGEMENT =====
@@ -281,7 +277,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
 
   // ===== PERSISTENCE =====
 
-  saveToFirestore: async () => {
+  saveToFirestore: async (signatureOverride) => {
     const { currentInspection, inspections } = get()
 
     if (!currentInspection) {
@@ -296,6 +292,10 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
         ? currentInspection.date
         : new Date(currentInspection.date)
 
+    // Use signatureOverride if provided, otherwise use store signature
+    const signatureToSave =
+      signatureOverride || currentInspection.signature || ''
+
     // Optimistic update: Update UI immediately
     const optimisticInspection: Inspection = {
       id: savedId,
@@ -305,7 +305,7 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
       technician: currentInspection.technician,
       date: dateToSave,
       measurements: currentInspection.measurements,
-      signature: currentInspection.signature,
+      signature: signatureToSave,
       synced: false,
     }
 
@@ -331,7 +331,12 @@ export const useInspectionStore = create<InspectionState>((set, get) => ({
     set({ pendingSyncCount: newPendingCount })
 
     // Fire-and-forget: Save to Firebase in background
-    saveInspectionToFirestore(currentInspection, savedId)
+    const inspectionToSave: Inspection = {
+      ...currentInspection,
+      signature: signatureToSave,
+    }
+
+    saveInspectionToFirestore(inspectionToSave, savedId)
       .then(async () => {
         // Mark as synced in Firestore
         await markInspectionAsSynced(savedId)

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
@@ -26,6 +26,14 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
     <title>Pomiary Elektryczne</title>
+
+    <script>
+      window.global = window
+    </script>
+    <script type="module">
+      import { Buffer } from 'buffer'
+      window.Buffer = Buffer
+    </script>
   </head>
   <body>
     <div id="root"></div>

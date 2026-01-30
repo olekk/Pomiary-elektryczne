@@ -11,9 +11,22 @@ import { countMeasurementsByResult } from '../utils'
 
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { currentInspection, setSignature } = useInspectionStore()
+  const { currentInspection, setSignature, saveToFirestore } =
+    useInspectionStore()
 
   const projectId = currentInspection?.projectId
+
+  const handleSaveSignature = async (signature: string) => {
+    try {
+      // Update store first
+      setSignature(signature)
+      // Save to Firestore with signature override
+      await saveToFirestore(signature)
+    } catch (error) {
+      console.error('Error saving signature:', error)
+      alert('Błąd podczas zapisywania podpisu')
+    }
+  }
 
   const handleReturnToProject = () => {
     if (projectId) {
@@ -109,7 +122,7 @@ export const SummaryScreen: React.FC = () => {
         </Card>
 
         {/* Signature */}
-        <SignaturePanel onSave={setSignature} />
+        <SignaturePanel onSave={handleSaveSignature} />
 
         {/* Actions */}
         <div className="space-y-3 mt-4">

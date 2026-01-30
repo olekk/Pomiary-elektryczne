@@ -3,24 +3,33 @@ import SignatureCanvas from 'react-signature-canvas'
 import { Card, Button } from '../atoms'
 
 interface SignaturePanelProps {
-  onSave: (signature: string) => void
+  onSave: (signature: string) => Promise<void> | void
 }
 
 export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
   const signatureRef = useRef<SignatureCanvas>(null)
   const [hasSignature, setHasSignature] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleClear = () => {
     signatureRef.current?.clear()
     setHasSignature(false)
   }
 
-  const handleSave = () => {
-    if (signatureRef.current) {
+  const handleSave = async () => {
+    if (signatureRef.current && !isSaving) {
       const dataURL = signatureRef.current.toDataURL()
-      onSave(dataURL)
-      setHasSignature(true)
-      alert('Podpis zapisany!')
+
+      setIsSaving(true)
+      try {
+        await onSave(dataURL)
+        setHasSignature(true)
+      } catch (error) {
+        console.error('Error saving signature:', error)
+        alert('Błąd podczas zapisywania podpisu')
+      } finally {
+        setIsSaving(false)
+      }
     }
   }
 
@@ -44,9 +53,9 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
           variant="primary"
           fullWidth
           onClick={handleSave}
-          disabled={!hasSignature}
+          disabled={!hasSignature || isSaving}
         >
-          Zapisz podpis
+          {isSaving ? 'Zapisywanie...' : 'Zapisz podpis'}
         </Button>
       </div>
     </Card>
