@@ -1,6 +1,7 @@
 import React from 'react'
 import { Trash2 } from 'lucide-react'
 import type { Measurement } from '../../types'
+import { cn } from '../../utils'
 
 interface MeasurementListItemProps {
   measurement: Measurement
@@ -29,7 +30,11 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
 
   return (
     <div
-      className={`bg-slate-800 p-3 rounded-lg border border-slate-700 flex items-center justify-between border-l-4 ${borderColor}`}
+      className={cn(
+        'bg-slate-800 p-3 rounded-lg border border-slate-700',
+        'flex items-center justify-between border-l-4',
+        borderColor
+      )}
     >
       <div className="flex-1">
         <div className="flex items-center gap-2">
@@ -37,7 +42,7 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
           <span className="text-sm text-slate-400">
             {m.protectionType} {m.amperage}A
           </span>
-          <span className={`ml-auto font-bold text-lg ${resultColor}`}>
+          <span className={cn('ml-auto font-bold text-lg', resultColor)}>
             {m.result}
           </span>
         </div>
@@ -94,13 +99,13 @@ export const CompactMeasurementListItem: React.FC<
         : 'text-red-400'
 
   return (
-    <div className={`p-2 rounded border-l-4 ${borderColor} ${bgColor}`}>
+    <div className={cn('p-2 rounded border-l-4', borderColor, bgColor)}>
       <div className="flex items-center justify-between">
         <span className="font-semibold text-slate-100">#{m.pointNumber}</span>
         <span className="text-sm text-slate-400">
           {m.protectionType} {m.amperage}A
         </span>
-        <span className={`font-bold ${resultColor}`}>{m.result}</span>
+        <span className={cn('font-bold', resultColor)}>{m.result}</span>
       </div>
       {!m.noGrounding && (
         <div className="text-xs text-slate-400 mt-1">

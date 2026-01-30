@@ -10,7 +10,10 @@ import { LoginScreen } from './components/LoginScreen'
 import { useAppStore } from './store/useAppStore'
 
 function App() {
-  const { setOnlineStatus, setUser, user } = useAppStore()
+  // Atomowe selektory Zustand dla optymalizacji re-renderów
+  const setOnlineStatus = useAppStore((state) => state.setOnlineStatus)
+  const setUser = useAppStore((state) => state.setUser)
+  const user = useAppStore((state) => state.user)
   const [isAuthChecking, setIsAuthChecking] = useState(true)
 
   // ===== MONITORING ONLINE/OFFLINE STATUS =====
@@ -57,10 +60,10 @@ function App() {
   // Loading state podczas sprawdzania sesji
   if (isAuthChecking) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Ładowanie...</p>
+          <p className="text-slate-400">Ładowanie...</p>
         </div>
       </div>
     )

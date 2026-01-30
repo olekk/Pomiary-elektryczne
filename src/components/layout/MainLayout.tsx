@@ -19,7 +19,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   showBackBtn = false,
   onRefresh,
 }) => {
-  const { isOnline, pendingSyncCount, retryPendingSync } = useAppStore()
+  // Atomowe selektory Zustand dla optymalizacji re-renderów
+  const isOnline = useAppStore((state) => state.isOnline)
+  const pendingSyncCount = useAppStore((state) => state.pendingSyncCount)
+  const retryPendingSync = useAppStore((state) => state.retryPendingSync)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
 
   const handleLogout = async () => {
