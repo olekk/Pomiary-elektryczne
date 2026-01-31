@@ -4,6 +4,11 @@ import {
   Timestamp,
   deleteDoc,
   updateDoc,
+  writeBatch,
+  collection,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, Project } from '../types'
@@ -30,10 +35,38 @@ export const saveProjectToFirestore = async (
 }
 
 /**
- * Delete a project from Firestore
+ * Delete a project from Firestore with cascading delete
+ * Removes the project AND all related inspections in a single atomic operation
+ * TODO: When buildings are implemented, also delete related buildings here
  */
 export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, 'projects', id))
+  const batch = writeBatch(db)
+
+  // 1. Add project deletion to batch
+  const projectRef = doc(db, 'projects', id)
+  batch.delete(projectRef)
+
+  // 2. Query and delete all related inspections
+  const inspectionsQuery = query(
+    collection(db, 'inspections'),
+    where('projectId', '==', id)
+  )
+  const inspectionsSnapshot = await getDocs(inspectionsQuery)
+
+  console.log(
+    `🗑️  Cascading delete: Found ${inspectionsSnapshot.size} inspections to delete for project ${id}`
+  )
+
+  inspectionsSnapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref)
+  })
+
+  // 3. Execute atomic batch operation (all or nothing)
+  await batch.commit()
+
+  console.log(
+    `✅ Successfully deleted project ${id} and ${inspectionsSnapshot.size} related inspections`
+  )
 }
 
 /**
