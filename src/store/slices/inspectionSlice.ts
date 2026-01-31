@@ -25,6 +25,7 @@ export interface InspectionSlice {
   inspections: Inspection[]
   pendingSyncCount: number
   isLoadingInspections: boolean
+  loadedProjectId: string | null // 🛡️ Ghost Data Protection: Track loaded project
   createNewInspection: (
     projectId: string,
     address: string,
@@ -52,6 +53,7 @@ export const createInspectionSlice: StateCreator<
   inspections: [],
   pendingSyncCount: 0,
   isLoadingInspections: true,
+  loadedProjectId: null, // 🛡️ Ghost Data Protection: Initially null
 
   createNewInspection: (projectId, address, apartmentNumber, technician) => {
     set({
@@ -255,19 +257,30 @@ export const createInspectionSlice: StateCreator<
    * - Shows stale data immediately (no spinner if we have data)
    * - Updates in background when fresh data arrives
    * - includeMetadataChanges: true for faster offline responsiveness
+   * - Ghost Data Protection: Clears data when switching projects
    */
   subscribeToInspections: (projectId: string) => {
     console.log(`🔔 Subscribing to inspections for project ${projectId} (Stale-While-Revalidate)...`)
     
-    const { inspections } = get()
+    const { inspections, loadedProjectId } = get()
     
-    // 🎯 STALE-WHILE-REVALIDATE: Only show spinner if list is empty
-    // If we have stale data, display it immediately and update in background
-    if (inspections.length === 0) {
-      console.log('📭 No stale data - showing spinner')
-      set({ isLoadingInspections: true })
+    // 🛡️ GHOST DATA PROTECTION: Check if project ID changed
+    if (loadedProjectId !== projectId) {
+      console.log(`🧹 Project changed (${loadedProjectId} → ${projectId}) - clearing ghost data`)
+      set({ 
+        inspections: [], // Clear old project data immediately
+        loadedProjectId: projectId, // Update loaded project ID
+        isLoadingInspections: true, // Show spinner for new project
+        pendingSyncCount: 0, // Reset pending count
+      })
     } else {
-      console.log(`♻️  Showing ${inspections.length} stale inspections while revalidating`)
+      // 🎯 STALE-WHILE-REVALIDATE: Same project, check if we have stale data
+      if (inspections.length === 0) {
+        console.log('📭 No stale data - showing spinner')
+        set({ isLoadingInspections: true })
+      } else {
+        console.log(`♻️  Showing ${inspections.length} stale inspections while revalidating`)
+      }
     }
 
     // Cleanup existing subscription to avoid duplicates

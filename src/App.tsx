@@ -12,15 +12,20 @@ import { useAppStore } from './store/useAppStore'
 function App() {
   // Atomowe selektory Zustand dla optymalizacji re-renderów
   const setOnlineStatus = useAppStore((state) => state.setOnlineStatus)
+  const retryPendingSync = useAppStore((state) => state.retryPendingSync)
   const setUser = useAppStore((state) => state.setUser)
   const user = useAppStore((state) => state.user)
   const [isAuthChecking, setIsAuthChecking] = useState(true)
 
-  // ===== MONITORING ONLINE/OFFLINE STATUS =====
+  // ===== MONITORING ONLINE/OFFLINE STATUS + AUTO-SYNC =====
   useEffect(() => {
     const handleOnline = () => {
       console.log('🌐 Network: ONLINE')
       setOnlineStatus(true)
+      
+      // 🔄 AUTO-SYNC: Retry pending syncs when connection restored
+      console.log('🔄 Auto-retrying pending syncs...')
+      retryPendingSync()
     }
 
     const handleOffline = () => {
@@ -39,7 +44,7 @@ function App() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [setOnlineStatus])
+  }, [setOnlineStatus, retryPendingSync])
 
   // ===== MONITORING AUTH STATE =====
   useEffect(() => {

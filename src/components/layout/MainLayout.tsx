@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, LogOut, RefreshCw } from 'lucide-react'
+import { ArrowLeft, LogOut } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase'
 import { useAppStore } from '../../store/useAppStore'
@@ -21,9 +21,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const isOnline = useAppStore((state) => state.isOnline)
   const pendingSyncCount = useAppStore((state) => state.pendingSyncCount)
   const retryPendingSync = useAppStore((state) => state.retryPendingSync)
-  const unsubscribeFromProjects = useAppStore((state) => state.unsubscribeFromProjects)
-  const unsubscribeFromInspections = useAppStore((state) => state.unsubscribeFromInspections)
-  const [isRefreshing, setIsRefreshing] = React.useState(false)
+  const unsubscribeFromProjects = useAppStore(
+    (state) => state.unsubscribeFromProjects
+  )
+  const unsubscribeFromInspections = useAppStore(
+    (state) => state.unsubscribeFromInspections
+  )
 
   const handleLogout = async () => {
     if (confirm('Czy na pewno chcesz się wylogować?')) {
@@ -32,31 +35,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         console.log('🧹 Cleaning up subscriptions before logout...')
         unsubscribeFromProjects()
         unsubscribeFromInspections()
-        
+
         await signOut(auth)
       } catch (error) {
         console.error('Błąd wylogowania:', error)
         alert('Błąd podczas wylogowania')
       }
-    }
-  }
-
-  const handleRefresh = async () => {
-    // Guard: Don't refresh if offline or no pending syncs
-    if (!isOnline || pendingSyncCount === 0) {
-      console.log('📴 Refresh skipped: offline or no pending syncs')
-      return
-    }
-
-    setIsRefreshing(true)
-    try {
-      // With onSnapshot, data is always synced automatically
-      // Refresh button only retries pending syncs
-      await retryPendingSync()
-    } catch (error) {
-      console.error('Błąd odświeżania:', error)
-    } finally {
-      setIsRefreshing(false)
     }
   }
 
@@ -99,23 +83,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               pendingCount={pendingSyncCount}
               onRetrySync={retryPendingSync}
             />
-
-            {/* Refresh Button - Only show when there are pending syncs */}
-            {pendingSyncCount > 0 && (
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing || !isOnline}
-                className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={!isOnline ? 'Brak połączenia' : 'Ponów synchronizację'}
-              >
-                <RefreshCw
-                  size={20}
-                  className={`text-slate-100 ${
-                    isRefreshing ? 'animate-spin' : ''
-                  }`}
-                />
-              </button>
-            )}
 
             {/* Logout Button */}
             <button
