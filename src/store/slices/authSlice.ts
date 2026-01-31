@@ -4,6 +4,7 @@ import type { StateCreator } from 'zustand'
 export interface AuthSlice {
   user: User | null
   setUser: (user: User | null) => void
+  resetAuth: () => void
 }
 
 export const createAuthSlice: StateCreator<
@@ -16,5 +17,10 @@ export const createAuthSlice: StateCreator<
 
   setUser: (user) => {
     set({ user })
+  },
+
+  resetAuth: () => {
+    console.log('🧹 Resetting auth state')
+    set({ user: null })
   },
 })

@@ -13,6 +13,7 @@ import {
   renumberMeasurements,
   calculateZsDop,
   determineMeasurementResult,
+  ensureDate,
 } from '../../utils'
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import { db } from '../../firebase'
@@ -41,6 +42,8 @@ export interface InspectionSlice {
   subscribeToInspections: (projectId: string) => void
   unsubscribeFromInspections: () => void
   deleteInspection: (id: string) => Promise<void>
+  markInspectionAsSynced: (inspectionId: string) => void
+  resetInspections: () => void
 }
 
 export const createInspectionSlice: StateCreator<
@@ -169,11 +172,6 @@ export const createInspectionSlice: StateCreator<
     // Generate ID locally for offline support
     const savedId = currentInspection.id || generateInspectionId()
 
-    const dateToSave =
-      currentInspection.date instanceof Date
-        ? currentInspection.date
-        : new Date(currentInspection.date)
-
     // Use signatureOverride if provided, otherwise use store signature
     const signatureToSave =
       signatureOverride || currentInspection.signature || ''
@@ -185,7 +183,7 @@ export const createInspectionSlice: StateCreator<
       address: currentInspection.address,
       apartmentNumber: currentInspection.apartmentNumber,
       technician: currentInspection.technician,
-      date: dateToSave,
+      date: ensureDate(currentInspection.date),
       measurements: currentInspection.measurements,
       signature: signatureToSave,
       synced: false,
@@ -364,5 +362,47 @@ export const createInspectionSlice: StateCreator<
       console.error('Error deleting inspection:', error)
       throw error
     }
+  },
+
+  /**
+   * Mark inspection as synced (called from offlineSlice retry logic)
+   * This is the ONLY proper way to update synced status from outside
+   */
+  markInspectionAsSynced: (inspectionId: string) => {
+    const { inspections, currentInspection } = get()
+    
+    const syncedList = inspections.map((insp) =>
+      insp.id === inspectionId ? { ...insp, synced: true } : insp
+    )
+    
+    const newPendingCount = syncedList.filter((i) => !i.synced).length
+
+    console.log(`✅ Marked inspection ${inspectionId} as synced (${newPendingCount} pending)`)
+
+    set({
+      inspections: syncedList,
+      pendingSyncCount: newPendingCount,
+    })
+
+    // Update currentInspection if it's the same
+    if (currentInspection?.id === inspectionId) {
+      set({
+        currentInspection: {
+          ...currentInspection,
+          synced: true,
+        },
+      })
+    }
+  },
+
+  resetInspections: () => {
+    console.log('🧹 Resetting inspections state')
+    set({
+      currentInspection: null,
+      inspections: [],
+      pendingSyncCount: 0,
+      isLoadingInspections: true,
+      loadedProjectId: null,
+    })
   },
 })

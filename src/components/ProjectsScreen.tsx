@@ -8,6 +8,7 @@ import { Button } from './atoms'
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
   const {
+    user,
     projects,
     isLoadingProjects,
     subscribeToProjects,
@@ -22,12 +23,14 @@ export const ProjectsScreen: React.FC = () => {
 
   // Subscribe to projects on mount, unsubscribe on unmount (Offline-First)
   useEffect(() => {
-    subscribeToProjects()
+    if (user?.uid) {
+      subscribeToProjects(user.uid)
+    }
     return () => {
       unsubscribeFromProjects()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [user?.uid])
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {

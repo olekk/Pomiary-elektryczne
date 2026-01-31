@@ -30,18 +30,11 @@ export const createOfflineSlice: StateCreator<
 
   setOnlineStatus: (status) => {
     set({ isOnline: status })
-
-    // Auto-retry when coming back online
-    if (status) {
-      console.log('🌐 Connection restored! Auto-retrying pending syncs...')
-      const { retryPendingSync } = get()
-      retryPendingSync()
-    }
   },
 
   retryPendingSync: async () => {
     const state = get() as any
-    const { inspections } = state
+    const { inspections, markInspectionAsSynced } = state
     const pendingInspections = inspections.filter((i: Inspection) => !i.synced)
 
     console.log(
@@ -55,16 +48,8 @@ export const createOfflineSlice: StateCreator<
       const success = await retrySyncInspection(inspection)
 
       if (success) {
-        const currentState = get() as any
-        const syncedList = currentState.inspections.map((insp: Inspection) =>
-          insp.id === inspection.id ? { ...insp, synced: true } : insp
-        )
-        
-        // Update inspections and pendingSyncCount (cross-slice communication)
-        ;(set as any)({
-          inspections: syncedList,
-          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced).length,
-        })
+        // ✅ DELEGATE to inspectionSlice - NO cross-slice pollution
+        markInspectionAsSynced(inspection.id)
       }
     }
   },

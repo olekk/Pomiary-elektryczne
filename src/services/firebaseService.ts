@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, Project } from '../types'
+import { ensureDate } from '../utils'
 
 /**
  * Save a project to Firestore
@@ -19,15 +20,10 @@ import type { Inspection, Project } from '../types'
 export const saveProjectToFirestore = async (
   project: Project
 ): Promise<void> => {
-  const createdAtDate =
-    project.createdAt instanceof Date
-      ? project.createdAt
-      : new Date(project.createdAt)
-
   const dataToSave = {
     name: project.name,
     status: project.status,
-    createdAt: Timestamp.fromDate(createdAtDate),
+    createdAt: Timestamp.fromDate(ensureDate(project.createdAt)),
   }
 
   const docRef = doc(db, 'projects', project.id)
@@ -76,16 +72,11 @@ export const saveInspectionToFirestore = async (
   inspection: Inspection,
   inspectionId: string
 ): Promise<void> => {
-  const dateToSave =
-    inspection.date instanceof Date
-      ? inspection.date
-      : new Date(inspection.date)
-
   const dataToSave = {
     projectId: inspection.projectId,
     address: inspection.address || '',
     apartmentNumber: inspection.apartmentNumber || '',
-    date: Timestamp.fromDate(dateToSave),
+    date: Timestamp.fromDate(ensureDate(inspection.date)),
     technician: inspection.technician || '',
     measurements: inspection.measurements || [],
     signature: inspection.signature || '',

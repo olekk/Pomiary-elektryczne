@@ -15,11 +15,13 @@ export interface ProjectSlice {
   projects: Project[]
   currentProjectId: string | null
   isLoadingProjects: boolean
+  loadedUserId: string | null // 🛡️ Ghost Data Protection: Track loaded user
   createNewProject: (name: string) => Promise<void>
-  subscribeToProjects: () => void
+  subscribeToProjects: (userId: string) => void
   unsubscribeFromProjects: () => void
   deleteProject: (id: string) => Promise<void>
   setCurrentProjectId: (projectId: string | null) => void
+  resetProjects: () => void
 }
 
 export const createProjectSlice: StateCreator<
@@ -31,6 +33,7 @@ export const createProjectSlice: StateCreator<
   projects: [],
   currentProjectId: null,
   isLoadingProjects: true,
+  loadedUserId: null, // 🛡️ Ghost Data Protection: Initially null
 
   createNewProject: async (name) => {
     const projectId = `proj_${Date.now()}`
@@ -64,19 +67,29 @@ export const createProjectSlice: StateCreator<
    * - Shows stale data immediately (no spinner if we have data)
    * - Updates in background when fresh data arrives
    * - includeMetadataChanges: true for faster offline responsiveness
+   * - Ghost Data Protection: Clears data when switching users
    */
-  subscribeToProjects: () => {
-    console.log('🔔 Subscribing to projects (Stale-While-Revalidate)...')
+  subscribeToProjects: (userId: string) => {
+    console.log(`🔔 Subscribing to projects for user ${userId} (Stale-While-Revalidate)...`)
     
-    const { projects } = get()
+    const { projects, loadedUserId } = get()
     
-    // 🎯 STALE-WHILE-REVALIDATE: Only show spinner if list is empty
-    // If we have stale data, display it immediately and update in background
-    if (projects.length === 0) {
-      console.log('📭 No stale data - showing spinner')
-      set({ isLoadingProjects: true })
+    // 🛡️ GHOST DATA PROTECTION: Check if user ID changed
+    if (loadedUserId !== userId) {
+      console.log(`🧹 User changed (${loadedUserId} → ${userId}) - clearing ghost data`)
+      set({ 
+        projects: [], // Clear old user data immediately
+        loadedUserId: userId, // Update loaded user ID
+        isLoadingProjects: true, // Show spinner for new user
+      })
     } else {
-      console.log(`♻️  Showing ${projects.length} stale projects while revalidating`)
+      // 🎯 STALE-WHILE-REVALIDATE: Same user, check if we have stale data
+      if (projects.length === 0) {
+        console.log('📭 No stale data - showing spinner')
+        set({ isLoadingProjects: true })
+      } else {
+        console.log(`♻️  Showing ${projects.length} stale projects while revalidating`)
+      }
     }
 
     // Cleanup existing subscription to avoid duplicates
@@ -153,5 +166,15 @@ export const createProjectSlice: StateCreator<
 
   setCurrentProjectId: (projectId) => {
     set({ currentProjectId: projectId })
+  },
+
+  resetProjects: () => {
+    console.log('🧹 Resetting projects state')
+    set({ 
+      projects: [], 
+      currentProjectId: null, 
+      isLoadingProjects: true,
+      loadedUserId: null,
+    })
   },
 })

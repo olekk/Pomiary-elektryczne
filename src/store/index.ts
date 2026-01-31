@@ -1,4 +1,4 @@
-export { useAppStore } from './useAppStore'
+export { useAppStore, resetAllStores } from './useAppStore'
 export type { AuthSlice } from './slices/authSlice'
 export type { ProjectSlice } from './slices/projectSlice'
 export type { InspectionSlice } from './slices/inspectionSlice'

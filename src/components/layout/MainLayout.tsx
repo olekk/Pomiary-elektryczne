@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase'
-import { useAppStore } from '../../store/useAppStore'
+import { useAppStore, resetAllStores } from '../../store/useAppStore'
 import { StatusBadge } from '../molecules'
 
 interface MainLayoutProps {
@@ -31,12 +31,21 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const handleLogout = async () => {
     if (confirm('Czy na pewno chcesz się wylogować?')) {
       try {
-        // Cleanup: Unsubscribe from all realtime listeners before logout
-        console.log('🧹 Cleaning up subscriptions before logout...')
+        // 🛡️ GHOST DATA PROTECTION: 3-step cleanup process
+        // Step 1: Unsubscribe from all realtime listeners
+        console.log('🧹 Step 1/3: Unsubscribing from realtime listeners...')
         unsubscribeFromProjects()
         unsubscribeFromInspections()
 
+        // Step 2: Clear all store data (CRITICAL - prevents data leaks!)
+        console.log('🧹 Step 2/3: Clearing all stores...')
+        resetAllStores()
+
+        // Step 3: Sign out from Firebase Auth
+        console.log('🧹 Step 3/3: Signing out from Firebase...')
         await signOut(auth)
+
+        console.log('✅ Logout complete - all data cleared')
       } catch (error) {
         console.error('Błąd wylogowania:', error)
         alert('Błąd podczas wylogowania')
