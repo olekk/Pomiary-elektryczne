@@ -20,6 +20,15 @@ export interface Project {
   status: 'active' | 'archived'
 }
 
+export interface Building {
+  id: string
+  projectId: string
+  name: string
+  createdAt: Date
+  updatedAt: Date
+  userId: string
+}
+
 export interface Inspection {
   id?: string
   projectId: string // WYMAGANE - każdy pomiar musi należeć do projektu
