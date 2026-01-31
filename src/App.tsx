@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
+import { enableNetwork, getFirestore } from 'firebase/firestore'
 import { auth } from './firebase'
 import { ProjectsScreen } from './components/ProjectsScreen'
 import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
@@ -19,10 +20,20 @@ function App() {
 
   // ===== MONITORING ONLINE/OFFLINE STATUS + AUTO-SYNC =====
   useEffect(() => {
-    const handleOnline = () => {
+    const db = getFirestore()
+
+    const handleOnline = async () => {
       console.log('🌐 Network: ONLINE')
       setOnlineStatus(true)
-      
+
+      // 🔥 FIRESTORE: Wymuszenie połączenia z siecią (unikanie "Cache Only")
+      try {
+        await enableNetwork(db)
+        console.log('🌐 Network enabled manually')
+      } catch (e) {
+        console.log('Network enable skipped:', e)
+      }
+
       // 🔄 AUTO-SYNC: Retry pending syncs when connection restored
       console.log('🔄 Auto-retrying pending syncs...')
       retryPendingSync()
@@ -39,6 +50,11 @@ function App() {
     // Nasłuchiwanie na zmiany
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+
+    // 🚀 Wywołaj handleOnline przy starcie, jeśli jesteśmy online
+    if (navigator.onLine) {
+      handleOnline()
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline)
