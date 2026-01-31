@@ -17,6 +17,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,ttf,woff2}'],
         maximumFileSizeToCacheInBytes: 3000000,
+        navigateFallbackDenylist: [/^\/api/, /^chrome-extension:/],
       },
     }),
   ],
