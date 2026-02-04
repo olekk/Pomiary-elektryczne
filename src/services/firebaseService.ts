@@ -83,7 +83,9 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
  * Delete a building from Firestore with cascading delete
  * Removes the building AND all related inspections in a single atomic operation
  */
-export const deleteBuildingFromFirestore = async (id: string): Promise<void> => {
+export const deleteBuildingFromFirestore = async (
+  id: string
+): Promise<void> => {
   const batch = writeBatch(db)
 
   // 1. Add building deletion to batch
@@ -129,6 +131,7 @@ export const saveInspectionToFirestore = async (
     technician: inspection.technician || '',
     measurements: inspection.measurements || [],
     signature: inspection.signature || '',
+    protocolNumber: inspection.protocolNumber || '',
     synced: false,
     createdAt: Timestamp.now(),
   }

@@ -16,7 +16,13 @@ import {
   ensureDate,
   generateProtocolNumber,
 } from '../../utils'
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+} from 'firebase/firestore'
 import { db } from '../../firebase'
 
 // Module-level unsubscribe reference for cleanup
@@ -60,9 +66,19 @@ export const createInspectionSlice: StateCreator<
   isLoadingInspections: true,
   loadedBuildingId: null, // 🛡️ Ghost Data Protection: Initially null
 
-  createNewInspection: (projectId, buildingId, address, apartmentNumber, technician) => {
+  createNewInspection: (
+    projectId,
+    buildingId,
+    address,
+    apartmentNumber,
+    technician
+  ) => {
     const date = new Date()
-    const protocolNumber = generateProtocolNumber(date, apartmentNumber)
+    const protocolNumber = generateProtocolNumber(
+      date,
+      apartmentNumber,
+      address
+    )
 
     set({
       currentInspection: {
@@ -217,7 +233,9 @@ export const createInspectionSlice: StateCreator<
 
     // Update pending count
     const state = get() as any
-    const newPendingCount = state.inspections.filter((i: Inspection) => !i.synced).length
+    const newPendingCount = state.inspections.filter(
+      (i: Inspection) => !i.synced
+    ).length
     set({ pendingSyncCount: newPendingCount })
 
     // Fire-and-forget: Save to Firebase in background
@@ -238,7 +256,8 @@ export const createInspectionSlice: StateCreator<
         )
         set({
           inspections: syncedList,
-          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced).length,
+          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
+            .length,
         })
 
         // Update currentInspection if it's the same
@@ -267,14 +286,18 @@ export const createInspectionSlice: StateCreator<
    * - Ghost Data Protection: Clears data when switching buildings
    */
   subscribeToInspections: (buildingId: string) => {
-    console.log(`🔔 Subscribing to inspections for building ${buildingId} (Stale-While-Revalidate)...`)
-    
+    console.log(
+      `🔔 Subscribing to inspections for building ${buildingId} (Stale-While-Revalidate)...`
+    )
+
     const { inspections, loadedBuildingId } = get()
-    
+
     // 🛡️ GHOST DATA PROTECTION: Check if building ID changed
     if (loadedBuildingId !== buildingId) {
-      console.log(`🧹 Building changed (${loadedBuildingId} → ${buildingId}) - clearing ghost data`)
-      set({ 
+      console.log(
+        `🧹 Building changed (${loadedBuildingId} → ${buildingId}) - clearing ghost data`
+      )
+      set({
         inspections: [], // Clear old building data immediately
         loadedBuildingId: buildingId, // Update loaded building ID
         isLoadingInspections: true, // Show spinner for new building
@@ -286,7 +309,9 @@ export const createInspectionSlice: StateCreator<
         console.log('📭 No stale data - showing spinner')
         set({ isLoadingInspections: true })
       } else {
-        console.log(`♻️  Showing ${inspections.length} stale inspections while revalidating`)
+        console.log(
+          `♻️  Showing ${inspections.length} stale inspections while revalidating`
+        )
       }
     }
 
@@ -342,7 +367,11 @@ export const createInspectionSlice: StateCreator<
         })
       },
       (error) => {
-        console.error('❌ Inspections subscription error:', error.code, error.message)
+        console.error(
+          '❌ Inspections subscription error:',
+          error.code,
+          error.message
+        )
         // Set loading to false even on error to prevent infinite spinner
         set({ isLoadingInspections: false })
       }
@@ -382,14 +411,16 @@ export const createInspectionSlice: StateCreator<
    */
   markInspectionAsSynced: (inspectionId: string) => {
     const { inspections, currentInspection } = get()
-    
+
     const syncedList = inspections.map((insp) =>
       insp.id === inspectionId ? { ...insp, synced: true } : insp
     )
-    
+
     const newPendingCount = syncedList.filter((i) => !i.synced).length
 
-    console.log(`✅ Marked inspection ${inspectionId} as synced (${newPendingCount} pending)`)
+    console.log(
+      `✅ Marked inspection ${inspectionId} as synced (${newPendingCount} pending)`
+    )
 
     set({
       inspections: syncedList,

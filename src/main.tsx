@@ -1,14 +1,16 @@
-// ============================================
-// VCONSOLE - ZAKOMENTUJ PRZED PRODUKCJĄ!
-// ============================================
-import VConsole from 'vconsole'
-new VConsole()
-// ============================================
-
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+
+// ============================================
+// VCONSOLE - ONLY IN DEVELOPMENT MODE
+// ============================================
+if (import.meta.env.DEV) {
+  import('vconsole').then((module) => {
+    new module.default()
+  })
+}
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -26,8 +28,6 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* Fix for VConsole switch position */}
-    <style>{`.vc-switch { right: inherit !important; }`}</style>
     <App />
   </StrictMode>
 )

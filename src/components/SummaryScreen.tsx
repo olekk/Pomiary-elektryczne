@@ -5,8 +5,6 @@ import { useAppStore } from '../store/useAppStore'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
-import { PdfGenerator } from './PdfGenerator'
-import { pdf } from '@react-pdf/renderer'
 import { countMeasurementsByResult } from '../utils'
 import type { Inspection } from '../types'
 
@@ -77,6 +75,12 @@ export const SummaryScreen: React.FC = () => {
     if (!inspection) return
 
     try {
+      // Lazy load PDF libraries only when needed
+      const [{ pdf }, { PdfGenerator }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('./PdfGenerator'),
+      ])
+
       const blob = await pdf(
         <PdfGenerator inspection={inspection} />
       ).toBlob()

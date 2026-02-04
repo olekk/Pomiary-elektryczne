@@ -7,17 +7,32 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      includeAssets: [
-        'favicon.ico',
-        'apple-touch-icon.png',
-        'masked-icon.svg',
-        '**/*.ttf',
-      ],
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,ttf,woff2}'],
-        maximumFileSizeToCacheInBytes: 3000000,
-        navigateFallbackDenylist: [/^\/api/, /^chrome-extension:/],
+      injectManifest: {
+        injectionPoint: undefined,
+      },
+      manifest: {
+        name: 'Pomiary Elektryczne',
+        short_name: 'Pomiary',
+        description: 'Aplikacja do pomiarów elektrycznych',
+        theme_color: '#1e293b',
+        background_color: '#020617',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+        ],
       },
     }),
   ],
@@ -28,6 +43,21 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore',
+          ],
+          'vendor-ui': ['lucide-react', 'zustand', 'clsx', 'tailwind-merge'],
+          'pdf-lib': ['@react-pdf/renderer'],
+        },
+      },
+    },
   },
   define: {
     __BUILD_DATE__: JSON.stringify(new Date().toLocaleString()),
