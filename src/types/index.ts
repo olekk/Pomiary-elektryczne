@@ -32,6 +32,7 @@ export interface Building {
 export interface Inspection {
   id?: string
   projectId: string // WYMAGANE - każdy pomiar musi należeć do projektu
+  buildingId: string // WYMAGANE - każdy pomiar musi należeć do budynku
   address: string
   apartmentNumber: string
   date: Date

@@ -74,6 +74,7 @@ export const saveInspectionToFirestore = async (
 ): Promise<void> => {
   const dataToSave = {
     projectId: inspection.projectId,
+    buildingId: inspection.buildingId,
     address: inspection.address || '',
     apartmentNumber: inspection.apartmentNumber || '',
     date: Timestamp.fromDate(ensureDate(inspection.date)),

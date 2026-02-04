@@ -10,12 +10,14 @@ interface MainLayoutProps {
   children: React.ReactNode
   title: string
   showBackBtn?: boolean
+  backUrl?: string // Custom URL for back button (defaults to '/')
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
   children,
   title,
   showBackBtn = false,
+  backUrl = '/',
 }) => {
   // Atomowe selektory Zustand dla optymalizacji re-renderów
   const isOnline = useAppStore((state) => state.isOnline)
@@ -23,6 +25,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const retryPendingSync = useAppStore((state) => state.retryPendingSync)
   const unsubscribeFromProjects = useAppStore(
     (state) => state.unsubscribeFromProjects
+  )
+  const unsubscribeFromBuildings = useAppStore(
+    (state) => state.unsubscribeFromBuildings
   )
   const unsubscribeFromInspections = useAppStore(
     (state) => state.unsubscribeFromInspections
@@ -35,6 +40,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         // Step 1: Unsubscribe from all realtime listeners
         console.log('🧹 Step 1/3: Unsubscribing from realtime listeners...')
         unsubscribeFromProjects()
+        unsubscribeFromBuildings()
         unsubscribeFromInspections()
 
         // Step 2: Clear all store data (CRITICAL - prevents data leaks!)
@@ -63,7 +69,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             {showBackBtn ? (
               <>
                 <Link
-                  to="/"
+                  to={backUrl}
                   className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <ArrowLeft size={24} className="text-slate-100" />

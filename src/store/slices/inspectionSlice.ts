@@ -26,9 +26,10 @@ export interface InspectionSlice {
   inspections: Inspection[]
   pendingSyncCount: number
   isLoadingInspections: boolean
-  loadedProjectId: string | null // 🛡️ Ghost Data Protection: Track loaded project
+  loadedBuildingId: string | null // 🛡️ Ghost Data Protection: Track loaded building
   createNewInspection: (
     projectId: string,
+    buildingId: string,
     address: string,
     apartmentNumber: string,
     technician: string
@@ -39,7 +40,7 @@ export interface InspectionSlice {
   updateMeasurement: (id: string, zsValue: number | null) => void
   removeMeasurement: (id: string) => void
   saveToFirestore: (signatureOverride?: string) => Promise<void>
-  subscribeToInspections: (projectId: string) => void
+  subscribeToInspections: (buildingId: string) => void
   unsubscribeFromInspections: () => void
   deleteInspection: (id: string) => Promise<void>
   markInspectionAsSynced: (inspectionId: string) => void
@@ -56,12 +57,13 @@ export const createInspectionSlice: StateCreator<
   inspections: [],
   pendingSyncCount: 0,
   isLoadingInspections: true,
-  loadedProjectId: null, // 🛡️ Ghost Data Protection: Initially null
+  loadedBuildingId: null, // 🛡️ Ghost Data Protection: Initially null
 
-  createNewInspection: (projectId, address, apartmentNumber, technician) => {
+  createNewInspection: (projectId, buildingId, address, apartmentNumber, technician) => {
     set({
       currentInspection: {
         projectId,
+        buildingId,
         address,
         apartmentNumber,
         technician,
@@ -180,6 +182,7 @@ export const createInspectionSlice: StateCreator<
     const optimisticInspection: Inspection = {
       id: savedId,
       projectId: currentInspection.projectId,
+      buildingId: currentInspection.buildingId,
       address: currentInspection.address,
       apartmentNumber: currentInspection.apartmentNumber,
       technician: currentInspection.technician,
@@ -255,24 +258,24 @@ export const createInspectionSlice: StateCreator<
    * - Shows stale data immediately (no spinner if we have data)
    * - Updates in background when fresh data arrives
    * - includeMetadataChanges: true for faster offline responsiveness
-   * - Ghost Data Protection: Clears data when switching projects
+   * - Ghost Data Protection: Clears data when switching buildings
    */
-  subscribeToInspections: (projectId: string) => {
-    console.log(`🔔 Subscribing to inspections for project ${projectId} (Stale-While-Revalidate)...`)
+  subscribeToInspections: (buildingId: string) => {
+    console.log(`🔔 Subscribing to inspections for building ${buildingId} (Stale-While-Revalidate)...`)
     
-    const { inspections, loadedProjectId } = get()
+    const { inspections, loadedBuildingId } = get()
     
-    // 🛡️ GHOST DATA PROTECTION: Check if project ID changed
-    if (loadedProjectId !== projectId) {
-      console.log(`🧹 Project changed (${loadedProjectId} → ${projectId}) - clearing ghost data`)
+    // 🛡️ GHOST DATA PROTECTION: Check if building ID changed
+    if (loadedBuildingId !== buildingId) {
+      console.log(`🧹 Building changed (${loadedBuildingId} → ${buildingId}) - clearing ghost data`)
       set({ 
-        inspections: [], // Clear old project data immediately
-        loadedProjectId: projectId, // Update loaded project ID
-        isLoadingInspections: true, // Show spinner for new project
+        inspections: [], // Clear old building data immediately
+        loadedBuildingId: buildingId, // Update loaded building ID
+        isLoadingInspections: true, // Show spinner for new building
         pendingSyncCount: 0, // Reset pending count
       })
     } else {
-      // 🎯 STALE-WHILE-REVALIDATE: Same project, check if we have stale data
+      // 🎯 STALE-WHILE-REVALIDATE: Same building, check if we have stale data
       if (inspections.length === 0) {
         console.log('📭 No stale data - showing spinner')
         set({ isLoadingInspections: true })
@@ -289,7 +292,7 @@ export const createInspectionSlice: StateCreator<
 
     const q = query(
       collection(db, 'inspections'),
-      where('projectId', '==', projectId),
+      where('buildingId', '==', buildingId),
       orderBy('createdAt', 'desc')
     )
 
@@ -307,6 +310,7 @@ export const createInspectionSlice: StateCreator<
           inspections.push({
             id: doc.id,
             projectId: data.projectId,
+            buildingId: data.buildingId,
             address: data.address,
             apartmentNumber: data.apartmentNumber,
             date: data.date?.toDate ? data.date.toDate() : new Date(),
@@ -402,7 +406,7 @@ export const createInspectionSlice: StateCreator<
       inspections: [],
       pendingSyncCount: 0,
       isLoadingInspections: true,
-      loadedProjectId: null,
+      loadedBuildingId: null,
     })
   },
 })

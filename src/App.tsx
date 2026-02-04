@@ -4,6 +4,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 import { ProjectsScreen } from './components/ProjectsScreen'
 import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
+import { BuildingDetailsScreen } from './components/BuildingDetailsScreen'
 import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { LoginScreen } from './components/LoginScreen'
@@ -85,7 +86,8 @@ function App() {
       <Routes>
         <Route path="/" element={<ProjectsScreen />} />
         <Route path="/project/:id" element={<ProjectDetailsScreen />} />
-        <Route path="/measurement" element={<MeasurementScreen />} />
+        <Route path="/building/:id" element={<BuildingDetailsScreen />} />
+        {/* /measurement/:id - id = buildingId (nowy pomiar dla budynku) */}
         <Route path="/measurement/:id" element={<MeasurementScreen />} />
         <Route path="/summary" element={<SummaryScreen />} />
       </Routes>

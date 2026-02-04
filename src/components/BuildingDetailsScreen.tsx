@@ -9,9 +9,9 @@ import {
   CreateInspectionModal,
 } from './organisms'
 
-export const ProjectDetailsScreen: React.FC = () => {
+export const BuildingDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { id: projectId } = useParams<{ id: string }>()
+  const { id: buildingId } = useParams<{ id: string }>()
   const {
     inspections,
     isLoadingInspections,
@@ -20,34 +20,39 @@ export const ProjectDetailsScreen: React.FC = () => {
     createNewInspection,
     deleteInspection,
     pendingSyncCount,
-    projects,
+    buildings,
   } = useAppStore()
 
   const [showNewModal, setShowNewModal] = useState(false)
 
-  // Subscribe to inspections for this project (Offline-First)
+  // Subscribe to inspections for this building (Offline-First)
   useEffect(() => {
-    if (projectId) {
-      subscribeToInspections(projectId)
+    if (buildingId) {
+      subscribeToInspections(buildingId)
     }
     return () => {
       unsubscribeFromInspections()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [buildingId])
 
   const handleCreateNew = (
     address: string,
     apartmentNumber: string,
     technician: string
   ) => {
-    if (!projectId) {
-      alert('Błąd: Brak ID projektu')
+    if (!buildingId) {
+      alert('Błąd: Brak ID budynku')
       return
     }
-    createNewInspection(projectId, address, apartmentNumber, technician)
+    const currentBuilding = buildings.find((b) => b.id === buildingId)
+    if (!currentBuilding) {
+      alert('Błąd: Nie znaleziono budynku')
+      return
+    }
+    createNewInspection(currentBuilding.projectId, buildingId, address, apartmentNumber, technician)
     setShowNewModal(false)
-    navigate('/measurement')
+    navigate(`/measurement/${buildingId}`)
   }
 
   const handleDelete = async (id: string) => {
@@ -64,18 +69,23 @@ export const ProjectDetailsScreen: React.FC = () => {
 
   const syncedCount = inspections.filter((i) => i.synced).length
 
-  // Znajdź nazwę projektu
-  const currentProject = projects.find((p) => p.id === projectId)
-  const projectName = currentProject?.name || 'Nieznany projekt'
+  // Znajdź nazwę budynku i projectId
+  const currentBuilding = buildings.find((b) => b.id === buildingId)
+  const buildingName = currentBuilding?.name || 'Nieznany budynek'
+  const projectId = currentBuilding?.projectId
 
-  // Jeśli brak projectId, przekieruj do głównego ekranu
-  if (!projectId) {
+  // Jeśli brak buildingId, przekieruj do głównego ekranu
+  if (!buildingId) {
     navigate('/')
     return null
   }
 
   return (
-    <MainLayout title={projectName} showBackBtn={true}>
+    <MainLayout 
+      title={buildingName} 
+      showBackBtn={true}
+      backUrl={projectId ? `/project/${projectId}` : '/'}
+    >
       <div className="p-4">
         <DashboardStats
           totalCount={inspections.length}

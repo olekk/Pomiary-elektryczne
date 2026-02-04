@@ -18,6 +18,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Kolekcja projects - dostępna dla zalogowanych użytkowników
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Kolekcja buildings - dostępna dla zalogowanych użytkowników
+    match /buildings/{buildingId} {
+      allow read, write: if request.auth != null;
+    }
+    
     // Kolekcja inspections - dostępna dla zalogowanych użytkowników
     match /inspections/{inspectionId} {
       // Odczyt - każdy zalogowany użytkownik

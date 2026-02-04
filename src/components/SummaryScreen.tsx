@@ -14,7 +14,7 @@ export const SummaryScreen: React.FC = () => {
   const { currentInspection, setSignature, saveToFirestore } =
     useAppStore()
 
-  const projectId = currentInspection?.projectId
+  const buildingId = currentInspection?.buildingId
 
   const handleSaveSignature = async (signature: string) => {
     try {
@@ -28,9 +28,9 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const handleReturnToProject = () => {
-    if (projectId) {
-      navigate(`/project/${projectId}`)
+  const handleReturnToBuilding = () => {
+    if (buildingId) {
+      navigate(`/building/${buildingId}`)
     } else {
       navigate('/')
     }
@@ -140,10 +140,10 @@ export const SummaryScreen: React.FC = () => {
             variant="primary"
             size="lg"
             fullWidth
-            onClick={handleReturnToProject}
+            onClick={handleReturnToBuilding}
             icon={<Home size={24} />}
           >
-            Powrót do Projektu
+            Powrót do Listy Pomiarów
           </Button>
         </div>
       </div>
