@@ -43,7 +43,8 @@ export const SettingsScreen: React.FC = () => {
             Profil Technika
           </h2>
           <p className="text-sm text-slate-400 mb-4">
-            Te dane będą automatycznie wypełniane przy tworzeniu nowych pomiarów.
+            Te dane będą automatycznie wypełniane przy tworzeniu nowych
+            pomiarów.
           </p>
 
           <div className="space-y-4">

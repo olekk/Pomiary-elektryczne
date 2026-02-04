@@ -198,8 +198,8 @@ export const ProjectDetailsScreen: React.FC = () => {
               >
                 Anuluj
               </Button>
-              <Button 
-                onClick={handleCreateBuilding} 
+              <Button
+                onClick={handleCreateBuilding}
                 className="flex-1"
                 disabled={isSubmitting}
               >

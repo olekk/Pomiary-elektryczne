@@ -1,15 +1,31 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { Card, Button } from '../atoms'
 
 interface SignaturePanelProps {
   onSave: (signature: string) => Promise<void> | void
+  initialSignature?: string
 }
 
-export const SignaturePanel: React.FC<SignaturePanelProps> = ({ onSave }) => {
+export const SignaturePanel: React.FC<SignaturePanelProps> = ({
+  onSave,
+  initialSignature,
+}) => {
   const signatureRef = useRef<SignatureCanvas>(null)
   const [hasSignature, setHasSignature] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  // Wczytaj istniejący podpis przy inicjalizacji
+  useEffect(() => {
+    if (initialSignature && signatureRef.current) {
+      try {
+        signatureRef.current.fromDataURL(initialSignature)
+        setHasSignature(true)
+      } catch (error) {
+        console.error('Error loading signature:', error)
+      }
+    }
+  }, [initialSignature])
 
   const handleClear = () => {
     signatureRef.current?.clear()

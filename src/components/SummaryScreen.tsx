@@ -1,5 +1,5 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Home, FileDown, CheckCircle, Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { SignaturePanel } from './organisms'
@@ -8,13 +8,19 @@ import { Button, Card } from './atoms'
 import { PdfGenerator } from './PdfGenerator'
 import { pdf } from '@react-pdf/renderer'
 import { countMeasurementsByResult } from '../utils'
+import type { Inspection } from '../types'
 
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { currentInspection, setSignature, saveToFirestore } =
-    useAppStore()
+  const location = useLocation()
+  const { currentInspection, setSignature, saveToFirestore } = useAppStore()
 
-  const buildingId = currentInspection?.buildingId
+  // Priorytet: dane z nawigacji (kliknięcie w listę) > dane ze store'a (nowy pomiar)
+  const locationState = location.state as
+    | { inspection: Inspection; buildingId: string }
+    | null
+  const inspection = locationState?.inspection || currentInspection
+  const buildingId = locationState?.buildingId || inspection?.buildingId
 
   const handleSaveSignature = async (signature: string) => {
     try {
@@ -37,20 +43,20 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const handleSaveAndAddNext = () => {
-    if (!buildingId) {
-      alert('Błąd: Brak ID budynku')
+    if (!buildingId || !inspection) {
+      alert('Błąd: Brak ID budynku lub danych pomiaru')
       return
     }
 
     // Nawiguj do ekranu nowego pomiaru z przekazaniem ostatniego numeru mieszkania
     navigate(`/building/${buildingId}`, {
       state: {
-        lastApartmentNumber: currentInspection.apartmentNumber,
+        lastApartmentNumber: inspection.apartmentNumber,
       },
     })
   }
 
-  if (!currentInspection) {
+  if (!inspection) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
@@ -68,14 +74,18 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const handleGeneratePDF = async () => {
+    if (!inspection) return
+
     try {
       const blob = await pdf(
-        <PdfGenerator inspection={currentInspection} />
+        <PdfGenerator inspection={inspection} />
       ).toBlob()
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `Pomiar_${currentInspection.apartmentNumber}_${new Date().toISOString().split('T')[0]}.pdf`
+      link.download = `Pomiar_${inspection.apartmentNumber}_${
+        new Date().toISOString().split('T')[0]
+      }.pdf`
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {
@@ -85,7 +95,7 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const { passed, failed, noGrounding } = countMeasurementsByResult(
-    currentInspection.measurements
+    inspection.measurements
   )
 
   return (
@@ -97,7 +107,7 @@ export const SummaryScreen: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold">Pomiar Zakończony</h1>
             <p className="text-sm text-green-300">
-              {currentInspection.address} / {currentInspection.apartmentNumber}
+              {inspection.address} / {inspection.apartmentNumber}
             </p>
           </div>
         </div>
@@ -106,7 +116,9 @@ export const SummaryScreen: React.FC = () => {
       {/* Summary Stats */}
       <div className="p-4">
         <Card className="mb-4">
-          <h2 className="font-bold text-lg text-slate-100 mb-3">Podsumowanie</h2>
+          <h2 className="font-bold text-lg text-slate-100 mb-3">
+            Podsumowanie
+          </h2>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-400">{passed}</div>
@@ -127,16 +139,21 @@ export const SummaryScreen: React.FC = () => {
 
         {/* Measurements List */}
         <Card className="mb-4">
-          <h3 className="font-bold text-slate-100 mb-3">Wszystkie punkty pomiarowe</h3>
+          <h3 className="font-bold text-slate-100 mb-3">
+            Wszystkie punkty pomiarowe
+          </h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {currentInspection.measurements.map((m) => (
+            {inspection.measurements.map((m) => (
               <CompactMeasurementListItem key={m.id} measurement={m} />
             ))}
           </div>
         </Card>
 
         {/* Signature */}
-        <SignaturePanel onSave={handleSaveSignature} />
+        <SignaturePanel
+          onSave={handleSaveSignature}
+          initialSignature={inspection.signature}
+        />
 
         {/* Actions */}
         <div className="space-y-3 mt-4">

@@ -9,6 +9,7 @@ import {
   CreateInspectionModal,
 } from './organisms'
 import { incrementApartmentNumber } from '../utils'
+import type { Inspection } from '../types'
 
 const TECHNICIAN_NAME_KEY = 'technician_name'
 
@@ -37,12 +38,14 @@ export const BuildingDetailsScreen: React.FC = () => {
   // Pobierz domyślne wartości
   const defaultAddress = buildingName
   const defaultTechnician = localStorage.getItem(TECHNICIAN_NAME_KEY) || ''
-  
+
   // Sprawdź, czy przychodzi z location.state (flow "następny pomiar")
-  const locationState = location.state as { lastApartmentNumber?: string } | null
+  const locationState = location.state as {
+    lastApartmentNumber?: string
+  } | null
   const lastApartmentNumber = locationState?.lastApartmentNumber || ''
-  const defaultApartmentNumber = lastApartmentNumber 
-    ? incrementApartmentNumber(lastApartmentNumber) 
+  const defaultApartmentNumber = lastApartmentNumber
+    ? incrementApartmentNumber(lastApartmentNumber)
     : ''
 
   // Subscribe to inspections for this building (Offline-First)
@@ -79,7 +82,13 @@ export const BuildingDetailsScreen: React.FC = () => {
       alert('Błąd: Nie znaleziono budynku')
       return
     }
-    createNewInspection(currentBuilding.projectId, buildingId, address, apartmentNumber, technician)
+    createNewInspection(
+      currentBuilding.projectId,
+      buildingId,
+      address,
+      apartmentNumber,
+      technician
+    )
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
   }
@@ -96,6 +105,15 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
   }
 
+  const handleInspectionClick = (inspection: Inspection) => {
+    navigate('/summary', {
+      state: {
+        inspection,
+        buildingId,
+      },
+    })
+  }
+
   const syncedCount = inspections.filter((i) => i.synced).length
 
   // Jeśli brak buildingId, przekieruj do głównego ekranu
@@ -105,8 +123,8 @@ export const BuildingDetailsScreen: React.FC = () => {
   }
 
   return (
-    <MainLayout 
-      title={buildingName} 
+    <MainLayout
+      title={'Budynek: ' + buildingName}
       showBackBtn={true}
       backUrl={projectId ? `/project/${projectId}` : '/'}
     >
@@ -123,6 +141,7 @@ export const BuildingDetailsScreen: React.FC = () => {
           inspections={inspections}
           isLoading={isLoadingInspections}
           onDelete={handleDelete}
+          onClick={handleInspectionClick}
         />
       </div>
 

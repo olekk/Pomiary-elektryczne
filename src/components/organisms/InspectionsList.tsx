@@ -7,12 +7,14 @@ interface InspectionsListProps {
   inspections: Inspection[]
   isLoading: boolean
   onDelete: (id: string) => void
+  onClick?: (inspection: Inspection) => void
 }
 
 export const InspectionsList: React.FC<InspectionsListProps> = ({
   inspections,
   isLoading,
   onDelete,
+  onClick,
 }) => {
   if (isLoading) {
     return <div className="text-center text-slate-400 py-8">Ładowanie...</div>
@@ -34,6 +36,7 @@ export const InspectionsList: React.FC<InspectionsListProps> = ({
           key={inspection.id}
           inspection={inspection}
           onDelete={onDelete}
+          onClick={onClick}
         />
       ))}
     </div>
