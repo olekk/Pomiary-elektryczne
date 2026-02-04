@@ -32,8 +32,7 @@ export const saveProjectToFirestore = async (
 
 /**
  * Delete a project from Firestore with cascading delete
- * Removes the project AND all related inspections in a single atomic operation
- * TODO: When buildings are implemented, also delete related buildings here
+ * Removes the project AND all related buildings AND all related inspections in a single atomic operation
  */
 export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   const batch = writeBatch(db)
@@ -42,7 +41,22 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   const projectRef = doc(db, 'projects', id)
   batch.delete(projectRef)
 
-  // 2. Query and delete all related inspections
+  // 2. Query and delete all related buildings
+  const buildingsQuery = query(
+    collection(db, 'buildings'),
+    where('projectId', '==', id)
+  )
+  const buildingsSnapshot = await getDocs(buildingsQuery)
+
+  console.log(
+    `🗑️  Cascading delete: Found ${buildingsSnapshot.size} buildings to delete for project ${id}`
+  )
+
+  buildingsSnapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref)
+  })
+
+  // 3. Query and delete all related inspections (faster than searching by buildingId)
   const inspectionsQuery = query(
     collection(db, 'inspections'),
     where('projectId', '==', id)
@@ -57,11 +71,45 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
     batch.delete(docSnapshot.ref)
   })
 
+  // 4. Execute atomic batch operation (all or nothing)
+  await batch.commit()
+
+  console.log(
+    `✅ Successfully deleted project ${id} with ${buildingsSnapshot.size} buildings and ${inspectionsSnapshot.size} inspections`
+  )
+}
+
+/**
+ * Delete a building from Firestore with cascading delete
+ * Removes the building AND all related inspections in a single atomic operation
+ */
+export const deleteBuildingFromFirestore = async (id: string): Promise<void> => {
+  const batch = writeBatch(db)
+
+  // 1. Add building deletion to batch
+  const buildingRef = doc(db, 'buildings', id)
+  batch.delete(buildingRef)
+
+  // 2. Query and delete all related inspections
+  const inspectionsQuery = query(
+    collection(db, 'inspections'),
+    where('buildingId', '==', id)
+  )
+  const inspectionsSnapshot = await getDocs(inspectionsQuery)
+
+  console.log(
+    `🗑️  Cascading delete: Found ${inspectionsSnapshot.size} inspections to delete for building ${id}`
+  )
+
+  inspectionsSnapshot.forEach((docSnapshot) => {
+    batch.delete(docSnapshot.ref)
+  })
+
   // 3. Execute atomic batch operation (all or nothing)
   await batch.commit()
 
   console.log(
-    `✅ Successfully deleted project ${id} and ${inspectionsSnapshot.size} related inspections`
+    `✅ Successfully deleted building ${id} and ${inspectionsSnapshot.size} related inspections`
   )
 }
 

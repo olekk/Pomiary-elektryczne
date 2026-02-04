@@ -8,11 +8,10 @@ import {
   orderBy,
   onSnapshot,
   addDoc,
-  deleteDoc,
-  doc,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
+import { deleteBuildingFromFirestore } from '../../services'
 
 // Module-level unsubscribe reference for cleanup
 let unsubscribeBuildings: Unsubscribe | null = null
@@ -195,8 +194,8 @@ export const createBuildingSlice: StateCreator<
   },
 
   /**
-   * Delete a building (Optimistic Update)
-   * Note: This does NOT cascade delete inspections (implement kaskadę osobno jeśli potrzeba)
+   * Delete a building with cascading delete (Optimistic Update)
+   * Removes building AND all related inspections atomically
    */
   deleteBuilding: async (id: string) => {
     try {
@@ -208,10 +207,10 @@ export const createBuildingSlice: StateCreator<
         buildings: buildings.filter((b) => b.id !== id),
       })
 
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'buildings', id))
+      // Delete from Firestore with cascading delete
+      await deleteBuildingFromFirestore(id)
 
-      console.log(`✅ Building ${id} deleted successfully`)
+      console.log(`✅ Building ${id} deleted successfully with cascading delete`)
     } catch (error) {
       console.error('❌ Error deleting building:', error)
       throw error
