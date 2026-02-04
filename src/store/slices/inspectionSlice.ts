@@ -14,6 +14,7 @@ import {
   calculateZsDop,
   determineMeasurementResult,
   ensureDate,
+  generateProtocolNumber,
 } from '../../utils'
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore'
 import { db } from '../../firebase'
@@ -60,6 +61,9 @@ export const createInspectionSlice: StateCreator<
   loadedBuildingId: null, // 🛡️ Ghost Data Protection: Initially null
 
   createNewInspection: (projectId, buildingId, address, apartmentNumber, technician) => {
+    const date = new Date()
+    const protocolNumber = generateProtocolNumber(date, apartmentNumber)
+
     set({
       currentInspection: {
         projectId,
@@ -67,7 +71,8 @@ export const createInspectionSlice: StateCreator<
         address,
         apartmentNumber,
         technician,
-        date: new Date(),
+        date,
+        protocolNumber,
         measurements: [],
         synced: false,
       },
@@ -189,6 +194,7 @@ export const createInspectionSlice: StateCreator<
       date: ensureDate(currentInspection.date),
       measurements: currentInspection.measurements,
       signature: signatureToSave,
+      protocolNumber: currentInspection.protocolNumber,
       synced: false,
     }
 
@@ -307,6 +313,7 @@ export const createInspectionSlice: StateCreator<
 
         snapshot.forEach((doc) => {
           const data = doc.data()
+
           inspections.push({
             id: doc.id,
             projectId: data.projectId,
@@ -317,6 +324,7 @@ export const createInspectionSlice: StateCreator<
             technician: data.technician,
             measurements: data.measurements || [],
             signature: data.signature,
+            protocolNumber: data.protocolNumber,
             synced: data.synced ?? true,
           })
         })

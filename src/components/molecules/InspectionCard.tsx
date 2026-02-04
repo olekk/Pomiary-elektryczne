@@ -1,5 +1,5 @@
 import React from 'react'
-import { Trash2, CheckCircle, Clock } from 'lucide-react'
+import { Trash2, CheckCircle, Clock, FileText } from 'lucide-react'
 import { Card, Badge } from '../atoms'
 import type { Inspection } from '../../types'
 
@@ -32,6 +32,12 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
         onClick={handleCardClick}
       >
         <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <FileText size={18} className="text-blue-400" />
+            <span className="font-mono text-sm text-blue-400">
+              {inspection.protocolNumber}
+            </span>
+          </div>
           <h3 className="font-bold text-lg text-slate-100">
             Mieszkanie: {inspection.apartmentNumber}
           </h3>

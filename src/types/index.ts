@@ -39,6 +39,7 @@ export interface Inspection {
   technician: string
   measurements: Measurement[]
   signature?: string // Base64
+  protocolNumber: string // Unikalny numer protokołu
   synced?: boolean
 }
 

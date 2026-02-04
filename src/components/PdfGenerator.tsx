@@ -165,6 +165,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <Text style={styles.subtitle}>
             Pomiar impedancji pętli zwarciowej
           </Text>
+          <Text style={{ fontSize: 11, marginTop: 5, color: '#555' }}>
+            Numer protokołu: {inspection.protocolNumber}
+          </Text>
         </View>
 
         {/* Info Section */}

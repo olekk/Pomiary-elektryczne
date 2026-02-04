@@ -83,9 +83,12 @@ export const SummaryScreen: React.FC = () => {
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `Pomiar_${inspection.apartmentNumber}_${
-        new Date().toISOString().split('T')[0]
-      }.pdf`
+
+      // Użyj numeru protokołu w nazwie pliku
+      // Zamień slashe na myślniki dla kompatybilności z systemami plików
+      const safeProtocolNumber = inspection.protocolNumber.replace(/\//g, '-')
+      link.download = `Protokol_${safeProtocolNumber}.pdf`
+
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {
