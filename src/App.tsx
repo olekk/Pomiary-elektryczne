@@ -7,6 +7,7 @@ import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
 import { BuildingDetailsScreen } from './components/BuildingDetailsScreen'
 import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
+import { SettingsScreen } from './components/SettingsScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { useAppStore } from './store/useAppStore'
 
@@ -90,6 +91,7 @@ function App() {
         {/* /measurement/:id - id = buildingId (nowy pomiar dla budynku) */}
         <Route path="/measurement/:id" element={<MeasurementScreen />} />
         <Route path="/summary" element={<SummaryScreen />} />
+        <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>
   )

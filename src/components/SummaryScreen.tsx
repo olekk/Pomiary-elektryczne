@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Home, FileDown, CheckCircle } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
@@ -34,6 +34,20 @@ export const SummaryScreen: React.FC = () => {
     } else {
       navigate('/')
     }
+  }
+
+  const handleSaveAndAddNext = () => {
+    if (!buildingId) {
+      alert('Błąd: Brak ID budynku')
+      return
+    }
+
+    // Nawiguj do ekranu nowego pomiaru z przekazaniem ostatniego numeru mieszkania
+    navigate(`/building/${buildingId}`, {
+      state: {
+        lastApartmentNumber: currentInspection.apartmentNumber,
+      },
+    })
   }
 
   if (!currentInspection) {
@@ -138,6 +152,16 @@ export const SummaryScreen: React.FC = () => {
 
           <Button
             variant="primary"
+            size="lg"
+            fullWidth
+            onClick={handleSaveAndAddNext}
+            icon={<Plus size={24} />}
+          >
+            Zapisz i Dodaj Kolejny
+          </Button>
+
+          <Button
+            variant="secondary"
             size="lg"
             fullWidth
             onClick={handleReturnToBuilding}

@@ -9,16 +9,23 @@ interface CreateInspectionModalProps {
     apartmentNumber: string,
     technician: string
   ) => void
+  defaultAddress?: string
+  defaultApartmentNumber?: string
+  defaultTechnician?: string
 }
 
 export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   isOpen,
   onClose,
   onCreate,
+  defaultAddress = '',
+  defaultApartmentNumber = '',
+  defaultTechnician = '',
 }) => {
-  const [address, setAddress] = useState('')
-  const [apartmentNumber, setApartmentNumber] = useState('')
-  const [technician, setTechnician] = useState('')
+  // Inicjalizuj stan z domyślnych wartości
+  const [address, setAddress] = useState(defaultAddress)
+  const [apartmentNumber, setApartmentNumber] = useState(defaultApartmentNumber)
+  const [technician, setTechnician] = useState(defaultTechnician)
 
   if (!isOpen) return null
 
@@ -35,9 +42,6 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   }
 
   const handleClose = () => {
-    setAddress('')
-    setApartmentNumber('')
-    setTechnician('')
     onClose()
   }
 

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, LogOut } from 'lucide-react'
+import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase'
 import { useAppStore, resetAllStores } from '../../store/useAppStore'
@@ -98,6 +98,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               pendingCount={pendingSyncCount}
               onRetrySync={retryPendingSync}
             />
+
+            {/* Settings Button */}
+            <Link
+              to="/settings"
+              className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+              title="Ustawienia"
+            >
+              <Settings size={20} className="text-slate-100" />
+            </Link>
 
             {/* Logout Button */}
             <button

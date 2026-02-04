@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { MainLayout } from './layout/MainLayout'
@@ -8,9 +8,13 @@ import {
   InspectionsList,
   CreateInspectionModal,
 } from './organisms'
+import { incrementApartmentNumber } from '../utils'
+
+const TECHNICIAN_NAME_KEY = 'technician_name'
 
 export const BuildingDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { id: buildingId } = useParams<{ id: string }>()
   const {
     inspections,
@@ -25,6 +29,22 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   const [showNewModal, setShowNewModal] = useState(false)
 
+  // Znajdź nazwę budynku i projectId
+  const currentBuilding = buildings.find((b) => b.id === buildingId)
+  const buildingName = currentBuilding?.name || 'Nieznany budynek'
+  const projectId = currentBuilding?.projectId
+
+  // Pobierz domyślne wartości
+  const defaultAddress = buildingName
+  const defaultTechnician = localStorage.getItem(TECHNICIAN_NAME_KEY) || ''
+  
+  // Sprawdź, czy przychodzi z location.state (flow "następny pomiar")
+  const locationState = location.state as { lastApartmentNumber?: string } | null
+  const lastApartmentNumber = locationState?.lastApartmentNumber || ''
+  const defaultApartmentNumber = lastApartmentNumber 
+    ? incrementApartmentNumber(lastApartmentNumber) 
+    : ''
+
   // Subscribe to inspections for this building (Offline-First)
   useEffect(() => {
     if (buildingId) {
@@ -35,6 +55,15 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildingId])
+
+  // Automatycznie otwórz modal jeśli przychodzi z flow "następny pomiar"
+  useEffect(() => {
+    if (locationState?.lastApartmentNumber) {
+      setShowNewModal(true)
+      // Wyczyść state po użyciu (opcjonalnie)
+      window.history.replaceState({}, document.title)
+    }
+  }, [locationState?.lastApartmentNumber])
 
   const handleCreateNew = (
     address: string,
@@ -68,11 +97,6 @@ export const BuildingDetailsScreen: React.FC = () => {
   }
 
   const syncedCount = inspections.filter((i) => i.synced).length
-
-  // Znajdź nazwę budynku i projectId
-  const currentBuilding = buildings.find((b) => b.id === buildingId)
-  const buildingName = currentBuilding?.name || 'Nieznany budynek'
-  const projectId = currentBuilding?.projectId
 
   // Jeśli brak buildingId, przekieruj do głównego ekranu
   if (!buildingId) {
@@ -112,9 +136,13 @@ export const BuildingDetailsScreen: React.FC = () => {
       </button>
 
       <CreateInspectionModal
+        key={`${defaultAddress}-${defaultApartmentNumber}-${defaultTechnician}`}
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
         onCreate={handleCreateNew}
+        defaultAddress={defaultAddress}
+        defaultApartmentNumber={defaultApartmentNumber}
+        defaultTechnician={defaultTechnician}
       />
     </MainLayout>
   )
