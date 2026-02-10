@@ -80,8 +80,14 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   }
 
   const resetForm = () => {
-    setAddress('')
-    setApartmentNumber('')
+    setAddress(deriveInitialValue(editingInspection, 'address', defaultAddress))
+    setApartmentNumber(
+      deriveInitialValue(
+        editingInspection,
+        'apartmentNumber',
+        defaultApartmentNumber
+      )
+    )
     setOwnerName('')
   }
 
