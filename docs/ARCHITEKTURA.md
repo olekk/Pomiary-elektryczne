@@ -71,19 +71,29 @@ Przy tworzeniu nowej inspekcji `inspectionSlice.createNewInspection()` snapshotu
 
 Dzięki temu `PdfGenerator` nie zależy od dynamicznego odczytu `users/{uid}` podczas generowania dokumentu (działa poprawnie offline).
 
-### Cloud storage ustawień
+### Cloud storage ustawień + localStorage fallback
 
-Ustawienia technika są trzymane w Firestore:
+Ustawienia technika są trzymane w Firestore z lokalnym backupem w `localStorage`:
 
 ```
+Firestore:
 users (collection)
 └── {uid} (document, uid = auth.currentUser.uid)
     ├── displayName: string
     ├── signatureBase64: string
     └── updatedAt: Timestamp
+
+localStorage:
+userSettings:{uid} → JSON { displayName, signatureBase64 }
 ```
 
-`SettingsScreen` przy wejściu odświeża dane z chmury i zapisuje je przez `saveUserSettingsToFirestore()`.
+**Zapis:** `saveUserSettings()` zapisuje równolegle do Firestore + `localStorage` (per-user key).
+
+**Odczyt (hydration):** `loadUserSettings()` próbuje pobrać z Firestore. Jeśli dokument nie istnieje lub `getDoc` rzuci błędem (race condition auth, offline), używa danych z `localStorage` jako fallback. Po udanym odczycie z dowolnego źródła odświeża lokalny backup.
+
+**Wywołania:**
+1. `App.tsx` → `onAuthStateChanged` → `loadUserSettings(uid)` — automatycznie po zalogowaniu
+2. `SettingsScreen` → `useEffect` → `loadUserSettings(uid)` — odświeżenie przy wejściu w ustawienia
 
 ---
 
