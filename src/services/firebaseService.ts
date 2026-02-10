@@ -122,6 +122,13 @@ export const saveInspectionToFirestore = async (
   inspection: Inspection,
   inspectionId: string
 ): Promise<void> => {
+  const sanitizedMeasurements = (inspection.measurements || []).map(
+    ({ noGrounding, ...measurement }) =>
+      noGrounding === undefined
+        ? measurement
+        : { ...measurement, noGrounding }
+  )
+
   const dataToSave = {
     projectId: inspection.projectId,
     buildingId: inspection.buildingId,
@@ -129,7 +136,7 @@ export const saveInspectionToFirestore = async (
     apartmentNumber: inspection.apartmentNumber || '',
     date: Timestamp.fromDate(ensureDate(inspection.date)),
     technician: inspection.technician || '',
-    measurements: inspection.measurements || [],
+    measurements: sanitizedMeasurements,
     signature: inspection.signature || '',
     protocolNumber: inspection.protocolNumber || '',
     synced: false,

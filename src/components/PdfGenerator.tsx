@@ -110,13 +110,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff3cd',
     fontSize: 9,
   },
-  col1: { width: '5%', textAlign: 'center' },
-  col2: { width: '10%', textAlign: 'center' },
-  col3: { width: '12%', textAlign: 'center' },
-  col4: { width: '18%', textAlign: 'center' },
-  col5: { width: '18%', textAlign: 'center' },
-  col6: { width: '25%', textAlign: 'center' },
-  col7: { width: '12%', textAlign: 'center' },
+  col1: { width: '8%', textAlign: 'center' },
+  col2: { width: '18%', textAlign: 'center' },
+  col3: { width: '16%', textAlign: 'center' },
+  col4: { width: '26%', textAlign: 'center' },
+  col5: { width: '20%', textAlign: 'center' },
+  col6: { width: '12%', textAlign: 'center' },
   footer: {
     marginTop: 30,
     paddingTop: 10,
@@ -142,6 +141,21 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginBottom: 2,
   },
+  recommendationsBox: {
+    marginTop: 12,
+    padding: 10,
+    backgroundColor: '#fff7e6',
+    borderRadius: 5,
+  },
+  recommendationsTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+  recommendationsText: {
+    fontSize: 10,
+    marginBottom: 3,
+  },
 })
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
@@ -154,6 +168,27 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const noGroundingCount = inspection.measurements.filter(
     (m) => m.result === 'B.UZ'
   ).length
+
+  const postInspectionRecommendations = inspection.measurements.flatMap((m) => {
+    const measurementLabel = `Gniazdo nr ${m.pointNumber} (${m.room})`
+
+    if (m.noGrounding === 'NO_PIN') {
+      return `${measurementLabel}: Brak bolca w gnieździe. Należy wymienić na gniazdo z uziemieniem.`
+    }
+
+    if (m.noGrounding === 'NO_CONN') {
+      return `${measurementLabel}: Brak połączenia z przewodem ochronnym. Należy poprawić połączenia.`
+    }
+
+    if (
+      m.noGrounding === 'HIGH_Z' ||
+      (m.zsValue !== null && m.zsValue > m.zsDop)
+    ) {
+      return `${measurementLabel}: Zbyt wysoka impedancja. Należy poprawić połączenie przewodu ochronnego.`
+    }
+
+    return []
+  })
 
   return (
     <Document>
@@ -221,8 +256,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               Wartość prądu In urządzenia wyłączającego [A]
             </Text>
             <Text style={styles.col5}>Zmierzona impedancja Zs[Ω]</Text>
-            <Text style={styles.col6}>Uwagi</Text>
-            <Text style={styles.col7}>Ocena</Text>
+            <Text style={styles.col6}>Ocena</Text>
           </View>
 
           {/* Table Rows */}
@@ -233,16 +267,6 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             else if (m.result === 'NIE') rowStyle = styles.tableRowFail
             else if (m.result === 'B.UZ') rowStyle = styles.tableRowNoGround
 
-            const uwagi = m.noGrounding
-              ? m.noGrounding === 'NO_PIN'
-                ? 'Brak bolca'
-                : m.noGrounding === 'NO_CONN'
-                  ? 'Brak połączenia'
-                  : m.noGrounding === 'HIGH_Z'
-                    ? 'Zbyt wysoka impedancja'
-                    : 'B.UZ'
-              : '-'
-
             return (
               <View style={rowStyle} key={m.id}>
                 <Text style={styles.col1}>{m.pointNumber}</Text>
@@ -250,8 +274,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                 <Text style={styles.col3}>{m.protectionType}</Text>
                 <Text style={styles.col4}>{m.amperage}A</Text>
                 <Text style={styles.col5}>{m.zsValue?.toFixed(2)}</Text>
-                <Text style={styles.col6}>{uwagi}</Text>
-                <Text style={styles.col7}>{m.result}</Text>
+                <Text style={styles.col6}>{m.result}</Text>
               </View>
             )
           })}
@@ -272,6 +295,21 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <Text style={styles.summaryText}>
             Łącznie punktów: {inspection.measurements.length}
           </Text>
+        </View>
+
+        <View style={styles.recommendationsBox}>
+          <Text style={styles.recommendationsTitle}>
+            UWAGI I ZALECENIA POKONTROLNE
+          </Text>
+          {postInspectionRecommendations.length > 0 ? (
+            postInspectionRecommendations.map((recommendation, idx) => (
+              <Text key={`${recommendation}-${idx}`} style={styles.recommendationsText}>
+                - {recommendation}
+              </Text>
+            ))
+          ) : (
+            <Text style={styles.recommendationsText}>Brak uwag.</Text>
+          )}
         </View>
 
         {/* Footer */}

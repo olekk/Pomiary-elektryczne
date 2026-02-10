@@ -32,7 +32,7 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
     ['7', '8', '9'],
     ['4', '5', '6'],
     ['1', '2', '3'],
-    ['C', '0', '.'],
+    ['C', '0', ','],
   ]
 
   return (
@@ -53,6 +53,7 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
                 key={btn}
                 onClick={() => {
                   if (btn === 'C') handleClear()
+                  else if (btn === ',') handlePress('.')
                   else handlePress(btn)
                 }}
                 className="bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-2xl font-semibold text-slate-100 p-6 rounded-lg border border-slate-700 transition-colors"

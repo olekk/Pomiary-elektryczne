@@ -52,7 +52,7 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
           {m.noGrounding ? (
             <span>
               {m.noGrounding === 'NO_PIN' && 'Brak bolca w gnieździe'}
-              {m.noGrounding === 'NO_CONN' && 'Brak połączenia / Otwarty obwód'}
+              {m.noGrounding === 'NO_CONN' && 'Brak połączenia z przewodem PE'}
               {m.noGrounding === 'HIGH_Z' && 'Zbyt wysoka impedancja'}
             </span>
           ) : (
