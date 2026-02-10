@@ -26,6 +26,7 @@ export const SummaryScreen: React.FC = () => {
   const inspection = locationState?.inspection || currentInspection
   const buildingId = locationState?.buildingId || inspection?.buildingId
   const [notes, setNotes] = useState(inspection?.notes || '')
+  const [isSignatureVisible, setSignatureVisible] = useState(false)
 
   useEffect(() => {
     if (locationState?.inspection) {
@@ -40,6 +41,10 @@ export const SummaryScreen: React.FC = () => {
     setNotes(inspection?.notes || '')
   }, [inspection?.id, inspection?.notes])
 
+  useEffect(() => {
+    setSignatureVisible(false)
+  }, [inspection?.id])
+
   const handleNotesChange = (value: string) => {
     setNotes(value)
     updateInspectionNotes(value)
@@ -52,6 +57,7 @@ export const SummaryScreen: React.FC = () => {
       setOwnerSignature(ownerSignature)
       // Save to Firestore with signature override
       await saveToFirestore(ownerSignature)
+      setSignatureVisible(false)
     } catch (error) {
       console.error('Error saving signature:', error)
       alert('Błąd podczas zapisywania podpisu')
@@ -138,6 +144,9 @@ export const SummaryScreen: React.FC = () => {
   const { passed, failed, noGrounding } = countMeasurementsByResult(
     inspection.measurements
   )
+  const hasStoredSignature = Boolean(
+    inspection.ownerSignature && inspection.ownerSignature.trim().length > 0
+  )
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -208,10 +217,54 @@ export const SummaryScreen: React.FC = () => {
         </Card>
 
         {/* Signature */}
-        <SignaturePanel
-          onSave={handleSaveSignature}
-          initialSignature={inspection.ownerSignature}
-        />
+        {!isSignatureVisible && (
+          <Card className="mb-4">
+            <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
+
+            {hasStoredSignature ? (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-slate-700 bg-slate-950 p-2">
+                  <img
+                    src={inspection.ownerSignature}
+                    alt="Podgląd podpisu właściciela"
+                    className="w-full h-32 object-contain rounded bg-white"
+                  />
+                </div>
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setSignatureVisible(true)}
+                >
+                  Zmień / Edytuj podpis
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => setSignatureVisible(true)}
+              >
+                Złóż podpis
+              </Button>
+            )}
+          </Card>
+        )}
+
+        {isSignatureVisible && (
+          <div className="space-y-3 mb-4">
+            <SignaturePanel
+              onSave={handleSaveSignature}
+              initialSignature={inspection.ownerSignature}
+            />
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setSignatureVisible(false)}
+            >
+              Anuluj i zwiń panel
+            </Button>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="space-y-3 mt-4">
