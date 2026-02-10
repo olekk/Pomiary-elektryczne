@@ -52,6 +52,40 @@ Komponenty UI
 
 ---
 
+## 🆕 Ustawienia użytkownika i podpisy (2026-02-10)
+
+### Model danych podpisów
+
+Aplikacja rozdziela podpisy na dwa niezależne źródła:
+
+1. `technicianSignature` - podpis technika, ustawiany raz w `SettingsScreen`
+2. `ownerSignature` - podpis właściciela/najemcy, zbierany każdorazowo w `SummaryScreen`
+
+### Snapshotting do inspekcji (offline-safe PDF)
+
+Przy tworzeniu nowej inspekcji `inspectionSlice.createNewInspection()` snapshotuje dane technika ze store:
+
+- `technicianName`
+- `technicianSignature`
+
+Dzięki temu `PdfGenerator` nie zależy od dynamicznego odczytu `users/{uid}` podczas generowania dokumentu (działa poprawnie offline).
+
+### Cloud storage ustawień
+
+Ustawienia technika są trzymane w Firestore:
+
+```
+users (collection)
+└── {uid} (document, uid = auth.currentUser.uid)
+    ├── displayName: string
+    ├── signatureBase64: string
+    └── updatedAt: Timestamp
+```
+
+`SettingsScreen` przy wejściu odświeża dane z chmury i zapisuje je przez `saveUserSettingsToFirestore()`.
+
+---
+
 ## 📁 Struktura Projektu (Atomic Design)
 
 ```
@@ -112,6 +146,7 @@ pomiary-elektryczne/
 │   │   │   ├── authSlice.ts    # Autoryzacja (user)
 │   │   │   ├── projectSlice.ts # Projekty
 │   │   │   ├── inspectionSlice.ts  # Przeglądy i pomiary
+│   │   │   ├── userSettingsSlice.ts # Ustawienia użytkownika (technik)
 │   │   │   ├── offlineSlice.ts # Offline & settings
 │   │   │   └── index.ts        # Re-export
 │   │   ├── useAppStore.ts      # Główny store (łączy wszystkie slice'y)
@@ -704,10 +739,11 @@ inspections (collection)
 │   ├── address: string
 │   ├── apartmentNumber: string
 │   ├── date: Timestamp
-│   ├── technician: string
+│   ├── technicianName: string
+│   ├── technicianSignature: string (base64 snapshot z ustawień)
 │   ├── notes: string             // opcjonalne uwagi ogólne do protokołu
 │   ├── synced: boolean
-│   ├── signature: string (base64)
+│   ├── ownerSignature: string (base64 podpisu klienta)
 │   └── measurements: array
 │       └── [
 │           {
@@ -1069,6 +1105,7 @@ store/
 │   ├── authSlice.ts         → Stan autoryzacji (user)
 │   ├── projectSlice.ts      → Stan projektów (projects, currentProjectId)
 │   ├── inspectionSlice.ts   → Stan przeglądów (inspections, currentInspection, measurements)
+│   ├── userSettingsSlice.ts → Stan profilu technika (displayName, signatureBase64)
 │   ├── offlineSlice.ts      → Stan offline i ustawienia (isOnline, lastDefaults)
 │   └── index.ts             → Re-export
 │
@@ -1132,7 +1169,7 @@ npm run dev
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
 **Wzorce:** Atomic Design, State Management (Zustand), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-02-10 (Dodanie pola `notes` dla uwag protokołu)
+**Ostatnia aktualizacja:** 2026-02-10 (Cloud settings użytkownika + rozdzielenie podpisów technik/właściciel)
 
 ---
 

@@ -38,11 +38,10 @@ export interface InspectionSlice {
     projectId: string,
     buildingId: string,
     address: string,
-    apartmentNumber: string,
-    technician: string
+    apartmentNumber: string
   ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
-  setSignature: (signature: string) => void
+  setOwnerSignature: (ownerSignature: string) => void
   updateInspectionNotes: (notes: string) => void
   addMeasurement: (
     room: import('../../types').Room,
@@ -53,7 +52,7 @@ export interface InspectionSlice {
   ) => void
   updateMeasurement: (id: string, zsValue: number | null) => void
   removeMeasurement: (id: string) => void
-  saveToFirestore: (signatureOverride?: string) => Promise<void>
+  saveToFirestore: (ownerSignatureOverride?: string) => Promise<void>
   subscribeToInspections: (buildingId: string) => void
   unsubscribeFromInspections: () => void
   deleteInspection: (id: string) => Promise<void>
@@ -77,9 +76,12 @@ export const createInspectionSlice: StateCreator<
     projectId,
     buildingId,
     address,
-    apartmentNumber,
-    technician
+    apartmentNumber
   ) => {
+    const state = get() as InspectionSlice & {
+      technicianName: string
+      technicianSignature: string
+    }
     const date = new Date()
     const protocolNumber = generateProtocolNumber(
       date,
@@ -93,7 +95,8 @@ export const createInspectionSlice: StateCreator<
         buildingId,
         address,
         apartmentNumber,
-        technician,
+        technicianName: state.technicianName,
+        technicianSignature: state.technicianSignature,
         date,
         protocolNumber,
         notes: '',
@@ -107,10 +110,10 @@ export const createInspectionSlice: StateCreator<
     set({ currentInspection: inspection })
   },
 
-  setSignature: (signature) => {
+  setOwnerSignature: (ownerSignature) => {
     set((state) => ({
       currentInspection: state.currentInspection
-        ? { ...state.currentInspection, signature: signature }
+        ? { ...state.currentInspection, ownerSignature }
         : null,
     }))
   },
@@ -200,7 +203,7 @@ export const createInspectionSlice: StateCreator<
     })
   },
 
-  saveToFirestore: async (signatureOverride) => {
+  saveToFirestore: async (ownerSignatureOverride) => {
     const { currentInspection, inspections } = get() as InspectionSlice
 
     if (!currentInspection) {
@@ -211,8 +214,8 @@ export const createInspectionSlice: StateCreator<
     const savedId = currentInspection.id || generateInspectionId()
 
     // Use signatureOverride if provided, otherwise use store signature
-    const signatureToSave =
-      signatureOverride || currentInspection.signature || ''
+    const ownerSignatureToSave =
+      ownerSignatureOverride || currentInspection.ownerSignature || ''
 
     // Optimistic update: Update UI immediately
     const optimisticInspection: Inspection = {
@@ -221,11 +224,12 @@ export const createInspectionSlice: StateCreator<
       buildingId: currentInspection.buildingId,
       address: currentInspection.address,
       apartmentNumber: currentInspection.apartmentNumber,
-      technician: currentInspection.technician,
+      technicianName: currentInspection.technicianName,
+      technicianSignature: currentInspection.technicianSignature || '',
       date: ensureDate(currentInspection.date),
       measurements: currentInspection.measurements,
       notes: currentInspection.notes || '',
-      signature: signatureToSave,
+      ownerSignature: ownerSignatureToSave,
       protocolNumber: currentInspection.protocolNumber,
       synced: false,
     }
@@ -258,7 +262,7 @@ export const createInspectionSlice: StateCreator<
     const inspectionToSave: Inspection = {
       ...currentInspection,
       notes: currentInspection.notes || '',
-      signature: signatureToSave,
+      ownerSignature: ownerSignatureToSave,
     }
 
     saveInspectionToFirestore(inspectionToSave, savedId)
@@ -363,10 +367,11 @@ export const createInspectionSlice: StateCreator<
             address: data.address,
             apartmentNumber: data.apartmentNumber,
             date: data.date?.toDate ? data.date.toDate() : new Date(),
-            technician: data.technician,
+            technicianName: data.technicianName || data.technician || '',
+            technicianSignature: data.technicianSignature || '',
             measurements: data.measurements || [],
             notes: data.notes || '',
-            signature: data.signature,
+            ownerSignature: data.ownerSignature || data.signature || '',
             protocolNumber: data.protocolNumber,
             synced: data.synced ?? true,
           })

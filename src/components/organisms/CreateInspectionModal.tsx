@@ -4,14 +4,9 @@ import { Button, Input } from '../atoms'
 interface CreateInspectionModalProps {
   isOpen: boolean
   onClose: () => void
-  onCreate: (
-    address: string,
-    apartmentNumber: string,
-    technician: string
-  ) => void
+  onCreate: (address: string, apartmentNumber: string) => void
   defaultAddress?: string
   defaultApartmentNumber?: string
-  defaultTechnician?: string
 }
 
 export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
@@ -20,25 +15,22 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   onCreate,
   defaultAddress = '',
   defaultApartmentNumber = '',
-  defaultTechnician = '',
 }) => {
   // Inicjalizuj stan z domyślnych wartości
   const [address, setAddress] = useState(defaultAddress)
   const [apartmentNumber, setApartmentNumber] = useState(defaultApartmentNumber)
-  const [technician, setTechnician] = useState(defaultTechnician)
 
   if (!isOpen) return null
 
   const handleSubmit = () => {
-    if (!address.trim() || !apartmentNumber.trim() || !technician.trim()) {
+    if (!address.trim() || !apartmentNumber.trim()) {
       alert('Wypełnij wszystkie pola!')
       return
     }
 
-    onCreate(address, apartmentNumber, technician)
+    onCreate(address, apartmentNumber)
     setAddress('')
     setApartmentNumber('')
-    setTechnician('')
   }
 
   const handleClose = () => {
@@ -65,14 +57,6 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
             value={apartmentNumber}
             onChange={(e) => setApartmentNumber(e.target.value)}
             placeholder="np. 42"
-          />
-
-          <Input
-            label="Technik"
-            type="text"
-            value={technician}
-            onChange={(e) => setTechnician(e.target.value)}
-            placeholder="Imię i nazwisko"
           />
         </div>
 

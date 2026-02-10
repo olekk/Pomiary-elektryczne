@@ -9,9 +9,10 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import type { Inspection, Project } from '../types'
+import type { Inspection, Project, UserSettings } from '../types'
 import { ensureDate } from '../utils'
 
 /**
@@ -135,10 +136,11 @@ export const saveInspectionToFirestore = async (
     address: inspection.address || '',
     apartmentNumber: inspection.apartmentNumber || '',
     date: Timestamp.fromDate(ensureDate(inspection.date)),
-    technician: inspection.technician || '',
+    technicianName: inspection.technicianName || '',
+    technicianSignature: inspection.technicianSignature || '',
     notes: inspection.notes || '',
     measurements: sanitizedMeasurements,
-    signature: inspection.signature || '',
+    ownerSignature: inspection.ownerSignature || '',
     protocolNumber: inspection.protocolNumber || '',
     synced: false,
     createdAt: Timestamp.now(),
@@ -181,5 +183,48 @@ export const retrySyncInspection = async (
   } catch (error) {
     console.error(`❌ Retry failed for inspection ${inspection.id}:`, error)
     return false
+  }
+}
+
+/**
+ * Save user settings to Firestore (users/{uid})
+ */
+export const saveUserSettingsToFirestore = async (
+  userId: string,
+  settings: UserSettings
+): Promise<void> => {
+  const docRef = doc(db, 'users', userId)
+
+  await setDoc(
+    docRef,
+    {
+      displayName: settings.displayName.trim(),
+      signatureBase64: settings.signatureBase64 || '',
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true }
+  )
+}
+
+/**
+ * Load user settings from Firestore (users/{uid})
+ */
+export const getUserSettingsFromFirestore = async (
+  userId: string
+): Promise<UserSettings | null> => {
+  const docRef = doc(db, 'users', userId)
+  const snapshot = await getDoc(docRef)
+
+  if (!snapshot.exists()) {
+    return null
+  }
+
+  const data = snapshot.data()
+
+  return {
+    displayName:
+      typeof data.displayName === 'string' ? data.displayName : '',
+    signatureBase64:
+      typeof data.signatureBase64 === 'string' ? data.signatureBase64 : '',
   }
 }

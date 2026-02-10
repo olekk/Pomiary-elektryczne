@@ -7,8 +7,17 @@ import {
 } from './slices/inspectionSlice'
 import { createBuildingSlice, type BuildingSlice } from './slices/buildingSlice'
 import { createOfflineSlice, type OfflineSlice } from './slices/offlineSlice'
+import {
+  createUserSettingsSlice,
+  type UserSettingsSlice,
+} from './slices/userSettingsSlice'
 
-type AppStore = AuthSlice & ProjectSlice & InspectionSlice & BuildingSlice & OfflineSlice
+type AppStore = AuthSlice &
+  ProjectSlice &
+  InspectionSlice &
+  BuildingSlice &
+  OfflineSlice &
+  UserSettingsSlice
 
 export const useAppStore = create<AppStore>()((...a) => ({
   ...createAuthSlice(...a),
@@ -16,6 +25,7 @@ export const useAppStore = create<AppStore>()((...a) => ({
   ...createInspectionSlice(...a),
   ...createBuildingSlice(...a),
   ...createOfflineSlice(...a),
+  ...createUserSettingsSlice(...a),
 }))
 
 /**
@@ -32,6 +42,7 @@ export const resetAllStores = () => {
   store.resetProjects()
   store.resetInspections()
   store.resetBuildings()
+  store.resetUserSettings()
   
   console.log('✅ All stores cleared successfully')
 }

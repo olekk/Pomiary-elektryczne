@@ -14,7 +14,7 @@ export const SummaryScreen: React.FC = () => {
   const {
     currentInspection,
     setCurrentInspection,
-    setSignature,
+    setOwnerSignature,
     updateInspectionNotes,
     saveToFirestore,
   } = useAppStore()
@@ -45,13 +45,13 @@ export const SummaryScreen: React.FC = () => {
     updateInspectionNotes(value)
   }
 
-  const handleSaveSignature = async (signature: string) => {
+  const handleSaveSignature = async (ownerSignature: string) => {
     try {
       updateInspectionNotes(notes)
       // Update store first
-      setSignature(signature)
+      setOwnerSignature(ownerSignature)
       // Save to Firestore with signature override
-      await saveToFirestore(signature)
+      await saveToFirestore(ownerSignature)
     } catch (error) {
       console.error('Error saving signature:', error)
       alert('Błąd podczas zapisywania podpisu')
@@ -74,7 +74,7 @@ export const SummaryScreen: React.FC = () => {
 
     try {
       updateInspectionNotes(notes)
-      await saveToFirestore(inspection?.signature ?? '')
+      await saveToFirestore(inspection?.ownerSignature ?? '')
     } catch (error) {
       console.error('Error saving inspection:', error)
       alert('Błąd podczas zapisywania. Sprawdź połączenie.')
@@ -210,7 +210,7 @@ export const SummaryScreen: React.FC = () => {
         {/* Signature */}
         <SignaturePanel
           onSave={handleSaveSignature}
-          initialSignature={inspection.signature}
+          initialSignature={inspection.ownerSignature}
         />
 
         {/* Actions */}

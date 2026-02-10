@@ -3,3 +3,7 @@ export { createProjectSlice, type ProjectSlice } from './projectSlice'
 export { createInspectionSlice, type InspectionSlice } from './inspectionSlice'
 export { createBuildingSlice, type BuildingSlice } from './buildingSlice'
 export { createOfflineSlice, type OfflineSlice } from './offlineSlice'
+export {
+  createUserSettingsSlice,
+  type UserSettingsSlice,
+} from './userSettingsSlice'

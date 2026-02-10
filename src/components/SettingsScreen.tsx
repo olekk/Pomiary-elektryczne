@@ -1,31 +1,94 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
+import SignatureCanvas from 'react-signature-canvas'
 import { MainLayout } from './layout/MainLayout'
 import { Button, Card, Input } from './atoms'
-import { Save } from 'lucide-react'
-
-const TECHNICIAN_NAME_KEY = 'technician_name'
+import { Eraser, Save } from 'lucide-react'
+import { useAppStore } from '../store/useAppStore'
 
 export const SettingsScreen: React.FC = () => {
-  const [technicianName, setTechnicianName] = useState('')
+  const user = useAppStore((state) => state.user)
+  const technicianNameFromStore = useAppStore((state) => state.technicianName)
+  const technicianSignatureFromStore = useAppStore(
+    (state) => state.technicianSignature
+  )
+  const loadUserSettings = useAppStore((state) => state.loadUserSettings)
+  const saveUserSettings = useAppStore((state) => state.saveUserSettings)
+
+  const signatureRef = useRef<SignatureCanvas>(null)
+  const [technicianName, setTechnicianName] = useState(technicianNameFromStore)
+  const [hasSignature, setHasSignature] = useState(
+    Boolean(technicianSignatureFromStore)
+  )
+  const [loadedSignature, setLoadedSignature] = useState(
+    technicianSignatureFromStore
+  )
   const [isSaving, setIsSaving] = useState(false)
 
-  // Załaduj zapisaną wartość przy montowaniu komponentu
+  // Każde wejście do ustawień odświeża dane użytkownika z chmury
   useEffect(() => {
-    const saved = localStorage.getItem(TECHNICIAN_NAME_KEY)
-    if (saved) {
-      setTechnicianName(saved)
-    }
-  }, [])
+    const loadSettings = async () => {
+      if (!user) return
 
-  const handleSave = () => {
+      try {
+        await loadUserSettings(user.uid)
+      } catch (error) {
+        console.error('Error loading settings:', error)
+        alert('Nie udało się pobrać ustawień z chmury')
+      }
+    }
+
+    loadSettings()
+  }, [user, loadUserSettings])
+
+  useEffect(() => {
+    setTechnicianName(technicianNameFromStore)
+  }, [technicianNameFromStore])
+
+  useEffect(() => {
+    setLoadedSignature(technicianSignatureFromStore)
+    setHasSignature(Boolean(technicianSignatureFromStore))
+  }, [technicianSignatureFromStore])
+
+  useEffect(() => {
+    if (!loadedSignature || !signatureRef.current) return
+
+    try {
+      signatureRef.current.fromDataURL(loadedSignature)
+    } catch (error) {
+      console.error('Error loading signature to canvas:', error)
+    }
+  }, [loadedSignature])
+
+  const handleClearSignature = () => {
+    signatureRef.current?.clear()
+    setHasSignature(false)
+    setLoadedSignature('')
+  }
+
+  const handleSave = async () => {
+    if (!user) {
+      alert('Brak zalogowanego użytkownika')
+      return
+    }
+
     if (!technicianName.trim()) {
       alert('Wprowadź imię i nazwisko technika')
       return
     }
 
+    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+      alert('Dodaj podpis technika')
+      return
+    }
+
+    const signatureBase64 = signatureRef.current.toDataURL('image/png')
+
     setIsSaving(true)
     try {
-      localStorage.setItem(TECHNICIAN_NAME_KEY, technicianName.trim())
+      await saveUserSettings(user.uid, {
+        displayName: technicianName.trim(),
+        signatureBase64,
+      })
       alert('Ustawienia zapisane!')
     } catch (error) {
       console.error('Error saving settings:', error)
@@ -55,6 +118,36 @@ export const SettingsScreen: React.FC = () => {
               onChange={(e) => setTechnicianName(e.target.value)}
               placeholder="np. Jan Kowalski"
             />
+
+            <div>
+              <label className="block text-sm font-medium text-slate-100 mb-2">
+                Podpis Technika
+              </label>
+              <div className="border-2 border-slate-700 rounded-lg overflow-hidden shadow-lg">
+                <SignatureCanvas
+                  ref={signatureRef}
+                  canvasProps={{
+                    className: 'w-full h-48 bg-white cursor-crosshair',
+                  }}
+                  onEnd={() => setHasSignature(true)}
+                />
+              </div>
+              <div className="mt-2">
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={handleClearSignature}
+                  icon={<Eraser size={18} />}
+                >
+                  Wyczyść
+                </Button>
+              </div>
+              {!hasSignature && (
+                <p className="text-xs text-slate-400 mt-2">
+                  Podpis jest wymagany do generowania PDF
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="mt-6">

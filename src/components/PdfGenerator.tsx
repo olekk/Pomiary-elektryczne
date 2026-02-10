@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 30,
     paddingTop: 10,
-    borderTop: '1pt solid #000',
   },
   signature: {
     marginTop: 20,
@@ -127,7 +126,7 @@ const styles = StyleSheet.create({
     height: 80,
   },
   summaryBox: {
-    marginTop: 20,
+    marginTop: 12,
     padding: 10,
     backgroundColor: '#e3f2fd',
     borderRadius: 5,
@@ -160,18 +159,67 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 10,
   },
+  inspectionContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  sectionSubtitle: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#444',
+  },
+  paragraph: {
+    fontSize: 10,
+    textAlign: 'justify',
+    marginBottom: 10,
+    lineHeight: 1.4,
+    fontFamily: 'Roboto', // Upewnij się, że masz czcionkę obsługującą polskie znaki
+  },
+
+  // Szerokości kolumn
+  colLp: { width: '10%', textAlign: 'center' },
+  colSubject: { width: '70%' },
+  colRating: { width: '20%', textAlign: 'center', fontWeight: 'bold' },
+  conclusionsTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  conclusionSuitable: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#16a34a',
+  },
+  conclusionNotSuitable: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#dc2626',
+  },
+  ownerSignature: {
+    textAlign: 'right',
+    alignItems: 'flex-end',
+  },
+  companyDetails: {
+    marginTop: 20,
+    marginBottom: 20,
+    textAlign: 'center',
+    fontSize: 10,
+    color: '#555',
+  },
 })
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
-  const passedCount = inspection.measurements.filter(
-    (m) => m.result === 'TAK'
-  ).length
-  const failedCount = inspection.measurements.filter(
-    (m) => m.result === 'NIE'
-  ).length
-  const noGroundingCount = inspection.measurements.filter(
-    (m) => m.result === 'B.UZ'
-  ).length
+  const technicianName = inspection.technicianName || 'Brak danych technika'
+  const technicianSignature = inspection.technicianSignature || ''
+  const ownerSignature = inspection.ownerSignature || ''
 
   const postInspectionRecommendations = inspection.measurements.flatMap((m) => {
     const measurementLabel = `Gniazdo nr ${m.pointNumber} (${m.room})`
@@ -198,6 +246,10 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const hasAuto = postInspectionRecommendations.length > 0
   const hasManual = manualNotes.length > 0
   const hasAnyRemarks = hasAuto || hasManual
+
+  const hasProblems = inspection.measurements.some(
+    (m) => m.result === 'NIE' || m.result === 'B.UZ'
+  )
 
   return (
     <Document>
@@ -289,21 +341,55 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           })}
         </View>
 
-        {/* Summary Box */}
-        <View style={styles.summaryBox}>
-          <Text style={styles.summaryTitle}>Podsumowanie:</Text>
-          <Text style={styles.summaryText}>
-            Punkty pozytywne (TAK): {passedCount}
+        {/* --- SEKCJA OGLĘDZINY --- */}
+        <View style={styles.inspectionContainer}>
+          <Text style={styles.sectionTitle}>
+            OGLĘDZINY INSTALACJI ELEKTRYCZNEJ
           </Text>
-          <Text style={styles.summaryText}>
-            Punkty negatywne (NIE): {failedCount}
+          <Text style={styles.sectionSubtitle}>wg normy PN-IEC 60364-6-61</Text>
+
+          <Text style={styles.paragraph}>
+            Oględziny badanej instalacji elektrycznej przeprowadzono przed
+            przystąpieniem do wykonywania prób i pomiarów oraz podczas
+            wykonywania prób i pomiarów.
           </Text>
-          <Text style={styles.summaryText}>
-            Brak uziemienia (B.UZ): {noGroundingCount}
-          </Text>
-          <Text style={styles.summaryText}>
-            Łącznie punktów: {inspection.measurements.length}
-          </Text>
+
+          {/* Tabela Oględzin */}
+          <View>
+            {/* Nagłówek Tabeli */}
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.colLp]}>Lp.</Text>
+              <Text style={[styles.colSubject]}>Przedmiot oględzin</Text>
+              <Text style={[styles.colRating]}>Ocena</Text>
+            </View>
+
+            {/* Wiersz 1 */}
+            <View style={styles.tableRow}>
+              <Text style={[styles.colLp]}>1</Text>
+              <Text style={[styles.colSubject]}>
+                Sposób ochrony przed porażeniem prądem elektrycznym
+              </Text>
+              <Text style={[styles.colRating]}>Właściwy</Text>
+            </View>
+
+            {/* Wiersz 2 */}
+            <View style={styles.tableRow}>
+              <Text style={[styles.colLp]}>2</Text>
+              <Text style={[styles.colSubject]}>
+                Oznaczenia przewodów neutralnych i ochronnych
+              </Text>
+              <Text style={[styles.colRating]}>JEST</Text>
+            </View>
+
+            {/* Wiersz 3 */}
+            <View style={styles.tableRow}>
+              <Text style={[styles.colLp]}>3</Text>
+              <Text style={[styles.colSubject]}>
+                Poprawność połączeń przewodów
+              </Text>
+              <Text style={[styles.colRating]}>JEST</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.recommendationsBox}>
@@ -314,10 +400,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <>
               {hasAuto &&
                 postInspectionRecommendations.map((recommendation, idx) => (
-                  <Text
-                    key={`auto-${idx}`}
-                    style={styles.recommendationsText}
-                  >
+                  <Text key={`auto-${idx}`} style={styles.recommendationsText}>
                     - {recommendation}
                   </Text>
                 ))}
@@ -337,18 +420,64 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.recommendationsText}>Brak uwag.</Text>
           )}
         </View>
+        <View style={styles.inspectionContainer}>
+          <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={{ marginBottom: 10 }}>
-            Pomiar wykonany zgodnie z normą PN-HD 60364-6:2008
+          <Text style={styles.paragraph}>
+            Miernik: Typ: MPI 540 | Producent: Sonel | Nr seryjny: KO4539
           </Text>
-          {inspection.signature && (
+        </View>
+
+        {/* Wnioski z pomiarów */}
+        <View>
+          <Text style={styles.conclusionsTitle}>Wnioski z pomiarów:</Text>
+          <Text
+            style={
+              hasProblems
+                ? styles.conclusionNotSuitable
+                : styles.conclusionSuitable
+            }
+          >
+            {hasProblems
+              ? 'INSTALACJA NIE NADAJE SIĘ DO EKSPLOATACJI'
+              : 'INSTALACJA NADAJE SIĘ DO EKSPLOATACJI'}
+          </Text>
+        </View>
+
+        <View style={styles.footer}>
+          <Text>Pomiary wykonał: {technicianName}</Text>
+          {technicianSignature && (
             <View>
               <Text style={{ marginBottom: 5 }}>Podpis technika:</Text>
-              <Image src={inspection.signature} style={styles.signature} />
+              <Image src={technicianSignature} style={styles.signature} />
             </View>
           )}
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.conclusionsTitle}>
+            Najemca (właściciel) poinformowany został o konieczności zerowania
+            gniazdek w kuchni i łazience, oraz o zagrożeniach wynikających ze
+            złej eksploatacji urządzeń elektrycznych. W przypadku
+            nieprawidłowości otrzymał załącznik z uwagami do usunięcia usterek w
+            instalacji odbiorcy.
+          </Text>
+        </View>
+        <View style={styles.ownerSignature}>
+          <Text>Podpis najemcy (właściciela):</Text>
+          {ownerSignature ? (
+            <Image src={ownerSignature} style={styles.signature} />
+          ) : (
+            <Text style={{ marginTop: 8, color: '#777' }}>Brak podpisu</Text>
+          )}
+        </View>
+        <View style={styles.companyDetails}>
+          <Text>
+            HC INSTAL Henryk Cieśla | 44-153 Trachy | ul. Zamojska 2 | NIP
+            631-166-30-65 | REGON 278080785
+          </Text>
+          <Text>tel: 601 542 869</Text>
+          <Text>e-mail: kontakt@hcinstal.pl</Text>
         </View>
       </Page>
     </Document>

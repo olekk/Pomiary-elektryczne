@@ -38,12 +38,18 @@ export interface Inspection {
   address: string
   apartmentNumber: string
   date: Date
-  technician: string
+  technicianName: string
+  technicianSignature?: string // Base64 podpisu technika (snapshot z ustawień)
   notes?: string
   measurements: Measurement[]
-  signature?: string // Base64
+  ownerSignature?: string // Base64 podpisu właściciela/użytkownika
   protocolNumber: string // Unikalny numer protokołu
   synced?: boolean
+}
+
+export interface UserSettings {
+  displayName: string
+  signatureBase64: string
 }
 
 // Tabela dopuszczalnych impedancji (uproszczona)

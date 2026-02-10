@@ -11,8 +11,6 @@ import {
 import { incrementApartmentNumber } from '../utils'
 import type { Inspection } from '../types'
 
-const TECHNICIAN_NAME_KEY = 'technician_name'
-
 export const BuildingDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -26,6 +24,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     deleteInspection,
     pendingSyncCount,
     buildings,
+    technicianName,
+    technicianSignature,
   } = useAppStore()
 
   const [showNewModal, setShowNewModal] = useState(false)
@@ -37,7 +37,6 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   // Pobierz domyślne wartości
   const defaultAddress = buildingName
-  const defaultTechnician = localStorage.getItem(TECHNICIAN_NAME_KEY) || ''
 
   // Sprawdź, czy przychodzi z location.state (flow "następny pomiar")
   const locationState = location.state as {
@@ -68,27 +67,28 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
   }, [locationState?.lastApartmentNumber])
 
-  const handleCreateNew = (
-    address: string,
-    apartmentNumber: string,
-    technician: string
-  ) => {
+  const handleCreateNew = (address: string, apartmentNumber: string) => {
     if (!buildingId) {
       alert('Błąd: Brak ID budynku')
       return
     }
+
+    if (!technicianName.trim()) {
+      alert('Uzupełnij imię i nazwisko technika w Ustawieniach')
+      return
+    }
+
+    if (!technicianSignature) {
+      alert('Dodaj podpis technika w Ustawieniach')
+      return
+    }
+
     const currentBuilding = buildings.find((b) => b.id === buildingId)
     if (!currentBuilding) {
       alert('Błąd: Nie znaleziono budynku')
       return
     }
-    createNewInspection(
-      currentBuilding.projectId,
-      buildingId,
-      address,
-      apartmentNumber,
-      technician
-    )
+    createNewInspection(currentBuilding.projectId, buildingId, address, apartmentNumber)
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
   }
@@ -155,13 +155,12 @@ export const BuildingDetailsScreen: React.FC = () => {
       </button>
 
       <CreateInspectionModal
-        key={`${defaultAddress}-${defaultApartmentNumber}-${defaultTechnician}`}
+        key={`${defaultAddress}-${defaultApartmentNumber}`}
         isOpen={showNewModal}
         onClose={() => setShowNewModal(false)}
         onCreate={handleCreateNew}
         defaultAddress={defaultAddress}
         defaultApartmentNumber={defaultApartmentNumber}
-        defaultTechnician={defaultTechnician}
       />
     </MainLayout>
   )

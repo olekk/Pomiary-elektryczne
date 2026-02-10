@@ -16,6 +16,8 @@ function App() {
   const setOnlineStatus = useAppStore((state) => state.setOnlineStatus)
   const retryPendingSync = useAppStore((state) => state.retryPendingSync)
   const setUser = useAppStore((state) => state.setUser)
+  const loadUserSettings = useAppStore((state) => state.loadUserSettings)
+  const resetUserSettings = useAppStore((state) => state.resetUserSettings)
   const user = useAppStore((state) => state.user)
   const [isAuthChecking, setIsAuthChecking] = useState(true)
 
@@ -50,19 +52,25 @@ function App() {
 
   // ===== MONITORING AUTH STATE =====
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         console.log('✅ User authenticated:', firebaseUser.email)
         setUser(firebaseUser)
+        try {
+          await loadUserSettings(firebaseUser.uid)
+        } catch (error) {
+          console.error('Error loading user settings:', error)
+        }
       } else {
         console.log('❌ User logged out')
         setUser(null)
+        resetUserSettings()
       }
       setIsAuthChecking(false)
     })
 
     return () => unsubscribe()
-  }, [setUser])
+  }, [setUser, loadUserSettings, resetUserSettings])
 
   // Loading state podczas sprawdzania sesji
   if (isAuthChecking) {

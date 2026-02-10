@@ -43,7 +43,7 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
           </h3>
           <p className="text-sm text-slate-300">{inspection.address}</p>
           <p className="text-sm text-slate-300">
-            Technik: {inspection.technician}
+            Technik: {inspection.technicianName}
           </p>
           <div className="flex items-center gap-4 mt-2 flex-wrap">
             <span className="text-xs text-slate-400">
