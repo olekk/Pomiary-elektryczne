@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Loader, Trash2 } from 'lucide-react'
+import { Plus, Home, Loader, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
@@ -17,6 +17,9 @@ export const ProjectDetailsScreen: React.FC = () => {
     addBuilding,
     deleteBuilding,
     projects,
+    projectInspections,
+    subscribeToProjectInspections,
+    unsubscribeFromProjectInspections,
   } = useAppStore()
 
   const [showNewModal, setShowNewModal] = useState(false)
@@ -27,12 +30,33 @@ export const ProjectDetailsScreen: React.FC = () => {
   useEffect(() => {
     if (projectId) {
       subscribeToBuildings(projectId)
+      subscribeToProjectInspections(projectId)
     }
     return () => {
       unsubscribeFromBuildings()
+      unsubscribeFromProjectInspections()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // Oblicz statystyki inspekcji per budynek (reaktywne - odświeża się automatycznie)
+  const buildingStats = useMemo(() => {
+    const stats: Record<string, { completed: number; inaccessible: number }> =
+      {}
+    for (const inspection of projectInspections) {
+      const bId = inspection.buildingId
+      if (!stats[bId]) {
+        stats[bId] = { completed: 0, inaccessible: 0 }
+      }
+      if (inspection.status === 'INACCESSIBLE') {
+        stats[bId].inaccessible++
+      } else {
+        // COMPLETED lub brak statusu (stare pomiary) = wykonano
+        stats[bId].completed++
+      }
+    }
+    return stats
+  }, [projectInspections])
 
   const handleCreateBuilding = async () => {
     if (!newBuildingName.trim()) {
@@ -140,6 +164,27 @@ export const ProjectDetailsScreen: React.FC = () => {
                     <Trash2 size={18} className="text-red-400" />
                   </button>
                 </div>
+
+                {/* Statystyki inspekcji */}
+                {(buildingStats[building.id]?.completed > 0 ||
+                  buildingStats[building.id]?.inaccessible > 0) && (
+                  <div className="flex items-center gap-4 mb-4 text-sm">
+                    <div className="flex items-center gap-1.5 text-emerald-400">
+                      <CheckCircle size={16} />
+                      <span>
+                        Wykonano: {buildingStats[building.id].completed}
+                      </span>
+                    </div>
+                    {buildingStats[building.id].inaccessible > 0 && (
+                      <div className="flex items-center gap-1.5 text-orange-400">
+                        <DoorOpen size={16} />
+                        <span>
+                          Niedostępne: {buildingStats[building.id].inaccessible}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <Button
                   onClick={() => navigate(`/building/${building.id}`)}

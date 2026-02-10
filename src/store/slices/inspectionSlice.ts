@@ -25,12 +25,15 @@ import {
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 
-// Module-level unsubscribe reference for cleanup
+// Module-level unsubscribe references for cleanup
 let unsubscribeInspections: Unsubscribe | null = null
+let unsubscribeProjectInspections: Unsubscribe | null = null
 
 export interface InspectionSlice {
   currentInspection: Inspection | null
   inspections: Inspection[]
+  projectInspections: Inspection[] // Inspekcje całego projektu (do statystyk budynków)
+  isLoadingProjectInspections: boolean
   pendingSyncCount: number
   isLoadingInspections: boolean
   loadedBuildingId: string | null // 🛡️ Ghost Data Protection: Track loaded building
@@ -69,6 +72,8 @@ export interface InspectionSlice {
   saveToFirestore: (ownerSignatureOverride?: string) => Promise<void>
   subscribeToInspections: (buildingId: string) => void
   unsubscribeFromInspections: () => void
+  subscribeToProjectInspections: (projectId: string) => void
+  unsubscribeFromProjectInspections: () => void
   deleteInspection: (id: string) => Promise<void>
   markInspectionAsSynced: (inspectionId: string) => void
   resetInspections: () => void
@@ -82,6 +87,8 @@ export const createInspectionSlice: StateCreator<
 > = (set, get) => ({
   currentInspection: null,
   inspections: [],
+  projectInspections: [],
+  isLoadingProjectInspections: true,
   pendingSyncCount: 0,
   isLoadingInspections: true,
   loadedBuildingId: null, // 🛡️ Ghost Data Protection: Initially null
@@ -522,6 +529,83 @@ export const createInspectionSlice: StateCreator<
     }
   },
 
+  /**
+   * Subscribe to ALL inspections for a project (by projectId).
+   * Used in ProjectDetailsScreen to compute per-building stats.
+   */
+  subscribeToProjectInspections: (projectId: string) => {
+    console.log(
+      `🔔 Subscribing to project inspections for project ${projectId}...`
+    )
+
+    set({ isLoadingProjectInspections: true })
+
+    // Cleanup existing subscription
+    if (unsubscribeProjectInspections) {
+      unsubscribeProjectInspections()
+    }
+
+    const q = query(
+      collection(db, 'inspections'),
+      where('projectId', '==', projectId),
+      orderBy('createdAt', 'desc')
+    )
+
+    unsubscribeProjectInspections = onSnapshot(
+      q,
+      { includeMetadataChanges: true },
+      (snapshot) => {
+        const projectInspections: Inspection[] = []
+
+        snapshot.forEach((doc) => {
+          const data = doc.data()
+          projectInspections.push({
+            id: doc.id,
+            projectId: data.projectId,
+            buildingId: data.buildingId,
+            address: data.address,
+            apartmentNumber: data.apartmentNumber,
+            ownerName: data.ownerName || '',
+            date: data.date?.toDate ? data.date.toDate() : new Date(),
+            technicianName: data.technicianName || data.technician || '',
+            technicianSignature: data.technicianSignature || '',
+            measurements: data.measurements || [],
+            notes: data.notes || '',
+            ownerSignature: data.ownerSignature || data.signature || '',
+            protocolNumber: data.protocolNumber,
+            synced: data.synced ?? true,
+            status: data.status || 'COMPLETED',
+          })
+        })
+
+        console.log(
+          `📥 Project inspections snapshot: ${projectInspections.length} inspections`
+        )
+
+        set({
+          projectInspections,
+          isLoadingProjectInspections: false,
+        })
+      },
+      (error) => {
+        console.error(
+          '❌ Project inspections subscription error:',
+          error.code,
+          error.message
+        )
+        set({ isLoadingProjectInspections: false })
+      }
+    )
+  },
+
+  unsubscribeFromProjectInspections: () => {
+    console.log('🔕 Unsubscribing from project inspections')
+    if (unsubscribeProjectInspections) {
+      unsubscribeProjectInspections()
+      unsubscribeProjectInspections = null
+    }
+  },
+
   deleteInspection: async (id) => {
     try {
       await deleteInspectionFromFirestore(id)
@@ -572,9 +656,15 @@ export const createInspectionSlice: StateCreator<
 
   resetInspections: () => {
     console.log('🧹 Resetting inspections state')
+    if (unsubscribeProjectInspections) {
+      unsubscribeProjectInspections()
+      unsubscribeProjectInspections = null
+    }
     set({
       currentInspection: null,
       inspections: [],
+      projectInspections: [],
+      isLoadingProjectInspections: true,
       pendingSyncCount: 0,
       isLoadingInspections: true,
       loadedBuildingId: null,
