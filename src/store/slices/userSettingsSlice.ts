@@ -20,7 +20,9 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
       displayName:
         typeof parsed.displayName === 'string' ? parsed.displayName : '',
       signatureBase64:
-        typeof parsed.signatureBase64 === 'string' ? parsed.signatureBase64 : '',
+        typeof parsed.signatureBase64 === 'string'
+          ? parsed.signatureBase64
+          : '',
     }
   } catch (error) {
     console.error('Error reading user settings from local storage:', error)
@@ -28,7 +30,10 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
   }
 }
 
-const saveUserSettingsToLocal = (userId: string, settings: UserSettings): void => {
+const saveUserSettingsToLocal = (
+  userId: string,
+  settings: UserSettings
+): void => {
   try {
     localStorage.setItem(
       getUserSettingsStorageKey(userId),

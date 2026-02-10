@@ -228,6 +228,7 @@ export const BuildingDetailsScreen: React.FC = () => {
         defaultAddress={defaultAddress}
         defaultApartmentNumber={defaultApartmentNumber}
         editingInspection={editingInspection}
+        existingInspections={inspections}
       />
     </MainLayout>
   )

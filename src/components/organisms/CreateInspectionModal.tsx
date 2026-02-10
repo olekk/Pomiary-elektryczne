@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { Button, Input } from '../atoms'
 import type { Inspection } from '../../types'
 
@@ -35,6 +35,7 @@ interface CreateInspectionModalProps {
   defaultAddress?: string
   defaultApartmentNumber?: string
   editingInspection?: Inspection | null
+  existingInspections?: Inspection[]
 }
 
 export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
@@ -46,6 +47,7 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   defaultAddress = '',
   defaultApartmentNumber = '',
   editingInspection = null,
+  existingInspections = [],
 }) => {
   // Stan inicjalizowany z props — komponent jest key-owany w rodzicu,
   // więc zmiana editingInspection/defaults powoduje nowy mount (nowy stan).
@@ -62,6 +64,20 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   const [ownerName, setOwnerName] = useState(
     deriveInitialValue(editingInspection, 'ownerName', '')
   )
+
+  // Walidacja unikalności numeru mieszkania (case-insensitive, trim)
+  const isDuplicateApartment = useMemo(() => {
+    const trimmed = apartmentNumber.trim().toLowerCase()
+    if (!trimmed) return false
+
+    return existingInspections.some((inspection) => {
+      // Przy wznawianiu - nie porównuj z edytowaną inspekcją
+      if (editingInspection?.id && inspection.id === editingInspection.id) {
+        return false
+      }
+      return inspection.apartmentNumber.trim().toLowerCase() === trimmed
+    })
+  }, [apartmentNumber, existingInspections, editingInspection])
 
   if (!isOpen) return null
 
@@ -138,13 +154,20 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
             placeholder="np. ul. Kwiatowa 15"
           />
 
-          <Input
-            label="Numer mieszkania"
-            type="text"
-            value={apartmentNumber}
-            onChange={(e) => setApartmentNumber(e.target.value)}
-            placeholder="np. 42"
-          />
+          <div>
+            <Input
+              label="Numer mieszkania"
+              type="text"
+              value={apartmentNumber}
+              onChange={(e) => setApartmentNumber(e.target.value)}
+              placeholder="np. 42"
+            />
+            {isDuplicateApartment && (
+              <p className="text-red-400 text-sm mt-1">
+                Mieszkanie o tym numerze już istnieje.
+              </p>
+            )}
+          </div>
 
           <Input
             label="Imię i nazwisko Właściciela/Najemcy"
@@ -160,13 +183,23 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
             <Button variant="secondary" fullWidth onClick={handleClose}>
               Anuluj
             </Button>
-            <Button variant="primary" fullWidth onClick={handleSubmit}>
+            <Button
+              variant="primary"
+              fullWidth
+              onClick={handleSubmit}
+              disabled={isDuplicateApartment}
+            >
               {isResumeMode ? 'Rozpocznij pomiar' : 'Rozpocznij'}
             </Button>
           </div>
 
           {!isResumeMode && (
-            <Button variant="warning" fullWidth onClick={handleInaccessible}>
+            <Button
+              variant="warning"
+              fullWidth
+              onClick={handleInaccessible}
+              disabled={isDuplicateApartment}
+            >
               Niedostępne
             </Button>
           )}
