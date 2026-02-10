@@ -38,7 +38,8 @@ export interface InspectionSlice {
     projectId: string,
     buildingId: string,
     address: string,
-    apartmentNumber: string
+    apartmentNumber: string,
+    ownerName: string
   ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
   setOwnerSignature: (ownerSignature: string) => void
@@ -76,7 +77,8 @@ export const createInspectionSlice: StateCreator<
     projectId,
     buildingId,
     address,
-    apartmentNumber
+    apartmentNumber,
+    ownerName
   ) => {
     const state = get() as InspectionSlice & {
       technicianName: string
@@ -95,6 +97,7 @@ export const createInspectionSlice: StateCreator<
         buildingId,
         address,
         apartmentNumber,
+        ownerName,
         technicianName: state.technicianName,
         technicianSignature: state.technicianSignature,
         date,
@@ -224,6 +227,7 @@ export const createInspectionSlice: StateCreator<
       buildingId: currentInspection.buildingId,
       address: currentInspection.address,
       apartmentNumber: currentInspection.apartmentNumber,
+      ownerName: currentInspection.ownerName || '',
       technicianName: currentInspection.technicianName,
       technicianSignature: currentInspection.technicianSignature || '',
       date: ensureDate(currentInspection.date),
@@ -261,6 +265,7 @@ export const createInspectionSlice: StateCreator<
     // Fire-and-forget: Save to Firebase in background
     const inspectionToSave: Inspection = {
       ...currentInspection,
+      ownerName: currentInspection.ownerName || '',
       notes: currentInspection.notes || '',
       ownerSignature: ownerSignatureToSave,
     }
@@ -366,6 +371,7 @@ export const createInspectionSlice: StateCreator<
             buildingId: data.buildingId,
             address: data.address,
             apartmentNumber: data.apartmentNumber,
+            ownerName: data.ownerName || '',
             date: data.date?.toDate ? data.date.toDate() : new Date(),
             technicianName: data.technicianName || data.technician || '',
             technicianSignature: data.technicianSignature || '',

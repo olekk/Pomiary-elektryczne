@@ -272,6 +272,10 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.value}>{inspection.address}</Text>
           </View>
           <View style={styles.infoRow}>
+            <Text style={styles.label}>Najemca / Właściciel:</Text>
+            <Text style={styles.value}>{inspection.ownerName}</Text>
+          </View>
+          <View style={styles.infoRow}>
             <Text style={styles.label}>Mieszkanie:</Text>
             <Text style={styles.value}>{inspection.apartmentNumber}</Text>
           </View>
@@ -369,7 +373,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               <Text style={[styles.colSubject]}>
                 Sposób ochrony przed porażeniem prądem elektrycznym
               </Text>
-              <Text style={[styles.colRating]}>Właściwy</Text>
+              <Text style={[styles.colRating]}>
+                {hasProblems ? 'NIE WŁAŚCIWY' : 'WŁAŚCIWY'}
+              </Text>
             </View>
 
             {/* Wiersz 2 */}
@@ -387,7 +393,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               <Text style={[styles.colSubject]}>
                 Poprawność połączeń przewodów
               </Text>
-              <Text style={[styles.colRating]}>JEST</Text>
+              <Text style={[styles.colRating]}>
+                {hasProblems ? 'NIE POPRAWNE' : 'JEST'}
+              </Text>
             </View>
           </View>
         </View>
@@ -465,6 +473,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
         </View>
         <View style={styles.ownerSignature}>
           <Text>Podpis najemcy (właściciela):</Text>
+          <Text>{inspection.ownerName}</Text>
           {ownerSignature ? (
             <Image src={ownerSignature} style={styles.signature} />
           ) : (

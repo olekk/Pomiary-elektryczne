@@ -67,6 +67,7 @@ Przy tworzeniu nowej inspekcji `inspectionSlice.createNewInspection()` snapshotu
 
 - `technicianName`
 - `technicianSignature`
+- `ownerName` (wprowadzane w modalu "Nowy Pomiar")
 
 Dzięki temu `PdfGenerator` nie zależy od dynamicznego odczytu `users/{uid}` podczas generowania dokumentu (działa poprawnie offline).
 
@@ -436,7 +437,7 @@ service cloud.firestore {
 
 - `subscribeToInspections(projectId)` - subskrypcja do inspekcji (Realtime Listener)
 - `unsubscribeFromInspections()` - cleanup subskrypcji
-- `createNewInspection(projectId, ...)` - utworzenie nowego pomiaru
+- `createNewInspection(projectId, ..., ownerName)` - utworzenie nowego pomiaru
 - `deleteInspection(id)` - usunięcie
 - `retryPendingSync()` - ponowna synchronizacja offline
 
@@ -641,7 +642,7 @@ interface InspectionState {
   lastKFactor: number;                  // Ostatni współczynnik k
 
   // ===== INSPECTION ACTIONS =====
-  createNewInspection: (projectId, ...) => void; // ZMIANA: wymaga projectId
+  createNewInspection: (projectId, ..., ownerName) => void; // ZMIANA: wymaga projectId + ownerName
   setCurrentInspection: (...) => void;
   setSignature: (signature: string) => void;
 
@@ -738,6 +739,7 @@ inspections (collection)
 │   ├── projectId: string         // NOWE POLE - WYMAGANE
 │   ├── address: string
 │   ├── apartmentNumber: string
+│   ├── ownerName: string        // Imię i nazwisko właściciela/najemcy
 │   ├── date: Timestamp
 │   ├── technicianName: string
 │   ├── technicianSignature: string (base64 snapshot z ustawień)
@@ -1201,7 +1203,7 @@ npm run dev
   - ✅ Dodano: `subscribeToProjects()`, `subscribeToInspections()` (Realtime Listeners)
   - ✅ Dodano: `unsubscribeFromProjects()`, `unsubscribeFromInspections()` (Cleanup)
   - ✅ Dodano: `isLoadingProjects`, `isLoadingInspections` (Stan ładowania)
-- `createNewInspection(projectId, ...)` - wymaga `projectId`
+- `createNewInspection(projectId, ..., ownerName)` - wymaga `projectId` i `ownerName`
 
 #### 5. **Optymalizacja Firebase**
 

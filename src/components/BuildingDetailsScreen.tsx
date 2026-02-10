@@ -67,7 +67,11 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
   }, [locationState?.lastApartmentNumber])
 
-  const handleCreateNew = (address: string, apartmentNumber: string) => {
+  const handleCreateNew = (
+    address: string,
+    apartmentNumber: string,
+    ownerName: string
+  ) => {
     if (!buildingId) {
       alert('Błąd: Brak ID budynku')
       return
@@ -88,7 +92,13 @@ export const BuildingDetailsScreen: React.FC = () => {
       alert('Błąd: Nie znaleziono budynku')
       return
     }
-    createNewInspection(currentBuilding.projectId, buildingId, address, apartmentNumber)
+    createNewInspection(
+      currentBuilding.projectId,
+      buildingId,
+      address,
+      apartmentNumber,
+      ownerName
+    )
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
   }

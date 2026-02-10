@@ -37,6 +37,7 @@ export interface Inspection {
   buildingId: string // WYMAGANE - każdy pomiar musi należeć do budynku
   address: string
   apartmentNumber: string
+  ownerName?: string // Imię i nazwisko właściciela/najemcy
   date: Date
   technicianName: string
   technicianSignature?: string // Base64 podpisu technika (snapshot z ustawień)
