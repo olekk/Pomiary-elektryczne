@@ -48,7 +48,7 @@ export interface Inspection {
   ownerSignature?: string // Base64 podpisu właściciela/użytkownika
   protocolNumber: string // Unikalny numer protokołu
   synced?: boolean
-  status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = nie zastano
+  status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = niedostępne
 }
 
 export interface UserSettings {

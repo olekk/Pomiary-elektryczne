@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
-import SignatureCanvas from 'react-signature-canvas'
+import React, { useEffect, useState } from 'react'
 import { MainLayout } from './layout/MainLayout'
 import { Button, Card, Input } from './atoms'
-import { Eraser, Save } from 'lucide-react'
+import { SignaturePanel } from './organisms'
+import { Save } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 
 export const SettingsScreen: React.FC = () => {
@@ -14,12 +14,8 @@ export const SettingsScreen: React.FC = () => {
   const loadUserSettings = useAppStore((state) => state.loadUserSettings)
   const saveUserSettings = useAppStore((state) => state.saveUserSettings)
 
-  const signatureRef = useRef<SignatureCanvas>(null)
   const [technicianName, setTechnicianName] = useState(technicianNameFromStore)
-  const [hasSignature, setHasSignature] = useState(
-    Boolean(technicianSignatureFromStore)
-  )
-  const [loadedSignature, setLoadedSignature] = useState(
+  const [currentSignature, setCurrentSignature] = useState(
     technicianSignatureFromStore
   )
   const [isSaving, setIsSaving] = useState(false)
@@ -45,24 +41,11 @@ export const SettingsScreen: React.FC = () => {
   }, [technicianNameFromStore])
 
   useEffect(() => {
-    setLoadedSignature(technicianSignatureFromStore)
-    setHasSignature(Boolean(technicianSignatureFromStore))
+    setCurrentSignature(technicianSignatureFromStore)
   }, [technicianSignatureFromStore])
 
-  useEffect(() => {
-    if (!loadedSignature || !signatureRef.current) return
-
-    try {
-      signatureRef.current.fromDataURL(loadedSignature)
-    } catch (error) {
-      console.error('Error loading signature to canvas:', error)
-    }
-  }, [loadedSignature])
-
-  const handleClearSignature = () => {
-    signatureRef.current?.clear()
-    setHasSignature(false)
-    setLoadedSignature('')
+  const handleSaveSignature = (signature: string) => {
+    setCurrentSignature(signature)
   }
 
   const handleSave = async () => {
@@ -76,18 +59,16 @@ export const SettingsScreen: React.FC = () => {
       return
     }
 
-    if (!signatureRef.current || signatureRef.current.isEmpty()) {
+    if (!currentSignature) {
       alert('Dodaj podpis technika')
       return
     }
-
-    const signatureBase64 = signatureRef.current.toDataURL('image/png')
 
     setIsSaving(true)
     try {
       await saveUserSettings(user.uid, {
         displayName: technicianName.trim(),
-        signatureBase64,
+        signatureBase64: currentSignature,
       })
       alert('Ustawienia zapisane!')
     } catch (error) {
@@ -118,36 +99,18 @@ export const SettingsScreen: React.FC = () => {
               onChange={(e) => setTechnicianName(e.target.value)}
               placeholder="np. Jan Kowalski"
             />
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-100 mb-2">
-                Podpis Technika
-              </label>
-              <div className="border-2 border-slate-700 rounded-lg overflow-hidden shadow-lg">
-                <SignatureCanvas
-                  ref={signatureRef}
-                  canvasProps={{
-                    className: 'w-full h-48 bg-white cursor-crosshair',
-                  }}
-                  onEnd={() => setHasSignature(true)}
-                />
-              </div>
-              <div className="mt-2">
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  onClick={handleClearSignature}
-                  icon={<Eraser size={18} />}
-                >
-                  Wyczyść
-                </Button>
-              </div>
-              {!hasSignature && (
-                <p className="text-xs text-slate-400 mt-2">
-                  Podpis jest wymagany do generowania PDF
-                </p>
-              )}
-            </div>
+          <div className="mt-4">
+            <SignaturePanel
+              onSave={handleSaveSignature}
+              initialSignature={currentSignature}
+            />
+            {!currentSignature && (
+              <p className="text-xs text-slate-400 mt-2">
+                Podpis jest wymagany do generowania PDF
+              </p>
+            )}
           </div>
 
           <div className="mt-6">

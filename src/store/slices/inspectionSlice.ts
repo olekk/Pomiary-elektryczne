@@ -131,7 +131,7 @@ export const createInspectionSlice: StateCreator<
   },
 
   /**
-   * Zapisuje inspekcję ze statusem INACCESSIBLE (nie zastano).
+   * Zapisuje inspekcję ze statusem INACCESSIBLE (niedostępne).
    * Tworzy dokument w Firestore od razu, bez przechodzenia do ekranu pomiarów.
    */
   saveInaccessibleInspection: async (
@@ -188,11 +188,15 @@ export const createInspectionSlice: StateCreator<
         )
         set({
           inspections: syncedList,
-          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced).length,
+          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
+            .length,
         })
       })
       .catch((error) => {
-        console.error(`❌ Sync failed for inaccessible inspection ${savedId}:`, error)
+        console.error(
+          `❌ Sync failed for inaccessible inspection ${savedId}:`,
+          error
+        )
       })
   },
 
@@ -273,11 +277,7 @@ export const createInspectionSlice: StateCreator<
     const updatedMeasurements = currentInspection.measurements.map((m) => {
       if (m.id === id) {
         const zsDop = calculateZsDop(m.protectionType, m.amperage)
-        const result = determineMeasurementResult(
-          zsValue,
-          zsDop,
-          m.noGrounding
-        )
+        const result = determineMeasurementResult(zsValue, zsDop, m.noGrounding)
 
         return {
           ...m,
