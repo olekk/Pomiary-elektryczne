@@ -41,6 +41,19 @@ export interface InspectionSlice {
     apartmentNumber: string,
     ownerName: string
   ) => void
+  saveInaccessibleInspection: (
+    projectId: string,
+    buildingId: string,
+    address: string,
+    apartmentNumber: string,
+    ownerName: string
+  ) => Promise<void>
+  resumeInaccessibleInspection: (
+    inspection: Inspection,
+    address: string,
+    apartmentNumber: string,
+    ownerName: string
+  ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
   setOwnerSignature: (ownerSignature: string) => void
   updateInspectionNotes: (notes: string) => void
@@ -105,6 +118,94 @@ export const createInspectionSlice: StateCreator<
         notes: '',
         measurements: [],
         synced: false,
+        status: 'COMPLETED',
+      },
+    })
+  },
+
+  /**
+   * Zapisuje inspekcję ze statusem INACCESSIBLE (nie zastano).
+   * Tworzy dokument w Firestore od razu, bez przechodzenia do ekranu pomiarów.
+   */
+  saveInaccessibleInspection: async (
+    projectId,
+    buildingId,
+    address,
+    apartmentNumber,
+    ownerName
+  ) => {
+    const state = get() as InspectionSlice & {
+      technicianName: string
+      technicianSignature: string
+    }
+    const date = new Date()
+    const protocolNumber = generateProtocolNumber(
+      date,
+      apartmentNumber,
+      address
+    )
+    const savedId = generateInspectionId()
+
+    const inaccessibleInspection: Inspection = {
+      id: savedId,
+      projectId,
+      buildingId,
+      address,
+      apartmentNumber,
+      ownerName,
+      technicianName: state.technicianName,
+      technicianSignature: state.technicianSignature,
+      date,
+      protocolNumber,
+      notes: '',
+      measurements: [],
+      synced: false,
+      status: 'INACCESSIBLE',
+    }
+
+    // Optimistic update: dodaj do listy od razu
+    const { inspections } = get()
+    set({
+      inspections: [inaccessibleInspection, ...inspections],
+      pendingSyncCount: inspections.filter((i) => !i.synced).length + 1,
+    })
+
+    // Zapisz do Firestore w tle
+    saveInspectionToFirestore(inaccessibleInspection, savedId)
+      .then(async () => {
+        await markInspectionAsSynced(savedId)
+        console.log(`✅ Inaccessible inspection ${savedId} synced`)
+        const currentState = get() as InspectionSlice
+        const syncedList = currentState.inspections.map((insp: Inspection) =>
+          insp.id === savedId ? { ...insp, synced: true } : insp
+        )
+        set({
+          inspections: syncedList,
+          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced).length,
+        })
+      })
+      .catch((error) => {
+        console.error(`❌ Sync failed for inaccessible inspection ${savedId}:`, error)
+      })
+  },
+
+  /**
+   * Wznawia inspekcję INACCESSIBLE - ustawia ją jako currentInspection
+   * ze statusem COMPLETED, gotową do pomiarów.
+   */
+  resumeInaccessibleInspection: (
+    inspection,
+    address,
+    apartmentNumber,
+    ownerName
+  ) => {
+    set({
+      currentInspection: {
+        ...inspection,
+        address,
+        apartmentNumber,
+        ownerName,
+        status: 'COMPLETED',
       },
     })
   },
@@ -236,6 +337,7 @@ export const createInspectionSlice: StateCreator<
       ownerSignature: ownerSignatureToSave,
       protocolNumber: currentInspection.protocolNumber,
       synced: false,
+      status: currentInspection.status || 'COMPLETED',
     }
 
     if (currentInspection.id) {
@@ -380,6 +482,7 @@ export const createInspectionSlice: StateCreator<
             ownerSignature: data.ownerSignature || data.signature || '',
             protocolNumber: data.protocolNumber,
             synced: data.synced ?? true,
+            status: data.status || 'COMPLETED',
           })
         })
 

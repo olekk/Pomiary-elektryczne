@@ -144,6 +144,7 @@ export const saveInspectionToFirestore = async (
     ownerSignature: inspection.ownerSignature || '',
     protocolNumber: inspection.protocolNumber || '',
     synced: false,
+    status: inspection.status || 'COMPLETED',
     createdAt: Timestamp.now(),
   }
 

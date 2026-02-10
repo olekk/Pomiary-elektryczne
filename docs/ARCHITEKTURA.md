@@ -756,6 +756,7 @@ inspections (collection)
 │   ├── notes: string             // opcjonalne uwagi ogólne do protokołu
 │   ├── synced: boolean
 │   ├── ownerSignature: string (base64 podpisu klienta)
+│   ├── status: 'COMPLETED' | 'INACCESSIBLE'  // domyślnie 'COMPLETED'
 │   └── measurements: array
 │       └── [
 │           {
@@ -1181,7 +1182,34 @@ npm run dev
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
 **Wzorce:** Atomic Design, State Management (Zustand), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-02-10 (Cloud settings użytkownika + rozdzielenie podpisów technik/właściciel)
+**Ostatnia aktualizacja:** 2026-02-10 (Status inspekcji INACCESSIBLE - oznaczanie mieszkań "Nie zastano")
+
+---
+
+## 🆕 Status Inspekcji: INACCESSIBLE (2026-02-10)
+
+### Cel
+
+Umożliwienie szybkiego oznaczenia mieszkań, w których nikogo nie zastano, bez konieczności wykonywania pomiarów. Dane adresowe są zapisywane, a technik może wrócić do mieszkania później.
+
+### Model danych
+
+Dodano pole `status` do `Inspection`:
+- `'COMPLETED'` (domyślnie) - pomiar wykonany
+- `'INACCESSIBLE'` - nie zastano / niedostępne
+
+### Flow
+
+1. **Oznaczenie jako niedostępne:** Modal "Nowy Pomiar" → przycisk "Nie zastano" → `saveInaccessibleInspection()` → zapis do Firestore ze statusem `INACCESSIBLE`, brak pomiarów, zamknięcie modala.
+
+2. **Wizualna identyfikacja:** `InspectionCard` wyświetla element z pomarańczowym akcentem (border-l-4, ikona AlertTriangle, badge "Nie zastano").
+
+3. **Wznowienie pomiaru:** Klik w kartę INACCESSIBLE → modal z wypełnionymi danymi → "Rozpocznij pomiar" → `resumeInaccessibleInspection()` → aktualizacja istniejącego dokumentu (status → COMPLETED), przekierowanie do ekranu pomiarów.
+
+### Nowe metody w `inspectionSlice`
+
+- `saveInaccessibleInspection(projectId, buildingId, address, apartmentNumber, ownerName)` - tworzy inspekcję INACCESSIBLE z optimistic update
+- `resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName)` - ustawia inspekcję jako currentInspection ze statusem COMPLETED
 
 ---
 

@@ -21,6 +21,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     subscribeToInspections,
     unsubscribeFromInspections,
     createNewInspection,
+    saveInaccessibleInspection,
+    resumeInaccessibleInspection,
     deleteInspection,
     pendingSyncCount,
     buildings,
@@ -29,6 +31,7 @@ export const BuildingDetailsScreen: React.FC = () => {
   } = useAppStore()
 
   const [showNewModal, setShowNewModal] = useState(false)
+  const [editingInspection, setEditingInspection] = useState<Inspection | null>(null)
 
   // Znajdź nazwę budynku i projectId
   const currentBuilding = buildings.find((b) => b.id === buildingId)
@@ -67,38 +70,75 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
   }, [locationState?.lastApartmentNumber])
 
+  const validateTechnician = (): boolean => {
+    if (!technicianName.trim()) {
+      alert('Uzupełnij imię i nazwisko technika w Ustawieniach')
+      return false
+    }
+    if (!technicianSignature) {
+      alert('Dodaj podpis technika w Ustawieniach')
+      return false
+    }
+    return true
+  }
+
   const handleCreateNew = (
     address: string,
     apartmentNumber: string,
     ownerName: string
   ) => {
-    if (!buildingId) {
-      alert('Błąd: Brak ID budynku')
-      return
-    }
+    if (!buildingId || !validateTechnician()) return
 
-    if (!technicianName.trim()) {
-      alert('Uzupełnij imię i nazwisko technika w Ustawieniach')
-      return
-    }
-
-    if (!technicianSignature) {
-      alert('Dodaj podpis technika w Ustawieniach')
-      return
-    }
-
-    const currentBuilding = buildings.find((b) => b.id === buildingId)
-    if (!currentBuilding) {
+    const building = buildings.find((b) => b.id === buildingId)
+    if (!building) {
       alert('Błąd: Nie znaleziono budynku')
       return
     }
+
     createNewInspection(
-      currentBuilding.projectId,
+      building.projectId,
       buildingId,
       address,
       apartmentNumber,
       ownerName
     )
+    setShowNewModal(false)
+    navigate(`/measurement/${buildingId}`)
+  }
+
+  const handleMarkInaccessible = async (
+    address: string,
+    apartmentNumber: string,
+    ownerName: string
+  ) => {
+    if (!buildingId || !validateTechnician()) return
+
+    const building = buildings.find((b) => b.id === buildingId)
+    if (!building) {
+      alert('Błąd: Nie znaleziono budynku')
+      return
+    }
+
+    await saveInaccessibleInspection(
+      building.projectId,
+      buildingId,
+      address,
+      apartmentNumber,
+      ownerName
+    )
+    setShowNewModal(false)
+  }
+
+  const handleResumeInspection = (
+    inspection: Inspection,
+    address: string,
+    apartmentNumber: string,
+    ownerName: string
+  ) => {
+    if (!buildingId) return
+
+    resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName)
+    setEditingInspection(null)
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
   }
@@ -116,12 +156,23 @@ export const BuildingDetailsScreen: React.FC = () => {
   }
 
   const handleInspectionClick = (inspection: Inspection) => {
-    navigate('/summary', {
-      state: {
-        inspection,
-        buildingId,
-      },
-    })
+    if (inspection.status === 'INACCESSIBLE') {
+      // Otwórz modal z wypełnionymi danymi do wznowienia
+      setEditingInspection(inspection)
+      setShowNewModal(true)
+    } else {
+      navigate('/summary', {
+        state: {
+          inspection,
+          buildingId,
+        },
+      })
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowNewModal(false)
+    setEditingInspection(null)
   }
 
   const syncedCount = inspections.filter((i) => i.synced).length
@@ -157,7 +208,10 @@ export const BuildingDetailsScreen: React.FC = () => {
 
       {/* Floating Action Button */}
       <button
-        onClick={() => setShowNewModal(true)}
+        onClick={() => {
+          setEditingInspection(null)
+          setShowNewModal(true)
+        }}
         className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
         style={{ width: '64px', height: '64px' }}
       >
@@ -165,12 +219,15 @@ export const BuildingDetailsScreen: React.FC = () => {
       </button>
 
       <CreateInspectionModal
-        key={`${defaultAddress}-${defaultApartmentNumber}`}
+        key={editingInspection?.id || `${defaultAddress}-${defaultApartmentNumber}`}
         isOpen={showNewModal}
-        onClose={() => setShowNewModal(false)}
+        onClose={handleCloseModal}
         onCreate={handleCreateNew}
+        onMarkInaccessible={handleMarkInaccessible}
+        onResumeInspection={handleResumeInspection}
         defaultAddress={defaultAddress}
         defaultApartmentNumber={defaultApartmentNumber}
+        editingInspection={editingInspection}
       />
     </MainLayout>
   )

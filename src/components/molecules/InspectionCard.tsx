@@ -1,5 +1,11 @@
 import React from 'react'
-import { Trash2, CheckCircle, Clock, FileText } from 'lucide-react'
+import {
+  Trash2,
+  CheckCircle,
+  Clock,
+  FileText,
+  AlertTriangle,
+} from 'lucide-react'
 import { Card, Badge } from '../atoms'
 import type { Inspection } from '../../types'
 
@@ -14,6 +20,8 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
   onDelete,
   onClick,
 }) => {
+  const isInaccessible = inspection.status === 'INACCESSIBLE'
+
   const handleCardClick = () => {
     if (onClick) {
       onClick(inspection)
@@ -28,20 +36,42 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
   return (
     <Card>
       <div
-        className="flex items-start justify-between cursor-pointer"
+        className={`flex items-start justify-between cursor-pointer ${
+          isInaccessible ? 'border-l-4 border-orange-500 pl-3 -ml-1' : ''
+        }`}
         onClick={handleCardClick}
       >
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <FileText size={18} className="text-blue-400" />
-            <span className="font-mono text-sm text-blue-400">
+            {isInaccessible ? (
+              <AlertTriangle size={18} className="text-orange-400" />
+            ) : (
+              <FileText size={18} className="text-blue-400" />
+            )}
+            <span
+              className={`font-mono text-sm ${
+                isInaccessible ? 'text-orange-400' : 'text-blue-400'
+              }`}
+            >
               {inspection.protocolNumber}
             </span>
           </div>
-          <h3 className="font-bold text-lg text-slate-100">
+          <h3
+            className={`font-bold text-lg ${
+              isInaccessible ? 'text-orange-200' : 'text-slate-100'
+            }`}
+          >
             Mieszkanie: {inspection.apartmentNumber}
           </h3>
+          {isInaccessible && (
+            <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-orange-900/50 text-orange-300 border border-orange-700/50 mb-1">
+              Niedostępne
+            </span>
+          )}
           <p className="text-sm text-slate-300">{inspection.address}</p>
+          {inspection.ownerName && (
+            <p className="text-sm text-slate-400">{inspection.ownerName}</p>
+          )}
           <p className="text-sm text-slate-300">
             Technik: {inspection.technicianName}
           </p>
@@ -49,9 +79,11 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
             <span className="text-xs text-slate-400">
               {new Date(inspection.date).toLocaleDateString('pl-PL')}
             </span>
-            <span className="text-xs text-slate-400">
-              Punkty: {inspection.measurements.length}
-            </span>
+            {!isInaccessible && (
+              <span className="text-xs text-slate-400">
+                Punkty: {inspection.measurements.length}
+              </span>
+            )}
             {inspection.synced ? (
               <Badge variant="success" icon={<CheckCircle size={14} />}>
                 Synced

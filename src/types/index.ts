@@ -31,6 +31,8 @@ export interface Building {
   userId: string
 }
 
+export type InspectionStatus = 'COMPLETED' | 'INACCESSIBLE'
+
 export interface Inspection {
   id?: string
   projectId: string // WYMAGANE - każdy pomiar musi należeć do projektu
@@ -46,6 +48,7 @@ export interface Inspection {
   ownerSignature?: string // Base64 podpisu właściciela/użytkownika
   protocolNumber: string // Unikalny numer protokołu
   synced?: boolean
+  status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = nie zastano
 }
 
 export interface UserSettings {
