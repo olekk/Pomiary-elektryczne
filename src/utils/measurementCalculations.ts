@@ -1,4 +1,10 @@
-import type { ProtectionType, Amperage, Measurement } from '../types'
+import type {
+  ProtectionType,
+  Amperage,
+  Measurement,
+  NoGroundingType,
+  Room,
+} from '../types'
 import { ZS_DOP_TABLE } from '../types'
 
 /**
@@ -17,7 +23,7 @@ export const calculateZsDop = (
 export const determineMeasurementResult = (
   zsValue: number | null,
   zsDop: number,
-  noGrounding: boolean
+  noGrounding?: NoGroundingType
 ): 'TAK' | 'NIE' | 'B.UZ' => {
   if (noGrounding) {
     return 'B.UZ'
@@ -36,11 +42,11 @@ export const determineMeasurementResult = (
 export const createMeasurement = (
   id: string,
   pointNumber: number,
+  room: Room,
   protectionType: ProtectionType,
   amperage: Amperage,
-  kFactor: number,
   zsValue: number | null,
-  noGrounding: boolean = false
+  noGrounding?: NoGroundingType
 ): Measurement => {
   const zsDop = calculateZsDop(protectionType, amperage)
   const result = determineMeasurementResult(zsValue, zsDop, noGrounding)
@@ -48,9 +54,9 @@ export const createMeasurement = (
   return {
     id,
     pointNumber,
+    room,
     protectionType,
     amperage,
-    kFactor,
     zsValue,
     zsDop,
     result,

@@ -7,7 +7,7 @@ import { MeasurementSettings } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
-import type { ProtectionType, Amperage } from '../types'
+import type { ProtectionType, Amperage, Room } from '../types'
 import { validateMeasurementValue } from '../utils'
 
 export const MeasurementScreen: React.FC = () => {
@@ -18,10 +18,6 @@ export const MeasurementScreen: React.FC = () => {
     currentInspection,
     addMeasurement,
     removeMeasurement,
-    lastProtectionType,
-    lastAmperage,
-    lastKFactor,
-    setLastDefaults,
     saveToFirestore,
     buildings,
   } = useAppStore()
@@ -29,11 +25,11 @@ export const MeasurementScreen: React.FC = () => {
   const [inputValue, setInputValue] = useState('0')
   const [isSaving, setIsSaving] = useState(false)
 
-  // Settings for next measurement (Smart Defaults)
+  // Settings for next measurement
+  const [nextRoom, setNextRoom] = useState<Room>('Kuchnia')
   const [nextProtectionType, setNextProtectionType] =
-    useState<ProtectionType>(lastProtectionType)
-  const [nextAmperage, setNextAmperage] = useState<Amperage>(lastAmperage)
-  const [nextKFactor, setNextKFactor] = useState<number>(lastKFactor)
+    useState<ProtectionType>('WNP')
+  const [nextAmperage, setNextAmperage] = useState<Amperage>(16)
 
   useEffect(() => {
     if (!currentInspection) {
@@ -56,22 +52,16 @@ export const MeasurementScreen: React.FC = () => {
 
     const zsValue = parseFloat(inputValue)
 
-    // Update store defaults
-    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor)
-
     // Add measurement
-    addMeasurement(zsValue)
+    addMeasurement(nextRoom, nextProtectionType, nextAmperage, zsValue)
 
     // Reset input
     setInputValue('0')
   }
 
-  const handleNoGrounding = () => {
-    // Update store defaults
-    setLastDefaults(nextProtectionType, nextAmperage, nextKFactor)
-
-    // Add B.UZ measurement
-    addMeasurement(null, true)
+  const handleNoGrounding = (type: import('../types').NoGroundingType) => {
+    // Add B.UZ measurement with specific type
+    addMeasurement(nextRoom, nextProtectionType, nextAmperage, null, type)
 
     // Reset input
     setInputValue('0')
@@ -135,12 +125,12 @@ export const MeasurementScreen: React.FC = () => {
         {/* Settings Panel */}
         <div className="p-4 bg-slate-900 border-b border-slate-800">
           <MeasurementSettings
+            room={nextRoom}
             protectionType={nextProtectionType}
             amperage={nextAmperage}
-            kFactor={nextKFactor}
+            onRoomChange={setNextRoom}
             onProtectionTypeChange={setNextProtectionType}
             onAmperageChange={setNextAmperage}
-            onKFactorChange={setNextKFactor}
           />
         </div>
 

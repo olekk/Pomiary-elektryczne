@@ -1,20 +1,11 @@
 import type { StateCreator } from 'zustand'
-import type { ProtectionType, Amperage, Inspection } from '../../types'
-import { DEFAULT_K_FACTORS } from '../../types'
+import type { Inspection } from '../../types'
 import { retrySyncInspection } from '../../services'
 
 export interface OfflineSlice {
   isOnline: boolean
-  lastProtectionType: ProtectionType
-  lastAmperage: Amperage
-  lastKFactor: number
   setOnlineStatus: (status: boolean) => void
   retryPendingSync: () => Promise<void>
-  setLastDefaults: (
-    protectionType: ProtectionType,
-    amperage: Amperage,
-    kFactor: number
-  ) => void
 }
 
 export const createOfflineSlice: StateCreator<
@@ -24,9 +15,6 @@ export const createOfflineSlice: StateCreator<
   OfflineSlice
 > = (set, get) => ({
   isOnline: navigator.onLine,
-  lastProtectionType: 'WNP',
-  lastAmperage: 16,
-  lastKFactor: DEFAULT_K_FACTORS.WNP,
 
   setOnlineStatus: (status) => {
     set({ isOnline: status })
@@ -52,13 +40,5 @@ export const createOfflineSlice: StateCreator<
         markInspectionAsSynced(inspection.id)
       }
     }
-  },
-
-  setLastDefaults: (protectionType, amperage, kFactor) => {
-    set({
-      lastProtectionType: protectionType,
-      lastAmperage: amperage,
-      lastKFactor: kFactor,
-    })
   },
 })

@@ -110,14 +110,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff3cd',
     fontSize: 9,
   },
-  col1: { width: '8%', textAlign: 'center' },
-  col2: { width: '12%', textAlign: 'center' },
+  col1: { width: '5%', textAlign: 'center' },
+  col2: { width: '10%', textAlign: 'center' },
   col3: { width: '12%', textAlign: 'center' },
-  col4: { width: '10%', textAlign: 'center' },
+  col4: { width: '18%', textAlign: 'center' },
   col5: { width: '18%', textAlign: 'center' },
-  col6: { width: '18%', textAlign: 'center' },
+  col6: { width: '25%', textAlign: 'center' },
   col7: { width: '12%', textAlign: 'center' },
-  col8: { width: '10%', textAlign: 'center' },
   footer: {
     marginTop: 30,
     paddingTop: 10,
@@ -161,12 +160,12 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>PROTOKÓŁ POMIARÓW ELEKTRYCZNYCH</Text>
+          <Text style={styles.title}>PROTOKÓŁ POMIARÓW OCHRONNYCH</Text>
           <Text style={styles.subtitle}>
-            Pomiar impedancji pętli zwarciowej
+            Nr protokołu: {inspection.protocolNumber}
           </Text>
           <Text style={{ fontSize: 11, marginTop: 5, color: '#555' }}>
-            Numer protokołu: {inspection.protocolNumber}
+            Wykonawca: HC INSTAL Henryk Cieśla
           </Text>
         </View>
 
@@ -187,23 +186,43 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Technik:</Text>
-            <Text style={styles.value}>{inspection.technician}</Text>
+            <Text style={styles.label}>Data kolejnego badania:</Text>
+            <Text style={styles.value}>
+              {(() => {
+                const nextDate = new Date(inspection.date)
+                nextDate.setFullYear(nextDate.getFullYear() + 5)
+                return nextDate.toLocaleDateString('pl-PL')
+              })()}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Przyczyna pomiaru:</Text>
+            <Text style={styles.value}>badanie okresowe</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Tabela wyników pomiarów</Text>
+            <Text style={styles.value}>
+              impedancji pętli zwarcia obwodu elektrycznego
+            </Text>
           </View>
         </View>
 
+        <Text style={styles.subtitle}>
+          Badanie ochrony przed porażeniem przez samoczynne wyłącznie
+        </Text>
         {/* Measurements Table */}
         <View style={styles.table}>
           {/* Table Header */}
           <View style={styles.tableHeader}>
             <Text style={styles.col1}>Pkt</Text>
-            <Text style={styles.col2}>Typ</Text>
-            <Text style={styles.col3}>In [A]</Text>
-            <Text style={styles.col4}>k</Text>
-            <Text style={styles.col5}>Zs [Ω]</Text>
-            <Text style={styles.col6}>Zs dop [Ω]</Text>
-            <Text style={styles.col7}>Uwagi</Text>
-            <Text style={styles.col8}>Ocena</Text>
+            <Text style={styles.col2}>Pomieszczenie</Text>
+            <Text style={styles.col3}>Typ zabezpieczenia</Text>
+            <Text style={styles.col4}>
+              Wartość prądu In urządzenia wyłączającego [A]
+            </Text>
+            <Text style={styles.col5}>Zmierzona impedancja Zs[Ω]</Text>
+            <Text style={styles.col6}>Uwagi</Text>
+            <Text style={styles.col7}>Ocena</Text>
           </View>
 
           {/* Table Rows */}
@@ -214,18 +233,25 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             else if (m.result === 'NIE') rowStyle = styles.tableRowFail
             else if (m.result === 'B.UZ') rowStyle = styles.tableRowNoGround
 
+            const uwagi = m.noGrounding
+              ? m.noGrounding === 'NO_PIN'
+                ? 'Brak bolca'
+                : m.noGrounding === 'NO_CONN'
+                  ? 'Brak połączenia'
+                  : m.noGrounding === 'HIGH_Z'
+                    ? 'Zbyt wysoka impedancja'
+                    : 'B.UZ'
+              : '-'
+
             return (
               <View style={rowStyle} key={m.id}>
                 <Text style={styles.col1}>{m.pointNumber}</Text>
-                <Text style={styles.col2}>{m.protectionType}</Text>
-                <Text style={styles.col3}>{m.amperage}</Text>
-                <Text style={styles.col4}>{m.kFactor}</Text>
-                <Text style={styles.col5}>
-                  {m.noGrounding ? '-' : m.zsValue?.toFixed(2)}
-                </Text>
-                <Text style={styles.col6}>{m.zsDop.toFixed(2)}</Text>
-                <Text style={styles.col7}>{m.noGrounding ? 'B.UZ' : '-'}</Text>
-                <Text style={styles.col8}>{m.result}</Text>
+                <Text style={styles.col2}>{m.room}</Text>
+                <Text style={styles.col3}>{m.protectionType}</Text>
+                <Text style={styles.col4}>{m.amperage}A</Text>
+                <Text style={styles.col5}>{m.zsValue?.toFixed(2)}</Text>
+                <Text style={styles.col6}>{uwagi}</Text>
+                <Text style={styles.col7}>{m.result}</Text>
               </View>
             )
           })}

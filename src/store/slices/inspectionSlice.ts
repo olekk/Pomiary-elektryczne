@@ -43,7 +43,13 @@ export interface InspectionSlice {
   ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
   setSignature: (signature: string) => void
-  addMeasurement: (zsValue: number | null, noGrounding?: boolean) => void
+  addMeasurement: (
+    room: import('../../types').Room,
+    protectionType: import('../../types').ProtectionType,
+    amperage: import('../../types').Amperage,
+    zsValue: number | null,
+    noGrounding?: import('../../types').NoGroundingType
+  ) => void
   updateMeasurement: (id: string, zsValue: number | null) => void
   removeMeasurement: (id: string) => void
   saveToFirestore: (signatureOverride?: string) => Promise<void>
@@ -107,10 +113,9 @@ export const createInspectionSlice: StateCreator<
     }))
   },
 
-  addMeasurement: (zsValue, noGrounding = false) => {
-    const state = get() as any
-    const { currentInspection, lastProtectionType, lastAmperage, lastKFactor } =
-      state
+  addMeasurement: (room, protectionType, amperage, zsValue, noGrounding) => {
+    const state = get() as InspectionSlice
+    const { currentInspection } = state
 
     if (!currentInspection) return
 
@@ -120,9 +125,9 @@ export const createInspectionSlice: StateCreator<
     const newMeasurement = createMeasurement(
       id,
       pointNumber,
-      lastProtectionType,
-      lastAmperage,
-      lastKFactor,
+      room,
+      protectionType,
+      amperage,
       zsValue,
       noGrounding
     )
@@ -147,7 +152,7 @@ export const createInspectionSlice: StateCreator<
         const result = determineMeasurementResult(
           zsValue,
           zsDop,
-          m.noGrounding || false
+          m.noGrounding
         )
 
         return {
@@ -186,7 +191,7 @@ export const createInspectionSlice: StateCreator<
   },
 
   saveToFirestore: async (signatureOverride) => {
-    const { currentInspection, inspections } = get() as any
+    const { currentInspection, inspections } = get() as InspectionSlice
 
     if (!currentInspection) {
       throw new Error('Brak danych do zapisania')
@@ -232,7 +237,7 @@ export const createInspectionSlice: StateCreator<
     }
 
     // Update pending count
-    const state = get() as any
+    const state = get() as InspectionSlice
     const newPendingCount = state.inspections.filter(
       (i: Inspection) => !i.synced
     ).length
@@ -250,7 +255,7 @@ export const createInspectionSlice: StateCreator<
         await markInspectionAsSynced(savedId)
 
         console.log(`✅ Inspection ${savedId} synced successfully`)
-        const currentState = get() as any
+        const currentState = get() as InspectionSlice
         const syncedList = currentState.inspections.map((insp: Inspection) =>
           insp.id === savedId ? { ...insp, synced: true } : insp
         )

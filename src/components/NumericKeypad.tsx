@@ -1,11 +1,12 @@
 import React from 'react'
-import { Delete, AlertCircle } from 'lucide-react'
+import { AlertCircle, XCircle } from 'lucide-react'
+import type { NoGroundingType } from '../types'
 
 interface NumericKeypadProps {
   value: string
   onValueChange: (value: string) => void
   onEnter: () => void
-  onNoGrounding: () => void
+  onNoGrounding: (type: NoGroundingType) => void
 }
 
 export const NumericKeypad: React.FC<NumericKeypadProps> = ({
@@ -21,10 +22,6 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
     } else {
       onValueChange(value + digit)
     }
-  }
-
-  const handleBackspace = () => {
-    onValueChange(value.slice(0, -1) || '0')
   }
 
   const handleClear = () => {
@@ -70,24 +67,24 @@ export const NumericKeypad: React.FC<NumericKeypadProps> = ({
       {/* Action Buttons - 3 buttons in grid */}
       <div className="grid grid-cols-3 gap-3">
         <button
-          onClick={handleBackspace}
-          className="bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-6 rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold transition-colors"
+          onClick={() => onNoGrounding('NO_PIN')}
+          className="bg-yellow-500 hover:bg-yellow-600 active:bg-yellow-700 text-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center font-semibold transition-colors"
         >
-          <Delete size={20} />
-          <span className="text-sm">Cofnij</span>
+          <AlertCircle size={20} />
+          <span className="text-xs mt-1">BRAK BOLCA</span>
+        </button>
+        <button
+          onClick={() => onNoGrounding('NO_CONN')}
+          className="bg-red-500 hover:bg-red-600 active:bg-red-700 text-white p-6 rounded-lg shadow-md flex flex-col items-center justify-center font-semibold transition-colors"
+        >
+          <XCircle size={20} />
+          <span className="text-xs mt-1">BRAK POŁ.</span>
         </button>
         <button
           onClick={onEnter}
           className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white p-6 rounded-lg shadow-md text-xl font-bold transition-colors"
         >
           ENTER ✓
-        </button>
-        <button
-          onClick={onNoGrounding}
-          className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white p-6 rounded-lg shadow-md flex items-center justify-center gap-1 font-semibold transition-colors"
-        >
-          <AlertCircle size={20} />
-          <span className="text-sm">B.UZ</span>
         </button>
       </div>
     </div>

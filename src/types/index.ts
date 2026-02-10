@@ -1,16 +1,18 @@
 export type ProtectionType = 'WNP' | 'BI'
-export type Amperage = 16 | 20 | 25
+export type Amperage = 10 | 16 | 20 | 25
+export type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
+export type Room = 'Kuchnia' | 'Łazienka'
 
 export interface Measurement {
   id: string
   pointNumber: number
+  room: Room
   protectionType: ProtectionType
   amperage: Amperage
-  kFactor: number
   zsValue: number | null // Zmierzony Zs
   zsDop: number // Dopuszczalny Zs
   result: 'TAK' | 'NIE' | 'B.UZ' // Ocena
-  noGrounding?: boolean // Brak uziemienia
+  noGrounding?: NoGroundingType // Rodzaj braku uziemienia
 }
 
 export interface Project {
@@ -46,11 +48,13 @@ export interface Inspection {
 // Tabela dopuszczalnych impedancji (uproszczona)
 export const ZS_DOP_TABLE: Record<ProtectionType, Record<Amperage, number>> = {
   WNP: {
+    10: 4.6,
     16: 2.88,
     20: 2.3,
-    25: 1.84,
+    25: 1.71,
   },
   BI: {
+    10: 4.26,
     16: 2.66,
     20: 2.13,
     25: 1.7,

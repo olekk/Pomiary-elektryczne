@@ -23,8 +23,8 @@ export const generateProtocolNumber = (
   const day = String(date.getDate()).padStart(2, '0')
 
   // Normalizuj numer mieszkania (usuń spacje, wielkie litery)
-  const normalizedApartment = apartmentNumber.trim().toUpperCase()
-  const normalizedBuildingAddress = buidlingAddress.trim().toUpperCase()
+  const normalizedApartment = apartmentNumber.trim().toUpperCase().replace(/ /g, '_')
+  const normalizedBuildingAddress = buidlingAddress.trim().toUpperCase().replace(/ /g, '_')
 
   return `PROT/${year}/${month}/${day}/${normalizedBuildingAddress}/${normalizedApartment}`
 }

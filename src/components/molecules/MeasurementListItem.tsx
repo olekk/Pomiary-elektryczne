@@ -38,7 +38,9 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
     >
       <div className="flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-lg text-slate-100">#{m.pointNumber}</span>
+          <span className="font-bold text-lg text-slate-100">
+            {m.room} #{m.pointNumber}
+          </span>
           <span className="text-sm text-slate-400">
             {m.protectionType} {m.amperage}A
           </span>
@@ -48,7 +50,11 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
         </div>
         <div className="text-sm text-slate-300 mt-1">
           {m.noGrounding ? (
-            <span>Brak uziemienia</span>
+            <span>
+              {m.noGrounding === 'NO_PIN' && 'Brak bolca w gnieździe'}
+              {m.noGrounding === 'NO_CONN' && 'Brak połączenia / Otwarty obwód'}
+              {m.noGrounding === 'HIGH_Z' && 'Zbyt wysoka impedancja'}
+            </span>
           ) : (
             <>
               Zs:{' '}
