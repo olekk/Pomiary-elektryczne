@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Home, FileDown, CheckCircle, Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
@@ -11,7 +11,13 @@ import type { Inspection } from '../types'
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentInspection, setSignature, saveToFirestore } = useAppStore()
+  const {
+    currentInspection,
+    setCurrentInspection,
+    setSignature,
+    updateInspectionNotes,
+    saveToFirestore,
+  } = useAppStore()
 
   // Priorytet: dane z nawigacji (kliknięcie w listę) > dane ze store'a (nowy pomiar)
   const locationState = location.state as
@@ -19,9 +25,29 @@ export const SummaryScreen: React.FC = () => {
     | null
   const inspection = locationState?.inspection || currentInspection
   const buildingId = locationState?.buildingId || inspection?.buildingId
+  const [notes, setNotes] = useState(inspection?.notes || '')
+
+  useEffect(() => {
+    if (locationState?.inspection) {
+      const selectedInspection = locationState.inspection
+      if (currentInspection?.id !== selectedInspection.id) {
+        setCurrentInspection(selectedInspection)
+      }
+    }
+  }, [locationState, currentInspection?.id, setCurrentInspection])
+
+  useEffect(() => {
+    setNotes(inspection?.notes || '')
+  }, [inspection?.id, inspection?.notes])
+
+  const handleNotesChange = (value: string) => {
+    setNotes(value)
+    updateInspectionNotes(value)
+  }
 
   const handleSaveSignature = async (signature: string) => {
     try {
+      updateInspectionNotes(notes)
       // Update store first
       setSignature(signature)
       // Save to Firestore with signature override
@@ -40,13 +66,21 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const handleSaveAndAddNext = () => {
+  const handleSaveAndAddNext = async () => {
     if (!buildingId || !inspection) {
       alert('Błąd: Brak ID budynku lub danych pomiaru')
       return
     }
 
-    // Nawiguj do ekranu nowego pomiaru z przekazaniem ostatniego numeru mieszkania
+    try {
+      updateInspectionNotes(notes)
+      await saveToFirestore(inspection?.signature ?? '')
+    } catch (error) {
+      console.error('Error saving inspection:', error)
+      alert('Błąd podczas zapisywania. Sprawdź połączenie.')
+      return
+    }
+
     navigate(`/building/${buildingId}`, {
       state: {
         lastApartmentNumber: inspection.apartmentNumber,
@@ -154,6 +188,23 @@ export const SummaryScreen: React.FC = () => {
               <CompactMeasurementListItem key={m.id} measurement={m} />
             ))}
           </div>
+        </Card>
+
+        <Card className="mb-4">
+          <label
+            htmlFor="inspection-notes"
+            className="block text-sm font-medium text-slate-100 mb-2"
+          >
+            Uwagi do protokołu
+          </label>
+          <textarea
+            id="inspection-notes"
+            value={notes}
+            onChange={(event) => handleNotesChange(event.target.value)}
+            placeholder="Wpisz dodatkowe uwagi..."
+            rows={6}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </Card>
 
         {/* Signature */}

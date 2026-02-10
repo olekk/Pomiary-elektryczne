@@ -43,6 +43,7 @@ export interface InspectionSlice {
   ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
   setSignature: (signature: string) => void
+  updateInspectionNotes: (notes: string) => void
   addMeasurement: (
     room: import('../../types').Room,
     protectionType: import('../../types').ProtectionType,
@@ -95,6 +96,7 @@ export const createInspectionSlice: StateCreator<
         technician,
         date,
         protocolNumber,
+        notes: '',
         measurements: [],
         synced: false,
       },
@@ -109,6 +111,14 @@ export const createInspectionSlice: StateCreator<
     set((state) => ({
       currentInspection: state.currentInspection
         ? { ...state.currentInspection, signature: signature }
+        : null,
+    }))
+  },
+
+  updateInspectionNotes: (notes) => {
+    set((state) => ({
+      currentInspection: state.currentInspection
+        ? { ...state.currentInspection, notes }
         : null,
     }))
   },
@@ -214,6 +224,7 @@ export const createInspectionSlice: StateCreator<
       technician: currentInspection.technician,
       date: ensureDate(currentInspection.date),
       measurements: currentInspection.measurements,
+      notes: currentInspection.notes || '',
       signature: signatureToSave,
       protocolNumber: currentInspection.protocolNumber,
       synced: false,
@@ -246,6 +257,7 @@ export const createInspectionSlice: StateCreator<
     // Fire-and-forget: Save to Firebase in background
     const inspectionToSave: Inspection = {
       ...currentInspection,
+      notes: currentInspection.notes || '',
       signature: signatureToSave,
     }
 
@@ -353,6 +365,7 @@ export const createInspectionSlice: StateCreator<
             date: data.date?.toDate ? data.date.toDate() : new Date(),
             technician: data.technician,
             measurements: data.measurements || [],
+            notes: data.notes || '',
             signature: data.signature,
             protocolNumber: data.protocolNumber,
             synced: data.synced ?? true,

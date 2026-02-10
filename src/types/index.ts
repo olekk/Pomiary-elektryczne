@@ -39,6 +39,7 @@ export interface Inspection {
   apartmentNumber: string
   date: Date
   technician: string
+  notes?: string
   measurements: Measurement[]
   signature?: string // Base64
   protocolNumber: string // Unikalny numer protokołu

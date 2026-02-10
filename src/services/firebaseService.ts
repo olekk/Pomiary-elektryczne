@@ -136,6 +136,7 @@ export const saveInspectionToFirestore = async (
     apartmentNumber: inspection.apartmentNumber || '',
     date: Timestamp.fromDate(ensureDate(inspection.date)),
     technician: inspection.technician || '',
+    notes: inspection.notes || '',
     measurements: sanitizedMeasurements,
     signature: inspection.signature || '',
     protocolNumber: inspection.protocolNumber || '',

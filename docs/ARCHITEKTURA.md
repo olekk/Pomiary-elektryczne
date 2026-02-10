@@ -524,7 +524,7 @@ if (value === '0' && digit !== '.') {
 
 ### 4. SummaryScreen.tsx
 
-**Odpowiedzialność:** Podsumowanie, podpis, PDF
+**Odpowiedzialność:** Podsumowanie, ogólne uwagi do protokołu, podpis, PDF
 
 **Stan lokalny:**
 
@@ -533,6 +533,7 @@ if (value === '0' && digit !== '.') {
 
 **Zustand actions:**
 
+- `updateInspectionNotes()` - aktualizacja pola `notes` (ogólne uwagi)
 - `setSignature()` - zapisanie podpisu
 
 **Generowanie PDF:**
@@ -704,6 +705,7 @@ inspections (collection)
 │   ├── apartmentNumber: string
 │   ├── date: Timestamp
 │   ├── technician: string
+│   ├── notes: string             // opcjonalne uwagi ogólne do protokołu
 │   ├── synced: boolean
 │   ├── signature: string (base64)
 │   └── measurements: array
@@ -730,6 +732,7 @@ Każdy `Inspection` **MUSI** mieć `projectId`. Typ TypeScript wymusza to pole:
 export interface Inspection {
   id?: string
   projectId: string // WYMAGANE - bez tego TypeScript rzuci błąd
+  notes?: string
   address: string
   // ... reszta pól
 }
@@ -1129,7 +1132,7 @@ npm run dev
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
 **Wzorce:** Atomic Design, State Management (Zustand), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-01-30 (Faza 1: Wdrożenie struktury Projektów - Clean Slate)
+**Ostatnia aktualizacja:** 2026-02-10 (Dodanie pola `notes` dla uwag protokołu)
 
 ---
 

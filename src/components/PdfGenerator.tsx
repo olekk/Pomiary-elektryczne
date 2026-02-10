@@ -156,6 +156,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginBottom: 3,
   },
+  manualNotesBlock: {
+    marginTop: 8,
+    fontSize: 10,
+  },
 })
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
@@ -189,6 +193,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
     return []
   })
+
+  const manualNotes = (inspection.notes ?? '').trim()
+  const hasAuto = postInspectionRecommendations.length > 0
+  const hasManual = manualNotes.length > 0
+  const hasAnyRemarks = hasAuto || hasManual
 
   return (
     <Document>
@@ -301,12 +310,29 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <Text style={styles.recommendationsTitle}>
             UWAGI I ZALECENIA POKONTROLNE
           </Text>
-          {postInspectionRecommendations.length > 0 ? (
-            postInspectionRecommendations.map((recommendation, idx) => (
-              <Text key={`${recommendation}-${idx}`} style={styles.recommendationsText}>
-                - {recommendation}
-              </Text>
-            ))
+          {hasAnyRemarks ? (
+            <>
+              {hasAuto &&
+                postInspectionRecommendations.map((recommendation, idx) => (
+                  <Text
+                    key={`auto-${idx}`}
+                    style={styles.recommendationsText}
+                  >
+                    - {recommendation}
+                  </Text>
+                ))}
+              {hasManual && (
+                <Text
+                  style={
+                    hasAuto
+                      ? [styles.manualNotesBlock, { marginTop: 8 }]
+                      : styles.manualNotesBlock
+                  }
+                >
+                  {manualNotes}
+                </Text>
+              )}
+            </>
           ) : (
             <Text style={styles.recommendationsText}>Brak uwag.</Text>
           )}
