@@ -290,11 +290,13 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Data kolejnego badania:</Text>
             <Text style={styles.value}>
-              {(() => {
-                const nextDate = new Date(inspection.date)
-                nextDate.setFullYear(nextDate.getFullYear() + 5)
-                return nextDate.toLocaleDateString('pl-PL')
-              })()}
+              {hasProblems
+                ? '-'
+                : (() => {
+                    const nextDate = new Date(inspection.date)
+                    nextDate.setFullYear(nextDate.getFullYear() + 5)
+                    return nextDate.toLocaleDateString('pl-PL')
+                  })()}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -463,7 +465,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <Text>Nr uprawnień: {technicianLicenseNumber || '-'}</Text>
           {technicianSignature && (
             <View>
-              <Text style={{ marginBottom: 5 }}>Podpis technika:</Text>
+              <Text style={{ marginBottom: 5 }}>Podpis pomiarowca:</Text>
               <Image src={technicianSignature} style={styles.signature} />
             </View>
           )}
