@@ -19,20 +19,24 @@ interface CreateInspectionModalProps {
   onCreate: (
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => void
   onMarkInaccessible?: (
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => void
   onResumeInspection?: (
     inspection: Inspection,
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => void
   defaultAddress?: string
+  defaultStreet?: string
   defaultApartmentNumber?: string
   editingInspection?: Inspection | null
   existingInspections?: Inspection[]
@@ -45,6 +49,7 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   onMarkInaccessible,
   onResumeInspection,
   defaultAddress = '',
+  defaultStreet = '',
   defaultApartmentNumber = '',
   editingInspection = null,
   existingInspections = [],
@@ -115,10 +120,11 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
         editingInspection,
         address.trim(),
         apartmentNumber.trim(),
-        ownerName.trim()
+        ownerName.trim(),
+        defaultStreet
       )
     } else {
-      onCreate(address.trim(), apartmentNumber.trim(), ownerName.trim())
+      onCreate(address.trim(), apartmentNumber.trim(), ownerName.trim(), defaultStreet)
     }
     resetForm()
   }
@@ -129,7 +135,8 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
     onMarkInaccessible?.(
       address.trim(),
       apartmentNumber.trim(),
-      ownerName.trim()
+      ownerName.trim(),
+      defaultStreet
     )
     resetForm()
   }

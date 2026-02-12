@@ -42,20 +42,23 @@ export interface InspectionSlice {
     buildingId: string,
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => void
   saveInaccessibleInspection: (
     projectId: string,
     buildingId: string,
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => Promise<void>
   resumeInaccessibleInspection: (
     inspection: Inspection,
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => void
   setCurrentInspection: (inspection: Inspection | null) => void
   setOwnerSignature: (ownerSignature: string) => void
@@ -98,7 +101,8 @@ export const createInspectionSlice: StateCreator<
     buildingId,
     address,
     apartmentNumber,
-    ownerName
+    ownerName,
+    street
   ) => {
     const state = get() as InspectionSlice & {
       technicianName: string
@@ -106,10 +110,12 @@ export const createInspectionSlice: StateCreator<
       technicianSignature: string
     }
     const date = new Date()
+    // Użyj street do generowania protokołu, jeśli dostępne, w przeciwnym razie użyj address
+    const buildingStreet = street || address
     const protocolNumber = generateProtocolNumber(
       date,
       apartmentNumber,
-      address
+      buildingStreet
     )
 
     set({
@@ -141,7 +147,8 @@ export const createInspectionSlice: StateCreator<
     buildingId,
     address,
     apartmentNumber,
-    ownerName
+    ownerName,
+    street
   ) => {
     const state = get() as InspectionSlice & {
       technicianName: string
@@ -149,10 +156,12 @@ export const createInspectionSlice: StateCreator<
       technicianSignature: string
     }
     const date = new Date()
+    // Użyj street do generowania protokołu, jeśli dostępne, w przeciwnym razie użyj address
+    const buildingStreet = street || address
     const protocolNumber = generateProtocolNumber(
       date,
       apartmentNumber,
-      address
+      buildingStreet
     )
     const savedId = generateInspectionId()
 
@@ -212,12 +221,27 @@ export const createInspectionSlice: StateCreator<
     inspection,
     address,
     apartmentNumber,
-    ownerName
+    ownerName,
+    street
   ) => {
+    // Jeśli street jest dostępne i jest inna niż obecny protocolNumber, wygeneruj nowy
+    const shouldRegenerateProtocol = street && inspection.protocolNumber
+    let protocolNumber = inspection.protocolNumber
+    
+    if (shouldRegenerateProtocol) {
+      const buildingStreet = street || address
+      protocolNumber = generateProtocolNumber(
+        inspection.date,
+        apartmentNumber,
+        buildingStreet
+      )
+    }
+    
     set({
       currentInspection: {
         ...inspection,
         address,
+        protocolNumber,
         apartmentNumber,
         ownerName,
         status: 'COMPLETED',

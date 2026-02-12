@@ -25,7 +25,10 @@ export interface Project {
 export interface Building {
   id: string
   projectId: string
-  name: string
+  name?: string // Stare dane - pełny adres (deprecated, dla kompatybilności wstecznej)
+  street: string // np. "ul. Słoneczna 15"
+  zipCode: string // np. "40-000"
+  city: string // np. "Katowice"
   createdAt: Date
   updatedAt: Date
   userId: string

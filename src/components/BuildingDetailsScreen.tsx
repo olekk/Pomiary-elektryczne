@@ -8,7 +8,7 @@ import {
   InspectionsList,
   CreateInspectionModal,
 } from './organisms'
-import { incrementApartmentNumber } from '../utils'
+import { incrementApartmentNumber, getFullAddress } from '../utils'
 import type { Inspection } from '../types'
 
 export const BuildingDetailsScreen: React.FC = () => {
@@ -35,11 +35,12 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   // Znajdź nazwę budynku i projectId
   const currentBuilding = buildings.find((b) => b.id === buildingId)
-  const buildingName = currentBuilding?.name || 'Nieznany budynek'
+  const buildingName = currentBuilding ? getFullAddress(currentBuilding) : 'Nieznany budynek'
   const projectId = currentBuilding?.projectId
 
   // Pobierz domyślne wartości
   const defaultAddress = buildingName
+  const defaultStreet = currentBuilding?.street || ''
 
   // Sprawdź, czy przychodzi z location.state (flow "następny pomiar")
   const locationState = location.state as {
@@ -85,7 +86,8 @@ export const BuildingDetailsScreen: React.FC = () => {
   const handleCreateNew = (
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => {
     if (!buildingId || !validateTechnician()) return
 
@@ -100,7 +102,8 @@ export const BuildingDetailsScreen: React.FC = () => {
       buildingId,
       address,
       apartmentNumber,
-      ownerName
+      ownerName,
+      street
     )
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
@@ -109,7 +112,8 @@ export const BuildingDetailsScreen: React.FC = () => {
   const handleMarkInaccessible = (
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => {
     if (!buildingId || !validateTechnician()) return
 
@@ -125,7 +129,8 @@ export const BuildingDetailsScreen: React.FC = () => {
       buildingId,
       address,
       apartmentNumber,
-      ownerName
+      ownerName,
+      street
     )
       .catch((error) => {
         console.error('❌ Error saving inaccessible inspection:', error)
@@ -140,11 +145,12 @@ export const BuildingDetailsScreen: React.FC = () => {
     inspection: Inspection,
     address: string,
     apartmentNumber: string,
-    ownerName: string
+    ownerName: string,
+    street?: string
   ) => {
     if (!buildingId) return
 
-    resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName)
+    resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName, street)
     setEditingInspection(null)
     setShowNewModal(false)
     navigate(`/measurement/${buildingId}`)
@@ -232,6 +238,7 @@ export const BuildingDetailsScreen: React.FC = () => {
         onMarkInaccessible={handleMarkInaccessible}
         onResumeInspection={handleResumeInspection}
         defaultAddress={defaultAddress}
+        defaultStreet={defaultStreet}
         defaultApartmentNumber={defaultApartmentNumber}
         editingInspection={editingInspection}
         existingInspections={inspections}

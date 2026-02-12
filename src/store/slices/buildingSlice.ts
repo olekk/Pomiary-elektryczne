@@ -22,7 +22,7 @@ export interface BuildingSlice {
   loadedProjectId: string | null // 🛡️ Ghost Data Protection: Track loaded project
   subscribeToBuildings: (projectId: string) => void
   unsubscribeFromBuildings: () => void
-  addBuilding: (projectId: string, name: string, userId: string) => Promise<void>
+  addBuilding: (projectId: string, street: string, zipCode: string, city: string, userId: string) => Promise<void>
   deleteBuilding: (id: string) => Promise<void>
   resetBuildings: () => void
 }
@@ -99,7 +99,10 @@ export const createBuildingSlice: StateCreator<
           buildings.push({
             id: doc.id,
             projectId: data.projectId,
-            name: data.name,
+            name: data.name, // Stare dane
+            street: data.street || data.name || '', // Nowe dane lub fallback na stare
+            zipCode: data.zipCode || '',
+            city: data.city || '',
             createdAt: data.createdAt?.toDate
               ? data.createdAt.toDate()
               : new Date(),
@@ -146,15 +149,17 @@ export const createBuildingSlice: StateCreator<
   /**
    * Add a new building (Offline-First with Optimistic Update)
    */
-  addBuilding: async (projectId: string, name: string, userId: string) => {
-    console.log(`➕ Adding building: ${name} to project ${projectId}`)
+  addBuilding: async (projectId: string, street: string, zipCode: string, city: string, userId: string) => {
+    console.log(`➕ Adding building: ${street}, ${zipCode} ${city} to project ${projectId}`)
 
     // KROK 1: Optimistic Update - dodaj do lokalnej listy NATYCHMIAST
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     const optimisticBuilding: Building = {
       id: tempId,
       projectId,
-      name,
+      street,
+      zipCode,
+      city,
       createdAt: new Date(),
       updatedAt: new Date(),
       userId,
@@ -168,7 +173,9 @@ export const createBuildingSlice: StateCreator<
     // KROK 2: Background sync (Fire-and-Forget)
     addDoc(collection(db, 'buildings'), {
       projectId,
-      name,
+      street,
+      zipCode,
+      city,
       userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),

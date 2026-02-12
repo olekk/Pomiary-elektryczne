@@ -4,6 +4,7 @@ import { Plus, Home, Loader, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
+import { getFullAddress } from '../utils'
 
 export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -23,7 +24,9 @@ export const ProjectDetailsScreen: React.FC = () => {
   } = useAppStore()
 
   const [showNewModal, setShowNewModal] = useState(false)
-  const [newBuildingName, setNewBuildingName] = useState('')
+  const [newStreet, setNewStreet] = useState('')
+  const [newZipCode, setNewZipCode] = useState('')
+  const [newCity, setNewCity] = useState('')
 
   // Subscribe to buildings for this project (Offline-First)
   useEffect(() => {
@@ -58,8 +61,8 @@ export const ProjectDetailsScreen: React.FC = () => {
   }, [projectInspections])
 
   const handleCreateBuilding = async () => {
-    if (!newBuildingName.trim()) {
-      alert('Wprowadź nazwę budynku')
+    if (!newStreet.trim() || !newZipCode.trim() || !newCity.trim()) {
+      alert('Wypełnij wszystkie pola adresu')
       return
     }
 
@@ -75,21 +78,29 @@ export const ProjectDetailsScreen: React.FC = () => {
 
     // KROK 2 & 3: Optimistic Update + Background Sync
     // addBuilding już dodaje do listy natychmiast i synchronizuje w tle
-    addBuilding(projectId, newBuildingName.trim(), user.uid)
+    addBuilding(
+      projectId,
+      newStreet.trim(),
+      newZipCode.trim(),
+      newCity.trim(),
+      user.uid
+    )
       .catch((error) => {
         console.error('❌ Error adding building:', error)
         // Store już zaktualizowany, sync nastąpi później
       })
     
     // Modal zamyka się NATYCHMIAST
-    setNewBuildingName('')
+    setNewStreet('')
+    setNewZipCode('')
+    setNewCity('')
     setShowNewModal(false)
   }
 
-  const handleDeleteBuilding = (id: string, name: string) => {
+  const handleDeleteBuilding = (id: string, address: string) => {
     if (
       confirm(
-        `Czy na pewno chcesz usunąć budynek "${name}"? Ta akcja jest nieodwracalna.`
+        `Czy na pewno chcesz usunąć budynek "${address}"? Ta akcja jest nieodwracalna.`
       )
     ) {
       // deleteBuilding już usuwa z listy natychmiast i synchronizuje w tle
@@ -143,7 +154,7 @@ export const ProjectDetailsScreen: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-slate-100">
-                        {building.name}
+                        {getFullAddress(building)}
                       </h3>
                       <p className="text-xs text-slate-400 mt-1">
                         {new Date(building.createdAt).toLocaleDateString(
@@ -155,7 +166,7 @@ export const ProjectDetailsScreen: React.FC = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleDeleteBuilding(building.id, building.name)
+                      handleDeleteBuilding(building.id, getFullAddress(building))
                     }}
                     className="p-2 hover:bg-red-900 rounded-lg transition-colors"
                     title="Usuń budynek"
@@ -213,29 +224,58 @@ export const ProjectDetailsScreen: React.FC = () => {
             <h2 className="text-xl font-bold text-slate-100 mb-4">
               Nowy Budynek
             </h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Adres budynku (np. ul. Wandy 1)
-              </label>
-              <input
-                type="text"
-                value={newBuildingName}
-                onChange={(e) => setNewBuildingName(e.target.value)}
-                placeholder="np. ul. Kwiatowa 15"
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleCreateBuilding()
-                  }
-                }}
-              />
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Ulica i numer
+                </label>
+                <input
+                  type="text"
+                  value={newStreet}
+                  onChange={(e) => setNewStreet(e.target.value)}
+                  placeholder="np. ul. Kwiatowa 15"
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Kod pocztowy
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={newZipCode}
+                  onChange={(e) => setNewZipCode(e.target.value)}
+                  placeholder="np. 40-000"
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Miejscowość
+                </label>
+                <input
+                  type="text"
+                  value={newCity}
+                  onChange={(e) => setNewCity(e.target.value)}
+                  placeholder="np. Katowice"
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateBuilding()
+                    }
+                  }}
+                />
+              </div>
             </div>
             <div className="flex gap-3">
               <Button
                 onClick={() => {
                   setShowNewModal(false)
-                  setNewBuildingName('')
+                  setNewStreet('')
+                  setNewZipCode('')
+                  setNewCity('')
                 }}
                 className="flex-1 bg-slate-700 text-slate-200 hover:bg-slate-600"
               >
