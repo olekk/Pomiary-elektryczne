@@ -8,6 +8,9 @@ import { useAppStore } from '../store/useAppStore'
 export const SettingsScreen: React.FC = () => {
   const user = useAppStore((state) => state.user)
   const technicianNameFromStore = useAppStore((state) => state.technicianName)
+  const technicianLicenseNumberFromStore = useAppStore(
+    (state) => state.technicianLicenseNumber
+  )
   const technicianSignatureFromStore = useAppStore(
     (state) => state.technicianSignature
   )
@@ -15,6 +18,9 @@ export const SettingsScreen: React.FC = () => {
   const saveUserSettings = useAppStore((state) => state.saveUserSettings)
 
   const [technicianName, setTechnicianName] = useState(technicianNameFromStore)
+  const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState(
+    technicianLicenseNumberFromStore
+  )
   const [currentSignature, setCurrentSignature] = useState(
     technicianSignatureFromStore
   )
@@ -39,6 +45,10 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     setTechnicianName(technicianNameFromStore)
   }, [technicianNameFromStore])
+
+  useEffect(() => {
+    setTechnicianLicenseNumber(technicianLicenseNumberFromStore)
+  }, [technicianLicenseNumberFromStore])
 
   useEffect(() => {
     setCurrentSignature(technicianSignatureFromStore)
@@ -68,6 +78,7 @@ export const SettingsScreen: React.FC = () => {
     try {
       await saveUserSettings(user.uid, {
         displayName: technicianName.trim(),
+        licenseNumber: technicianLicenseNumber.trim(),
         signatureBase64: currentSignature,
       })
       alert('Ustawienia zapisane!')
@@ -98,6 +109,13 @@ export const SettingsScreen: React.FC = () => {
               value={technicianName}
               onChange={(e) => setTechnicianName(e.target.value)}
               placeholder="np. Jan Kowalski"
+            />
+            <Input
+              label="Nr uprawnień technika"
+              type="text"
+              value={technicianLicenseNumber}
+              onChange={(e) => setTechnicianLicenseNumber(e.target.value)}
+              placeholder="np. E-123/2026"
             />
           </div>
 

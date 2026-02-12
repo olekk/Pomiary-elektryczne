@@ -42,6 +42,7 @@ export interface Inspection {
   ownerName?: string // Imię i nazwisko właściciela/najemcy
   date: Date
   technicianName: string
+  technicianLicenseNumber?: string // Nr uprawnień technika (snapshot z ustawień)
   technicianSignature?: string // Base64 podpisu technika (snapshot z ustawień)
   notes?: string
   measurements: Measurement[]
@@ -53,6 +54,7 @@ export interface Inspection {
 
 export interface UserSettings {
   displayName: string
+  licenseNumber: string
   signatureBase64: string
 }
 

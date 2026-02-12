@@ -138,6 +138,7 @@ export const saveInspectionToFirestore = async (
     ownerName: inspection.ownerName || '',
     date: Timestamp.fromDate(ensureDate(inspection.date)),
     technicianName: inspection.technicianName || '',
+    technicianLicenseNumber: inspection.technicianLicenseNumber || '',
     technicianSignature: inspection.technicianSignature || '',
     notes: inspection.notes || '',
     measurements: sanitizedMeasurements,
@@ -201,6 +202,7 @@ export const saveUserSettingsToFirestore = async (
     docRef,
     {
       displayName: settings.displayName.trim(),
+      licenseNumber: settings.licenseNumber.trim(),
       signatureBase64: settings.signatureBase64 || '',
       updatedAt: Timestamp.now(),
     },
@@ -226,6 +228,8 @@ export const getUserSettingsFromFirestore = async (
   return {
     displayName:
       typeof data.displayName === 'string' ? data.displayName : '',
+    licenseNumber:
+      typeof data.licenseNumber === 'string' ? data.licenseNumber : '',
     signatureBase64:
       typeof data.signatureBase64 === 'string' ? data.signatureBase64 : '',
   }

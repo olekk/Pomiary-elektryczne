@@ -66,6 +66,7 @@ Aplikacja rozdziela podpisy na dwa niezależne źródła:
 Przy tworzeniu nowej inspekcji `inspectionSlice.createNewInspection()` snapshotuje dane technika ze store:
 
 - `technicianName`
+- `technicianLicenseNumber`
 - `technicianSignature`
 - `ownerName` (wprowadzane w modalu "Nowy Pomiar")
 
@@ -80,11 +81,12 @@ Firestore:
 users (collection)
 └── {uid} (document, uid = auth.currentUser.uid)
     ├── displayName: string
+    ├── licenseNumber: string
     ├── signatureBase64: string
     └── updatedAt: Timestamp
 
 localStorage:
-userSettings:{uid} → JSON { displayName, signatureBase64 }
+userSettings:{uid} → JSON { displayName, licenseNumber, signatureBase64 }
 ```
 
 **Zapis:** `saveUserSettings()` zapisuje równolegle do Firestore + `localStorage` (per-user key).
@@ -752,6 +754,7 @@ inspections (collection)
 │   ├── ownerName: string        // Imię i nazwisko właściciela/najemcy
 │   ├── date: Timestamp
 │   ├── technicianName: string
+│   ├── technicianLicenseNumber: string (snapshot z ustawień)
 │   ├── technicianSignature: string (base64 snapshot z ustawień)
 │   ├── notes: string             // opcjonalne uwagi ogólne do protokołu
 │   ├── synced: boolean
@@ -1118,7 +1121,7 @@ store/
 │   ├── authSlice.ts         → Stan autoryzacji (user)
 │   ├── projectSlice.ts      → Stan projektów (projects, currentProjectId)
 │   ├── inspectionSlice.ts   → Stan przeglądów (inspections, currentInspection, measurements)
-│   ├── userSettingsSlice.ts → Stan profilu technika (displayName, signatureBase64)
+│   ├── userSettingsSlice.ts → Stan profilu technika (displayName, licenseNumber, signatureBase64)
 │   ├── offlineSlice.ts      → Stan offline i ustawienia (isOnline, lastDefaults)
 │   └── index.ts             → Re-export
 │

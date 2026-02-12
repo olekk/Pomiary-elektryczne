@@ -19,6 +19,8 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
     return {
       displayName:
         typeof parsed.displayName === 'string' ? parsed.displayName : '',
+      licenseNumber:
+        typeof parsed.licenseNumber === 'string' ? parsed.licenseNumber : '',
       signatureBase64:
         typeof parsed.signatureBase64 === 'string'
           ? parsed.signatureBase64
@@ -39,6 +41,7 @@ const saveUserSettingsToLocal = (
       getUserSettingsStorageKey(userId),
       JSON.stringify({
         displayName: settings.displayName.trim(),
+        licenseNumber: settings.licenseNumber.trim(),
         signatureBase64: settings.signatureBase64 || '',
       })
     )
@@ -49,6 +52,7 @@ const saveUserSettingsToLocal = (
 
 export interface UserSettingsSlice {
   technicianName: string
+  technicianLicenseNumber: string
   technicianSignature: string
   isUserSettingsLoading: boolean
   loadUserSettings: (userId: string) => Promise<void>
@@ -63,6 +67,7 @@ export const createUserSettingsSlice: StateCreator<
   UserSettingsSlice
 > = (set) => ({
   technicianName: '',
+  technicianLicenseNumber: '',
   technicianSignature: '',
   isUserSettingsLoading: false,
 
@@ -76,6 +81,7 @@ export const createUserSettingsSlice: StateCreator<
 
       set({
         technicianName: sourceSettings?.displayName || '',
+        technicianLicenseNumber: sourceSettings?.licenseNumber || '',
         technicianSignature: sourceSettings?.signatureBase64 || '',
       })
 
@@ -102,6 +108,7 @@ export const createUserSettingsSlice: StateCreator<
           console.log('⚠️ No local fallback settings, continuing with empty state')
           set({
             technicianName: '',
+            technicianLicenseNumber: '',
             technicianSignature: '',
           })
           return
@@ -112,6 +119,7 @@ export const createUserSettingsSlice: StateCreator<
       console.warn('Using local fallback user settings')
       set({
         technicianName: localFallbackSettings.displayName,
+        technicianLicenseNumber: localFallbackSettings.licenseNumber,
         technicianSignature: localFallbackSettings.signatureBase64,
       })
     } finally {
@@ -125,6 +133,7 @@ export const createUserSettingsSlice: StateCreator<
 
     set({
       technicianName: settings.displayName.trim(),
+      technicianLicenseNumber: settings.licenseNumber.trim(),
       technicianSignature: settings.signatureBase64 || '',
     })
   },
@@ -132,6 +141,7 @@ export const createUserSettingsSlice: StateCreator<
   resetUserSettings: () => {
     set({
       technicianName: '',
+      technicianLicenseNumber: '',
       technicianSignature: '',
       isUserSettingsLoading: false,
     })

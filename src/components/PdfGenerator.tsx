@@ -219,6 +219,7 @@ const styles = StyleSheet.create({
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const technicianName = inspection.technicianName || 'Brak danych technika'
+  const technicianLicenseNumber = inspection.technicianLicenseNumber || ''
   const technicianSignature = inspection.technicianSignature || ''
   const ownerSignature = inspection.ownerSignature || ''
 
@@ -459,6 +460,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
         <View style={styles.footer}>
           <Text>Pomiary wykonał: {technicianName}</Text>
+          <Text>Nr uprawnień: {technicianLicenseNumber || '-'}</Text>
           {technicianSignature && (
             <View>
               <Text style={{ marginBottom: 5 }}>Podpis technika:</Text>

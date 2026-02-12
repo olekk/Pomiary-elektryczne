@@ -102,6 +102,7 @@ export const createInspectionSlice: StateCreator<
   ) => {
     const state = get() as InspectionSlice & {
       technicianName: string
+      technicianLicenseNumber: string
       technicianSignature: string
     }
     const date = new Date()
@@ -119,6 +120,7 @@ export const createInspectionSlice: StateCreator<
         apartmentNumber,
         ownerName,
         technicianName: state.technicianName,
+        technicianLicenseNumber: state.technicianLicenseNumber,
         technicianSignature: state.technicianSignature,
         date,
         protocolNumber,
@@ -143,6 +145,7 @@ export const createInspectionSlice: StateCreator<
   ) => {
     const state = get() as InspectionSlice & {
       technicianName: string
+      technicianLicenseNumber: string
       technicianSignature: string
     }
     const date = new Date()
@@ -161,6 +164,7 @@ export const createInspectionSlice: StateCreator<
       apartmentNumber,
       ownerName,
       technicianName: state.technicianName,
+      technicianLicenseNumber: state.technicianLicenseNumber,
       technicianSignature: state.technicianSignature,
       date,
       protocolNumber,
@@ -337,6 +341,7 @@ export const createInspectionSlice: StateCreator<
       apartmentNumber: currentInspection.apartmentNumber,
       ownerName: currentInspection.ownerName || '',
       technicianName: currentInspection.technicianName,
+      technicianLicenseNumber: currentInspection.technicianLicenseNumber || '',
       technicianSignature: currentInspection.technicianSignature || '',
       date: ensureDate(currentInspection.date),
       measurements: currentInspection.measurements,
@@ -478,6 +483,7 @@ export const createInspectionSlice: StateCreator<
             ownerName: data.ownerName || '',
             date: data.date?.toDate ? data.date.toDate() : new Date(),
             technicianName: data.technicianName || data.technician || '',
+            technicianLicenseNumber: data.technicianLicenseNumber || '',
             technicianSignature: data.technicianSignature || '',
             measurements: data.measurements || [],
             notes: data.notes || '',
@@ -563,6 +569,7 @@ export const createInspectionSlice: StateCreator<
             ownerName: data.ownerName || '',
             date: data.date?.toDate ? data.date.toDate() : new Date(),
             technicianName: data.technicianName || data.technician || '',
+            technicianLicenseNumber: data.technicianLicenseNumber || '',
             technicianSignature: data.technicianSignature || '',
             measurements: data.measurements || [],
             notes: data.notes || '',
