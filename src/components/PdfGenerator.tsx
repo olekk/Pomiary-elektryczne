@@ -110,12 +110,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff3cd',
     fontSize: 9,
   },
-  col1: { width: '8%', textAlign: 'center' },
-  col2: { width: '18%', textAlign: 'center' },
-  col3: { width: '16%', textAlign: 'center' },
-  col4: { width: '26%', textAlign: 'center' },
-  col5: { width: '20%', textAlign: 'center' },
-  col6: { width: '12%', textAlign: 'center' },
+  col1: { width: '7%', textAlign: 'center' },
+  col2: { width: '17%', textAlign: 'center' },
+  col3: { width: '14%', textAlign: 'center' },
+  col4: { width: '20%', textAlign: 'center' },
+  col5: { width: '16%', textAlign: 'center' },
+  col6: { width: '16%', textAlign: 'center' },
+  col7: { width: '10%', textAlign: 'center' },
   footer: {
     marginTop: 30,
     paddingTop: 10,
@@ -320,8 +321,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.col4}>
               Wartość prądu In urządzenia wyłączającego [A]
             </Text>
-            <Text style={styles.col5}>Zmierzona impedancja Zs[Ω]</Text>
-            <Text style={styles.col6}>Ocena</Text>
+            <Text style={styles.col5}>Dopuszczalna impedancja Zs dop[Ω]</Text>
+            <Text style={styles.col6}>Zmierzona impedancja Zs[Ω]</Text>
+            <Text style={styles.col7}>Ocena</Text>
           </View>
 
           {/* Table Rows */}
@@ -338,8 +340,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                 <Text style={styles.col2}>{m.room}</Text>
                 <Text style={styles.col3}>{m.protectionType}</Text>
                 <Text style={styles.col4}>{m.amperage}A</Text>
-                <Text style={styles.col5}>{m.zsValue?.toFixed(2)}</Text>
-                <Text style={styles.col6}>{m.result}</Text>
+                <Text style={styles.col5}>{m.zsDop.toFixed(2)}</Text>
+                <Text style={styles.col6}>
+                  {m.zsValue !== null ? m.zsValue.toFixed(2) : '-'}
+                </Text>
+                <Text style={styles.col7}>{m.result}</Text>
               </View>
             )
           })}
