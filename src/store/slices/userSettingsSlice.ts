@@ -84,10 +84,28 @@ export const createUserSettingsSlice: StateCreator<
         saveUserSettingsToLocal(userId, sourceSettings)
       }
     } catch (error) {
-      console.error('Error loading user settings from cloud:', error)
+      // AbortError jest normalnym zachowaniem (np. przy szybkim przełączaniu auth state)
+      // Nie logujemy go jako błąd krytyczny
+      const isAbortError = error instanceof Error && error.name === 'AbortError'
+      
+      if (isAbortError) {
+        console.log('⚠️ User settings load was aborted (this is OK)')
+      } else {
+        console.error('Error loading user settings from cloud:', error)
+      }
 
       const localFallbackSettings = readUserSettingsFromLocal(userId)
       if (!localFallbackSettings) {
+        // Jeśli to AbortError i nie ma lokalnych ustawień, nie rzucaj błędu
+        // Aplikacja może działać z pustymi ustawieniami
+        if (isAbortError) {
+          console.log('⚠️ No local fallback settings, continuing with empty state')
+          set({
+            technicianName: '',
+            technicianSignature: '',
+          })
+          return
+        }
         throw error
       }
 

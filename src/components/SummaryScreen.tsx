@@ -23,7 +23,15 @@ export const SummaryScreen: React.FC = () => {
   const locationState = location.state as
     | { inspection: Inspection; buildingId: string }
     | null
-  const inspection = locationState?.inspection || currentInspection
+
+  // Gdy currentInspection jest zsynchronizowany z locationState (te same ID),
+  // używamy currentInspection bo to "żywy" obiekt ze store'a, który reaguje
+  // na zmiany (np. aktualizacja podpisu). locationState to zamrożony snapshot.
+  const inspection =
+    locationState?.inspection &&
+    currentInspection?.id === locationState.inspection.id
+      ? currentInspection
+      : locationState?.inspection || currentInspection
   const buildingId = locationState?.buildingId || inspection?.buildingId
   const [notes, setNotes] = useState(inspection?.notes || '')
   const [isSignatureVisible, setSignatureVisible] = useState(false)

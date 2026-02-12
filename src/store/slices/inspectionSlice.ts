@@ -371,46 +371,41 @@ export const createInspectionSlice: StateCreator<
     ).length
     set({ pendingSyncCount: newPendingCount })
 
-    // Fire-and-forget: Save to Firebase in background
-    const inspectionToSave: Inspection = {
-      ...currentInspection,
-      ownerName: currentInspection.ownerName || '',
-      notes: currentInspection.notes || '',
-      ownerSignature: ownerSignatureToSave,
-    }
+    // Save to Firestore and wait for completion (prevents AbortError)
+    // Use optimisticInspection which already has all updated data
+    try {
+      await saveInspectionToFirestore(optimisticInspection, savedId)
+      // Mark as synced in Firestore
+      await markInspectionAsSynced(savedId)
 
-    saveInspectionToFirestore(inspectionToSave, savedId)
-      .then(async () => {
-        // Mark as synced in Firestore
-        await markInspectionAsSynced(savedId)
+      console.log(`✅ Inspection ${savedId} synced successfully`)
+      const currentState = get() as InspectionSlice
+      const syncedList = currentState.inspections.map((insp: Inspection) =>
+        insp.id === savedId ? { ...insp, synced: true } : insp
+      )
+      set({
+        inspections: syncedList,
+        pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
+          .length,
+      })
 
-        console.log(`✅ Inspection ${savedId} synced successfully`)
-        const currentState = get() as InspectionSlice
-        const syncedList = currentState.inspections.map((insp: Inspection) =>
-          insp.id === savedId ? { ...insp, synced: true } : insp
-        )
+      // Update currentInspection if it's the same
+      if (currentState.currentInspection?.id === savedId) {
         set({
-          inspections: syncedList,
-          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
-            .length,
+          currentInspection: {
+            ...currentState.currentInspection,
+            synced: true,
+          },
         })
-
-        // Update currentInspection if it's the same
-        if (currentState.currentInspection?.id === savedId) {
-          set({
-            currentInspection: {
-              ...currentState.currentInspection,
-              synced: true,
-            },
-          })
-        }
-      })
-      .catch((error) => {
-        console.error(`❌ Sync failed for inspection ${savedId}:`, error)
-        if (error?.code === 'unavailable') {
-          console.log('📴 Offline mode: Data queued for sync when online')
-        }
-      })
+      }
+    } catch (error) {
+      console.error(`❌ Sync failed for inspection ${savedId}:`, error)
+      if ((error as { code?: string })?.code === 'unavailable') {
+        console.log('📴 Offline mode: Data saved locally, will sync when online')
+      }
+      // Re-throw to let caller handle the error if needed
+      throw error
+    }
   },
 
   /**
