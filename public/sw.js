@@ -1,5 +1,12 @@
-const CACHE_NAME = 'pomiary-elektryczne-v1'
-const urlsToCache = ['/', '/index.html', '/src/main.tsx', '/src/index.css']
+const CACHE_NAME = 'pomiary-elektryczne-v2'
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/src/main.tsx',
+  '/src/index.css',
+  '/fonts/Roboto-Regular.ttf',
+  '/fonts/Roboto-Bold.ttf',
+]
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {

@@ -1492,3 +1492,110 @@ try {
 6. **Prostszy kod** - brak spinnerów, brak try-catch w UI
 
 ---
+
+## 📄 Generowanie PDF w Trybie Offline (2026-02-12)
+
+### Problem: PDF nie działał offline
+
+**Przyczyna:**
+- PdfGenerator używał fontów Roboto z zewnętrznych plików (`/fonts/Roboto-Regular.ttf`)
+- Fonty nie były cache'owane przez Service Worker
+- W trybie offline fonty nie mogły się załadować → PDF nie generował się
+
+### Rozwiązanie
+
+**1. Dodano fonty do projektu:**
+```
+public/fonts/
+├── Roboto-Regular.ttf (503KB)
+└── Roboto-Bold.ttf (502KB)
+```
+
+**2. Zaktualizowano Service Worker (v2):**
+```javascript
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/src/main.tsx',
+  '/src/index.css',
+  '/fonts/Roboto-Regular.ttf',  // ✅ Cache dla offline
+  '/fonts/Roboto-Bold.ttf',     // ✅ Cache dla offline
+]
+```
+
+**3. Dodano obsługę błędów w PdfGenerator:**
+```typescript
+try {
+  Font.register({
+    family: 'Roboto',
+    fonts: [
+      { src: '/fonts/Roboto-Regular.ttf', fontWeight: 'normal' },
+      { src: '/fonts/Roboto-Bold.ttf', fontWeight: 'bold' },
+    ],
+  })
+} catch (error) {
+  console.warn('Failed to register fonts, using default')
+  // Fallback: @react-pdf/renderer użyje domyślnego fontu systemowego
+}
+```
+
+**4. Poprawiono komunikaty błędów:**
+```typescript
+// SummaryScreen.tsx - handleGeneratePDF()
+if (errorMessage.includes('font')) {
+  alert('Błąd ładowania fontów PDF. Upewnij się, że aplikacja była uruchomiona przynajmniej raz online.')
+}
+```
+
+### Wymagania dla trybu offline
+
+**Pierwsza wizyta (ONLINE):**
+1. Użytkownik otwiera aplikację z internetem
+2. Service Worker cache'uje zasoby (w tym fonty)
+3. Wszystko gotowe do pracy offline
+
+**Kolejne użycie (OFFLINE):**
+1. ✅ Aplikacja działa bez internetu
+2. ✅ Dane zapisują się do Zustand (natychmiast)
+3. ✅ PDF generuje się z fontami z cache
+4. ✅ Firebase synchronizuje się gdy pojawi się internet
+
+### Architektura PDF Offline-First
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  GENEROWANIE PDF OFFLINE                         │
+└────────────────┬────────────────────────────────────────────────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ Dane z Zustand│  ← inspection object (lokalny)
+         │ (Store)       │
+         └───────┬───────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ PdfGenerator  │
+         │ + Fonty       │  ← /fonts/*.ttf (cache przez SW)
+         └───────┬───────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ @react-pdf    │
+         │ .toBlob()     │  ← Generowanie PDF w przeglądarce
+         └───────┬───────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ Download      │  ← Protokol_XXX.pdf
+         │ (lokalny plik)│
+         └───────────────┘
+```
+
+**Kluczowe punkty:**
+- ✅ **Dane z Zustand** - nie wymaga Firebase
+- ✅ **Fonty z Cache** - Service Worker zapewnia offline access
+- ✅ **PDF w przeglądarce** - @react-pdf działa całkowicie po stronie klienta
+- ✅ **Brak blokowania** - lazy loading z Vite chunks (cache'owane)
+
+---

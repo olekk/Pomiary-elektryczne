@@ -131,7 +131,7 @@ export const SummaryScreen: React.FC = () => {
     if (!inspection) return
 
     try {
-      // Lazy load PDF libraries only when needed
+      // Lazy load PDF libraries only when needed (offline-safe dzięki Vite chunks)
       const [{ pdf }, { PdfGenerator }] = await Promise.all([
         import('@react-pdf/renderer'),
         import('./PdfGenerator'),
@@ -153,7 +153,16 @@ export const SummaryScreen: React.FC = () => {
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error generating PDF:', error)
-      alert('Błąd podczas generowania PDF')
+      
+      // Szczegółowy komunikat błędu
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      if (errorMessage.includes('font') || errorMessage.includes('Font')) {
+        alert('Błąd ładowania fontów PDF. Upewnij się, że aplikacja była uruchomiona przynajmniej raz online, aby pobrać czcionki.')
+      } else if (errorMessage.includes('Failed to fetch')) {
+        alert('Błąd generowania PDF offline. Spróbuj ponownie z połączeniem internetowym.')
+      } else {
+        alert(`Błąd podczas generowania PDF: ${errorMessage}`)
+      }
     }
   }
 
