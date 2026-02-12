@@ -3,15 +3,6 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
 
-// ============================================
-// VCONSOLE - ONLY IN DEVELOPMENT MODE
-// ============================================
-if (import.meta.env.DEV) {
-  import('vconsole').then((module) => {
-    new module.default()
-  })
-}
-
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
