@@ -147,50 +147,51 @@ export const createBuildingSlice: StateCreator<
    * Add a new building (Offline-First with Optimistic Update)
    */
   addBuilding: async (projectId: string, name: string, userId: string) => {
-    try {
-      console.log(`➕ Adding building: ${name} to project ${projectId}`)
+    console.log(`➕ Adding building: ${name} to project ${projectId}`)
 
-      // Optimistic update: Generate temporary ID and add to local state
-      const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const optimisticBuilding: Building = {
-        id: tempId,
-        projectId,
-        name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId,
-      }
-
-      const { buildings } = get()
-      set({
-        buildings: [optimisticBuilding, ...buildings],
-      })
-
-      // Save to Firestore
-      const docRef = await addDoc(collection(db, 'buildings'), {
-        projectId,
-        name,
-        userId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-
-      console.log(`✅ Building created with ID: ${docRef.id}`)
-
-      // Replace temporary ID with real ID (onSnapshot will handle this, but we can do it immediately)
-      const updatedBuildings = get().buildings.map((b) =>
-        b.id === tempId ? { ...b, id: docRef.id } : b
-      )
-      set({ buildings: updatedBuildings })
-    } catch (error) {
-      console.error('❌ Error adding building:', error)
-      // Rollback optimistic update on error
-      const { buildings } = get()
-      set({
-        buildings: buildings.filter((b) => !b.id.startsWith('temp_')),
-      })
-      throw error
+    // KROK 1: Optimistic Update - dodaj do lokalnej listy NATYCHMIAST
+    const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const optimisticBuilding: Building = {
+      id: tempId,
+      projectId,
+      name,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId,
     }
+
+    const { buildings } = get()
+    set({
+      buildings: [optimisticBuilding, ...buildings],
+    })
+
+    // KROK 2: Background sync (Fire-and-Forget)
+    addDoc(collection(db, 'buildings'), {
+      projectId,
+      name,
+      userId,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+      .then((docRef) => {
+        console.log(`✅ Building created with ID: ${docRef.id}`)
+        
+        // Replace temporary ID with real ID (onSnapshot will also handle this)
+        const updatedBuildings = get().buildings.map((b) =>
+          b.id === tempId ? { ...b, id: docRef.id } : b
+        )
+        set({ buildings: updatedBuildings })
+      })
+      .catch((error) => {
+        console.error('❌ Error adding building:', error)
+        // Rollback optimistic update on error
+        const { buildings } = get()
+        set({
+          buildings: buildings.filter((b) => !b.id.startsWith('temp_')),
+        })
+        // NIE rzucamy błędu - użytkownik już widzi budynek w UI
+        // onSnapshot później zsynchronizuje poprawny stan
+      })
   },
 
   /**
@@ -198,23 +199,23 @@ export const createBuildingSlice: StateCreator<
    * Removes building AND all related inspections atomically
    */
   deleteBuilding: async (id: string) => {
-    try {
-      console.log(`🗑️  Deleting building: ${id}`)
+    console.log(`🗑️  Deleting building: ${id}`)
 
-      // Optimistic update: Remove from local list
-      const { buildings } = get()
-      set({
-        buildings: buildings.filter((b) => b.id !== id),
+    // KROK 1: Optimistic Update - usuń z lokalnej listy NATYCHMIAST
+    const { buildings } = get()
+    set({
+      buildings: buildings.filter((b) => b.id !== id),
+    })
+
+    // KROK 2: Background sync (Fire-and-Forget) - cascading delete w tle
+    deleteBuildingFromFirestore(id)
+      .then(() => {
+        console.log(`✅ Building ${id} deleted successfully with cascading delete`)
       })
-
-      // Delete from Firestore with cascading delete
-      await deleteBuildingFromFirestore(id)
-
-      console.log(`✅ Building ${id} deleted successfully with cascading delete`)
-    } catch (error) {
-      console.error('❌ Error deleting building:', error)
-      throw error
-    }
+      .catch((error) => {
+        console.error(`❌ Error deleting building ${id}:`, error)
+        // TODO: Można dodać rollback - przywrócić budynek do listy
+      })
   },
 
   /**

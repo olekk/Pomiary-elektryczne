@@ -23,7 +23,6 @@ export const MeasurementScreen: React.FC = () => {
   } = useAppStore()
 
   const [inputValue, setInputValue] = useState('0')
-  const [isSaving, setIsSaving] = useState(false)
 
   // Settings for next measurement
   const [nextRoom, setNextRoom] = useState<Room>('Kuchnia')
@@ -67,7 +66,8 @@ export const MeasurementScreen: React.FC = () => {
     setInputValue('0')
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    // KROK 1: Validate data
     if (!currentInspection || currentInspection.measurements.length === 0) {
       alert('Dodaj przynajmniej jeden pomiar!')
       return
@@ -78,20 +78,16 @@ export const MeasurementScreen: React.FC = () => {
       return
     }
 
-    setIsSaving(true)
+    // KROK 2 & 3: Optimistic Update + Background Sync
+    // saveToFirestore już aktualizuje Zustand natychmiast i synchronizuje w tle
+    saveToFirestore()
+      .catch((error: unknown) => {
+        console.error('❌ Błąd zapisu:', error)
+        // Dane już są zaktualizowane w Zustand, sync nastąpi później
+      })
 
-    try {
-      await saveToFirestore()
-      // Po zapisie przejdź do ekranu podsumowania (podpis + PDF)
-      navigate('/summary')
-    } catch (error: unknown) {
-      console.error('Błąd zapisu:', error)
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error'
-      alert(errorMessage || 'Błąd podczas zapisywania. Spróbuj ponownie.')
-    } finally {
-      setIsSaving(false)
-    }
+    // Nawigacja NATYCHMIAST (nie czeka na Firebase)
+    navigate('/summary')
   }
 
   if (!currentInspection) {
@@ -170,10 +166,9 @@ export const MeasurementScreen: React.FC = () => {
             size="lg"
             fullWidth
             onClick={handleSave}
-            disabled={isSaving}
             icon={<Save size={24} />}
           >
-            {isSaving ? 'Zapisywanie...' : 'Zapisz'}
+            Zapisz
           </Button>
         </Card>
       </div>

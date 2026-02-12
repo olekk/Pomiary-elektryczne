@@ -13,7 +13,6 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
 }) => {
   const signatureRef = useRef<SignatureCanvas>(null)
   const [hasSignature, setHasSignature] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
 
   // Wczytaj istniejący podpis przy inicjalizacji
   useEffect(() => {
@@ -32,20 +31,22 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
     setHasSignature(false)
   }
 
-  const handleSave = async () => {
-    if (signatureRef.current && !isSaving) {
+  const handleSave = () => {
+    if (signatureRef.current) {
       const dataURL = signatureRef.current.toDataURL()
 
-      setIsSaving(true)
-      try {
-        await onSave(dataURL)
-        setHasSignature(true)
-      } catch (error) {
-        console.error('Error saving signature:', error)
-        alert('Błąd podczas zapisywania podpisu')
-      } finally {
-        setIsSaving(false)
+      // onSave już aktualizuje store natychmiast i synchronizuje w tle
+      const result = onSave(dataURL)
+      
+      // Jeśli onSave zwraca Promise, obsługujemy błędy w tle
+      if (result instanceof Promise) {
+        result.catch((error) => {
+          console.error('❌ Error saving signature:', error)
+          // Podpis już zapisany lokalnie, sync nastąpi później
+        })
       }
+      
+      setHasSignature(true)
     }
   }
 
@@ -69,9 +70,9 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
           variant="primary"
           fullWidth
           onClick={handleSave}
-          disabled={!hasSignature || isSaving}
+          disabled={!hasSignature}
         >
-          {isSaving ? 'Zapisywanie...' : 'Zapisz podpis'}
+          Zapisz podpis
         </Button>
       </div>
     </Card>

@@ -24,7 +24,6 @@ export const ProjectDetailsScreen: React.FC = () => {
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newBuildingName, setNewBuildingName] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Subscribe to buildings for this project (Offline-First)
   useEffect(() => {
@@ -74,31 +73,31 @@ export const ProjectDetailsScreen: React.FC = () => {
       return
     }
 
-    if (isSubmitting) return
-
-    setIsSubmitting(true)
-    try {
-      await addBuilding(projectId, newBuildingName.trim(), user.uid)
-      setNewBuildingName('')
-      setShowNewModal(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // KROK 2 & 3: Optimistic Update + Background Sync
+    // addBuilding już dodaje do listy natychmiast i synchronizuje w tle
+    addBuilding(projectId, newBuildingName.trim(), user.uid)
+      .catch((error) => {
+        console.error('❌ Error adding building:', error)
+        // Store już zaktualizowany, sync nastąpi później
+      })
+    
+    // Modal zamyka się NATYCHMIAST
+    setNewBuildingName('')
+    setShowNewModal(false)
   }
 
-  const handleDeleteBuilding = async (id: string, name: string) => {
+  const handleDeleteBuilding = (id: string, name: string) => {
     if (
       confirm(
         `Czy na pewno chcesz usunąć budynek "${name}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      try {
-        await deleteBuilding(id)
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        alert('Błąd podczas usuwania: ' + errorMessage)
-      }
+      // deleteBuilding już usuwa z listy natychmiast i synchronizuje w tle
+      deleteBuilding(id)
+        .catch((error: unknown) => {
+          console.error('❌ Error deleting building:', error)
+          // Element już usunięty z UI, sync nastąpi w tle
+        })
     }
   }
 
@@ -239,16 +238,14 @@ export const ProjectDetailsScreen: React.FC = () => {
                   setNewBuildingName('')
                 }}
                 className="flex-1 bg-slate-700 text-slate-200 hover:bg-slate-600"
-                disabled={isSubmitting}
               >
                 Anuluj
               </Button>
               <Button
                 onClick={handleCreateBuilding}
                 className="flex-1"
-                disabled={isSubmitting}
               >
-                {isSubmitting ? 'Tworzenie...' : 'Utwórz'}
+                Utwórz
               </Button>
             </div>
           </div>

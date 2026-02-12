@@ -148,20 +148,21 @@ export const createProjectSlice: StateCreator<
   },
 
   deleteProject: async (id) => {
-    try {
-      await deleteProjectFromFirestore(id)
+    // KROK 1: Optimistic Update - usuń z lokalnej listy NATYCHMIAST
+    const { projects } = get()
+    set({
+      projects: projects.filter((p) => p.id !== id),
+    })
 
-      // Optimistic update
-      const { projects } = get()
-      set({
-        projects: projects.filter((p) => p.id !== id),
+    // KROK 2: Background sync (Fire-and-Forget)
+    deleteProjectFromFirestore(id)
+      .then(() => {
+        console.log(`✅ Project ${id} deleted successfully`)
       })
-
-      console.log(`✅ Project ${id} deleted successfully`)
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      throw error
-    }
+      .catch((error) => {
+        console.error(`❌ Error deleting project ${id}:`, error)
+        // TODO: Można dodać rollback - przywrócić projekt do listy
+      })
   },
 
   setCurrentProjectId: (projectId) => {

@@ -1272,3 +1272,223 @@ Dodano pole `status` do `Inspection`:
 - Organizacja pomiarów według obiektów (spółdzielnie, budynki, itp.)
 - Skalowalność - łatwiejsze zarządzanie setkami pomiarów
 - UX - intuicyjny podział danych
+
+---
+
+## 🚀 Optimistic UI - Wzorzec Fire-and-Forget (2026-02-12)
+
+### Problem: Blokowanie UI przez Firebase
+
+**Poprzednia implementacja (BLOKUJĄCA):**
+
+```typescript
+❌ const handleSave = async () => {
+     setIsSaving(true)                  // Spinner pojawia się
+     await saveToFirestore()            // CZEKA na Firebase (blokuje UI!)
+     setIsSaving(false)                 // Spinner znika
+     closeModal()                       // Modal zamyka się DOPIERO TERAZ
+   }
+
+Problem: W trybie samolotowym await wisi w nieskończoność → UI zamrożone
+```
+
+**Nowa implementacja (OPTIMISTIC UI):**
+
+```typescript
+✅ const handleSave = () => {
+     // KROK 1: Generuj ID lokalnie (jeśli nowy obiekt)
+     const newId = doc(collection(db, 'inspections')).id
+     
+     // KROK 2: Aktualizuj Zustand NATYCHMIAST (UI reaguje w 0ms)
+     updateInspectionInStore({ ...data, id: newId })
+     closeModal()  // Modal zamyka się OD RAZU!
+     
+     // KROK 3: Firebase w tle (fire-and-forget, NIE blokuje UI)
+     saveToFirestore(data, newId)
+       .catch(err => console.error('Sync failed, retrying later...', err))
+   }
+
+Zalety: UI NIGDY nie czeka na sieć. Offline queue Firebase automatycznie retry.
+```
+
+### Architektura Optimistic UI
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      USER ACTION                                 │
+│   (Klik "Zapisz", "Dodaj Pomiar", "Zmień Podpis")              │
+└────────────────┬────────────────────────────────────────────────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ KROK 1:       │
+         │ Generuj ID    │  ← doc(collection(...)).id (lokalnie!)
+         │ Prepare Data  │
+         └───────┬───────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ KROK 2:       │
+         │ Zustand Update│  ← set({ data: newData })
+         │ (UI 0ms)      │  ← Modal zamyka się NATYCHMIAST!
+         └───────┬───────┘
+                 │
+                 ▼
+         ┌───────────────┐
+         │ KROK 3:       │
+         │ Firebase Sync │  ← saveToFirestore().catch(...)
+         │ (Background)  │  ← FIRE-AND-FORGET (NIE blokuje UI)
+         └───────┬───────┘
+                 │
+      ┌──────────┴──────────┐
+      ▼                     ▼
+┌──────────┐         ┌──────────────┐
+│ SUCCESS  │         │ OFFLINE      │
+│ ✅ Synced│         │ 📴 Queued    │
+└──────────┘         │ (Auto-retry) │
+                     └──────────────┘
+```
+
+### Zmodyfikowane Funkcje (Pełna Lista)
+
+#### 1. **inspectionSlice.ts**
+
+```typescript
+✅ saveToFirestore() - najpierw Zustand, potem Firebase w tle
+✅ saveInaccessibleInspection() - już miało optymistyczną aktualizację
+✅ deleteInspection() - najpierw usuwa z listy, potem Firebase w tle
+```
+
+#### 2. **userSettingsSlice.ts**
+
+```typescript
+✅ saveUserSettings() - najpierw localStorage + Zustand, potem Firebase w tle
+```
+
+#### 3. **projectSlice.ts**
+
+```typescript
+✅ createNewProject() - już miało optymistyczną aktualizację
+✅ deleteProject() - najpierw usuwa z listy, potem Firebase w tle
+```
+
+#### 4. **buildingSlice.ts**
+
+```typescript
+✅ addBuilding() - najpierw Zustand z temp ID, potem Firebase w tle
+✅ deleteBuilding() - najpierw usuwa z listy, potem Firebase w tle
+```
+
+#### 5. **Komponenty UI**
+
+```typescript
+✅ SummaryScreen.tsx
+   - handleSaveSignature() - NIE czeka na Firebase
+   - handleSaveAndAddNext() - nawigacja natychmiast
+
+✅ SettingsScreen.tsx
+   - handleSave() - USUNIĘTO isSaving spinner, alert natychmiast
+
+✅ MeasurementScreen.tsx
+   - handleSave() - nawigacja do /summary natychmiast
+
+✅ BuildingDetailsScreen.tsx
+   - handleMarkInaccessible() - modal zamyka się natychmiast
+   - handleDelete() - usuwanie natychmiast
+
+✅ ProjectDetailsScreen.tsx
+   - handleAddBuilding() - modal zamyka się natychmiast
+   - handleDeleteBuilding() - usuwanie natychmiast
+
+✅ ProjectsScreen.tsx
+   - handleAddProject() - modal zamyka się natychmiast
+   - handleDeleteProject() - usuwanie natychmiast
+
+✅ SignaturePanel.tsx
+   - handleSave() - USUNIĘTO isSaving, callback natychmiast
+```
+
+### Kluczowe Zasady Implementacji
+
+#### 1. **Generuj ID lokalnie (jeśli nowy obiekt)**
+
+```typescript
+// ✅ DOBRZE: ID po stronie klienta
+const savedId = currentInspection.id || generateInspectionId()
+
+// ❌ ŹLE: Czekanie na serwer dla ID
+const docRef = await addDoc(collection(db, 'inspections'), data)
+const id = docRef.id  // BLOKUJE UI!
+```
+
+#### 2. **Aktualizuj Store NATYCHMIAST**
+
+```typescript
+// ✅ DOBRZE: Najpierw Zustand
+set({ inspections: [optimisticInspection, ...inspections] })
+closeModal()  // Modal zamyka się OD RAZU
+
+// ❌ ŹLE: Najpierw Firebase
+await saveInspectionToFirestore(...)  // BLOKUJE!
+set({ inspections: [...] })           // Za późno
+```
+
+#### 3. **Firebase w tle (Fire-and-Forget)**
+
+```typescript
+// ✅ DOBRZE: NIE używaj await w UI
+saveToFirestore(data)
+  .catch(err => console.error('Sync failed', err))
+
+// ❌ ŹLE: await blokuje UI
+await saveToFirestore(data)
+```
+
+### Obsługa Błędów
+
+**NIE wyświetlamy alertów błędów synchronizacji** - użytkownik już widzi zaktualizowane dane w UI. Firebase automatycznie retry'uje gdy pojawi się internet.
+
+```typescript
+// ✅ DOBRZE: Loguj błędy, NIE blokuj użytkownika
+saveToFirestore(data)
+  .then(() => console.log('✅ Synced'))
+  .catch(err => console.error('❌ Sync failed, will retry later', err))
+
+// ❌ ŹLE: Alert blokuje workflow
+try {
+  await saveToFirestore(data)
+} catch (err) {
+  alert('Błąd zapisu!') // Użytkownik nie może kontynuować!
+}
+```
+
+### Tryb Samolotowy - Test Scenariusz
+
+**Przed zmianą (BROKEN):**
+
+1. ✈️ Tryb samolotowy włączony
+2. Zmieniam podpis → Klik "Zapisz"
+3. ⏳ Spinner pojawia się
+4. ❌ await wisi w nieskończoność
+5. 💀 UI zamrożone - użytkownik nie może nic zrobić
+
+**Po zmianie (DZIAŁA):**
+
+1. ✈️ Tryb samolotowy włączony
+2. Zmieniam podpis → Klik "Zapisz"
+3. ✅ Modal zamyka się NATYCHMIAST (0ms)
+4. ✅ Widzę NOWY podpis na ekranie (Zustand)
+5. ✅ Generuję PDF → Jest NOWY podpis (ze store)
+6. 🌐 Włączam internet → Firebase synchronizuje się w tle
+7. ✅ Aplikacja w pełni funkcjonalna offline!
+
+### Zalety Wzorca Optimistic UI
+
+1. **Zero opóźnienia UI** - wszystko działa natychmiastowo (0ms)
+2. **Offline First** - aplikacja w pełni funkcjonalna bez internetu
+3. **Lepsza UX** - brak spinnerów, brak zawieszania
+4. **PDF offline** - generowanie PDF ze store, nie z Firebase
+5. **Automatyczny retry** - Firebase ma wbudowaną offline queue
+6. **Prostszy kod** - brak spinnerów, brak try-catch w UI
+
+---

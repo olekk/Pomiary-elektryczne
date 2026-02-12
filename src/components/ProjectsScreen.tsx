@@ -19,7 +19,6 @@ export const ProjectsScreen: React.FC = () => {
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Subscribe to projects on mount, unsubscribe on unmount (Offline-First)
   useEffect(() => {
@@ -38,31 +37,31 @@ export const ProjectsScreen: React.FC = () => {
       return
     }
 
-    if (isSubmitting) return
-
-    setIsSubmitting(true)
-    try {
-      await createNewProject(newProjectName.trim())
-      setNewProjectName('')
-      setShowNewModal(false)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // KROK 2 & 3: Optimistic Update + Background Sync
+    // createNewProject już dodaje do listy natychmiast i synchronizuje w tle
+    createNewProject(newProjectName.trim())
+      .catch((error) => {
+        console.error('❌ Error creating project:', error)
+        // Store już zaktualizowany, sync nastąpi później
+      })
+    
+    // Modal zamyka się NATYCHMIAST
+    setNewProjectName('')
+    setShowNewModal(false)
   }
 
-  const handleDeleteProject = async (id: string, name: string) => {
+  const handleDeleteProject = (id: string, name: string) => {
     if (
       confirm(
         `Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      try {
-        await deleteProject(id)
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        alert('Błąd podczas usuwania: ' + errorMessage)
-      }
+      // deleteProject już usuwa z listy natychmiast i synchronizuje w tle
+      deleteProject(id)
+        .catch((error: unknown) => {
+          console.error('❌ Error deleting project:', error)
+          // Element już usunięty z UI, sync nastąpi w tle
+        })
     }
   }
 
@@ -172,16 +171,14 @@ export const ProjectsScreen: React.FC = () => {
                   setNewProjectName('')
                 }}
                 className="flex-1 bg-slate-700 text-slate-200 hover:bg-slate-600"
-                disabled={isSubmitting}
               >
                 Anuluj
               </Button>
               <Button 
                 onClick={handleCreateProject} 
                 className="flex-1"
-                disabled={isSubmitting}
               >
-                {isSubmitting ? 'Tworzenie...' : 'Utwórz'}
+                Utwórz
               </Button>
             </div>
           </div>

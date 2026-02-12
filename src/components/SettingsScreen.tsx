@@ -24,7 +24,6 @@ export const SettingsScreen: React.FC = () => {
   const [currentSignature, setCurrentSignature] = useState(
     technicianSignatureFromStore
   )
-  const [isSaving, setIsSaving] = useState(false)
 
   // Każde wejście do ustawień odświeża dane użytkownika z chmury
   useEffect(() => {
@@ -58,7 +57,8 @@ export const SettingsScreen: React.FC = () => {
     setCurrentSignature(signature)
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    // KROK 1: Validate data
     if (!user) {
       alert('Brak zalogowanego użytkownika')
       return
@@ -74,20 +74,21 @@ export const SettingsScreen: React.FC = () => {
       return
     }
 
-    setIsSaving(true)
-    try {
-      await saveUserSettings(user.uid, {
-        displayName: technicianName.trim(),
-        licenseNumber: technicianLicenseNumber.trim(),
-        signatureBase64: currentSignature,
+    // KROK 2 & 3: Optimistic Update + Background Sync
+    // saveUserSettings już zapisuje lokalnie i aktualizuje Zustand NATYCHMIAST,
+    // a potem synchronizuje z Firebase w tle (bez await)
+    saveUserSettings(user.uid, {
+      displayName: technicianName.trim(),
+      licenseNumber: technicianLicenseNumber.trim(),
+      signatureBase64: currentSignature,
+    })
+      .catch((error) => {
+        console.error('❌ Error saving settings:', error)
+        // Dane są już zapisane lokalnie w Zustand, sync nastąpi później
       })
-      alert('Ustawienia zapisane!')
-    } catch (error) {
-      console.error('Error saving settings:', error)
-      alert('Błąd podczas zapisywania ustawień')
-    } finally {
-      setIsSaving(false)
-    }
+    
+    // Alert pokazuje się NATYCHMIAST (nie czeka na Firebase)
+    alert('Ustawienia zapisane!')
   }
 
   return (
@@ -137,10 +138,9 @@ export const SettingsScreen: React.FC = () => {
               size="lg"
               fullWidth
               onClick={handleSave}
-              disabled={isSaving}
               icon={<Save size={20} />}
             >
-              {isSaving ? 'Zapisywanie...' : 'Zapisz ustawienia'}
+              Zapisz ustawienia
             </Button>
           </div>
         </Card>

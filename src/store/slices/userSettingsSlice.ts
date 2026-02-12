@@ -128,14 +128,27 @@ export const createUserSettingsSlice: StateCreator<
   },
 
   saveUserSettings: async (userId, settings) => {
-    await saveUserSettingsToFirestore(userId, settings)
+    // KROK 1: Prepare data (validation już jest w wywołującym komponencie)
+    
+    // KROK 2: Optimistic Update - zapisz lokalnie i zaktualizuj Zustand NATYCHMIAST
     saveUserSettingsToLocal(userId, settings)
-
+    
     set({
       technicianName: settings.displayName.trim(),
       technicianLicenseNumber: settings.licenseNumber.trim(),
       technicianSignature: settings.signatureBase64 || '',
     })
+
+    // KROK 3: Background sync (Fire-and-Forget) - NIE blokuje UI!
+    saveUserSettingsToFirestore(userId, settings)
+      .then(() => {
+        console.log('✅ User settings synced to Firestore')
+      })
+      .catch((error) => {
+        console.error('❌ Failed to sync user settings to Firestore:', error)
+        // Dane są już zapisane lokalnie, więc użytkownik nie traci pracy
+        // Firebase spróbuje ponownie gdy będzie internet
+      })
   },
 
   resetUserSettings: () => {

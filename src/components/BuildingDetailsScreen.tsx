@@ -106,7 +106,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     navigate(`/measurement/${buildingId}`)
   }
 
-  const handleMarkInaccessible = async (
+  const handleMarkInaccessible = (
     address: string,
     apartmentNumber: string,
     ownerName: string
@@ -119,13 +119,20 @@ export const BuildingDetailsScreen: React.FC = () => {
       return
     }
 
-    await saveInaccessibleInspection(
+    // saveInaccessibleInspection już aktualizuje store natychmiast i synchronizuje w tle
+    saveInaccessibleInspection(
       building.projectId,
       buildingId,
       address,
       apartmentNumber,
       ownerName
     )
+      .catch((error) => {
+        console.error('❌ Error saving inaccessible inspection:', error)
+        // Store już zaktualizowany, sync nastąpi później
+      })
+    
+    // Modal zamyka się NATYCHMIAST
     setShowNewModal(false)
   }
 
@@ -143,15 +150,14 @@ export const BuildingDetailsScreen: React.FC = () => {
     navigate(`/measurement/${buildingId}`)
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
-      try {
-        await deleteInspection(id)
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error'
-        alert('Błąd podczas usuwania: ' + errorMessage)
-      }
+      // deleteInspection już usuwa z listy natychmiast i synchronizuje w tle
+      deleteInspection(id)
+        .catch((error: unknown) => {
+          console.error('❌ Error deleting inspection:', error)
+          // Element już usunięty z UI, sync nastąpi w tle
+        })
     }
   }
 

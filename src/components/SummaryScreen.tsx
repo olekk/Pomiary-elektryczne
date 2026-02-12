@@ -58,18 +58,22 @@ export const SummaryScreen: React.FC = () => {
     updateInspectionNotes(value)
   }
 
-  const handleSaveSignature = async (ownerSignature: string) => {
-    try {
-      updateInspectionNotes(notes)
-      // Update store first
-      setOwnerSignature(ownerSignature)
-      // Save to Firestore with signature override
-      await saveToFirestore(ownerSignature)
-      setSignatureVisible(false)
-    } catch (error) {
-      console.error('Error saving signature:', error)
-      alert('Błąd podczas zapisywania podpisu')
-    }
+  const handleSaveSignature = (ownerSignature: string) => {
+    // KROK 1: Prepare data
+    updateInspectionNotes(notes)
+    
+    // KROK 2: Optimistic Update - zaktualizuj Zustand natychmiast
+    setOwnerSignature(ownerSignature)
+    
+    // KROK 3: Background sync - Firebase w tle (NIE blokuje UI!)
+    saveToFirestore(ownerSignature)
+      .catch((error) => {
+        console.error('❌ Error saving signature:', error)
+        // UI już pokazuje nowy podpis, synchronizacja nastąpi później
+      })
+    
+    // Modal zamyka się NATYCHMIAST (nie czeka na Firebase)
+    setSignatureVisible(false)
   }
 
   const handleReturnToBuilding = () => {
@@ -80,21 +84,25 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const handleSaveAndAddNext = async () => {
+  const handleSaveAndAddNext = () => {
     if (!buildingId || !inspection) {
       alert('Błąd: Brak ID budynku lub danych pomiaru')
       return
     }
 
-    try {
-      updateInspectionNotes(notes)
-      await saveToFirestore(inspection?.ownerSignature ?? '')
-    } catch (error) {
-      console.error('Error saving inspection:', error)
-      alert('Błąd podczas zapisywania. Sprawdź połączenie.')
-      return
-    }
+    // KROK 1: Prepare data
+    updateInspectionNotes(notes)
+    
+    // KROK 2: Optimistic Update - Zustand już zaktualizowany w updateInspectionNotes
+    
+    // KROK 3: Background sync - Firebase w tle (NIE blokuje nawigacji!)
+    saveToFirestore(inspection?.ownerSignature ?? '')
+      .catch((error) => {
+        console.error('❌ Error saving inspection:', error)
+        // Użytkownik już przeszedł dalej, dane synchronizują się w tle
+      })
 
+    // Nawigacja NATYCHMIAST (nie czeka na Firebase)
     navigate(`/building/${buildingId}`, {
       state: {
         lastApartmentNumber: inspection.apartmentNumber,

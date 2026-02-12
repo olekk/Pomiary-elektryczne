@@ -325,14 +325,14 @@ export const createInspectionSlice: StateCreator<
       throw new Error('Brak danych do zapisania')
     }
 
-    // Generate ID locally for offline support
+    // KROK 1: Generate ID locally for offline support
     const savedId = currentInspection.id || generateInspectionId()
 
     // Use signatureOverride if provided, otherwise use store signature
     const ownerSignatureToSave =
       ownerSignatureOverride || currentInspection.ownerSignature || ''
 
-    // Optimistic update: Update UI immediately
+    // KROK 2: Optimistic update - Update Zustand immediately (UI updates in 0ms)
     const optimisticInspection: Inspection = {
       id: savedId,
       projectId: currentInspection.projectId,
@@ -376,41 +376,41 @@ export const createInspectionSlice: StateCreator<
     ).length
     set({ pendingSyncCount: newPendingCount })
 
-    // Save to Firestore and wait for completion (prevents AbortError)
-    // Use optimisticInspection which already has all updated data
-    try {
-      await saveInspectionToFirestore(optimisticInspection, savedId)
-      // Mark as synced in Firestore
-      await markInspectionAsSynced(savedId)
-
-      console.log(`✅ Inspection ${savedId} synced successfully`)
-      const currentState = get() as InspectionSlice
-      const syncedList = currentState.inspections.map((insp: Inspection) =>
-        insp.id === savedId ? { ...insp, synced: true } : insp
-      )
-      set({
-        inspections: syncedList,
-        pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
-          .length,
-      })
-
-      // Update currentInspection if it's the same
-      if (currentState.currentInspection?.id === savedId) {
+    // KROK 3: Background sync (Fire-and-Forget) - NIE blokuje UI!
+    // Firebase ma wbudowaną offline queue, więc dane zapisze się jak pojawi się internet
+    saveInspectionToFirestore(optimisticInspection, savedId)
+      .then(async () => {
+        await markInspectionAsSynced(savedId)
+        console.log(`✅ Inspection ${savedId} synced successfully`)
+        
+        const currentState = get() as InspectionSlice
+        const syncedList = currentState.inspections.map((insp: Inspection) =>
+          insp.id === savedId ? { ...insp, synced: true } : insp
+        )
         set({
-          currentInspection: {
-            ...currentState.currentInspection,
-            synced: true,
-          },
+          inspections: syncedList,
+          pendingSyncCount: syncedList.filter((i: Inspection) => !i.synced)
+            .length,
         })
-      }
-    } catch (error) {
-      console.error(`❌ Sync failed for inspection ${savedId}:`, error)
-      if ((error as { code?: string })?.code === 'unavailable') {
-        console.log('📴 Offline mode: Data saved locally, will sync when online')
-      }
-      // Re-throw to let caller handle the error if needed
-      throw error
-    }
+
+        // Update currentInspection if it's the same
+        if (currentState.currentInspection?.id === savedId) {
+          set({
+            currentInspection: {
+              ...currentState.currentInspection,
+              synced: true,
+            },
+          })
+        }
+      })
+      .catch((error) => {
+        console.error(`❌ Sync failed for inspection ${savedId}:`, error)
+        if ((error as { code?: string })?.code === 'unavailable') {
+          console.log('📴 Offline mode: Data queued, will sync when online')
+        }
+        // NIE rzucamy błędu - użytkownik już widzi zaktualizowane dane w UI
+        // Firebase automatycznie spróbuje ponownie gdy będzie internet
+      })
   },
 
   /**
@@ -609,18 +609,22 @@ export const createInspectionSlice: StateCreator<
   },
 
   deleteInspection: async (id) => {
-    try {
-      await deleteInspectionFromFirestore(id)
+    // KROK 1: Optimistic Update - usuń z lokalnej listy NATYCHMIAST
+    const { inspections } = get()
+    set({
+      inspections: inspections.filter((i) => i.id !== id),
+    })
 
-      // Optimistic update: Remove from local list
-      const { inspections } = get()
-      set({
-        inspections: inspections.filter((i) => i.id !== id),
+    // KROK 2: Background sync (Fire-and-Forget)
+    deleteInspectionFromFirestore(id)
+      .then(() => {
+        console.log(`✅ Inspection ${id} deleted from Firestore`)
       })
-    } catch (error) {
-      console.error('Error deleting inspection:', error)
-      throw error
-    }
+      .catch((error) => {
+        console.error(`❌ Error deleting inspection ${id}:`, error)
+        // TODO: Można dodać rollback - przywrócić inspekcję do listy
+        // ale na razie zostawiamy jako fire-and-forget
+      })
   },
 
   /**
