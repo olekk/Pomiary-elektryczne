@@ -244,7 +244,6 @@ export const ProjectDetailsScreen: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  inputMode="numeric"
                   value={newZipCode}
                   onChange={(e) => setNewZipCode(e.target.value)}
                   placeholder="np. 40-000"
