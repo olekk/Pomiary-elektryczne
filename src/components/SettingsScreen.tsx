@@ -3,62 +3,31 @@ import { MainLayout } from './layout/MainLayout'
 import { Button, Card, Input } from './atoms'
 import { SignaturePanel } from './organisms'
 import { Save } from 'lucide-react'
-import { useAppStore } from '../store/useAppStore'
+import { useAuth, useUserSettings } from '../hooks'
 
 export const SettingsScreen: React.FC = () => {
-  const user = useAppStore((state) => state.user)
-  const technicianNameFromStore = useAppStore((state) => state.technicianName)
-  const technicianLicenseNumberFromStore = useAppStore(
-    (state) => state.technicianLicenseNumber
-  )
-  const technicianSignatureFromStore = useAppStore(
-    (state) => state.technicianSignature
-  )
-  const loadUserSettings = useAppStore((state) => state.loadUserSettings)
-  const saveUserSettings = useAppStore((state) => state.saveUserSettings)
+  const { user } = useAuth()
+  const {
+    technicianName: nameFromHook,
+    technicianLicenseNumber: licenseFromHook,
+    technicianSignature: sigFromHook,
+    save: saveSettings,
+  } = useUserSettings(user?.uid)
 
-  const [technicianName, setTechnicianName] = useState(technicianNameFromStore)
-  const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState(
-    technicianLicenseNumberFromStore
-  )
-  const [currentSignature, setCurrentSignature] = useState(
-    technicianSignatureFromStore
-  )
+  const [technicianName, setTechnicianName] = useState(nameFromHook)
+  const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState(licenseFromHook)
+  const [currentSignature, setCurrentSignature] = useState(sigFromHook)
 
-  // Każde wejście do ustawień odświeża dane użytkownika z chmury
-  useEffect(() => {
-    const loadSettings = async () => {
-      if (!user) return
-
-      try {
-        await loadUserSettings(user.uid)
-      } catch (error) {
-        console.error('Error loading settings:', error)
-        alert('Nie udało się pobrać ustawień z chmury')
-      }
-    }
-
-    loadSettings()
-  }, [user, loadUserSettings])
-
-  useEffect(() => {
-    setTechnicianName(technicianNameFromStore)
-  }, [technicianNameFromStore])
-
-  useEffect(() => {
-    setTechnicianLicenseNumber(technicianLicenseNumberFromStore)
-  }, [technicianLicenseNumberFromStore])
-
-  useEffect(() => {
-    setCurrentSignature(technicianSignatureFromStore)
-  }, [technicianSignatureFromStore])
+  // Sync local state when data loads from Firestore/localStorage
+  useEffect(() => { setTechnicianName(nameFromHook) }, [nameFromHook])
+  useEffect(() => { setTechnicianLicenseNumber(licenseFromHook) }, [licenseFromHook])
+  useEffect(() => { setCurrentSignature(sigFromHook) }, [sigFromHook])
 
   const handleSaveSignature = (signature: string) => {
     setCurrentSignature(signature)
   }
 
   const handleSave = () => {
-    // KROK 1: Validate data
     if (!user) {
       alert('Brak zalogowanego użytkownika')
       return
@@ -74,20 +43,15 @@ export const SettingsScreen: React.FC = () => {
       return
     }
 
-    // KROK 2 & 3: Optimistic Update + Background Sync
-    // saveUserSettings już zapisuje lokalnie i aktualizuje Zustand NATYCHMIAST,
-    // a potem synchronizuje z Firebase w tle (bez await)
-    saveUserSettings(user.uid, {
+    saveSettings({
       displayName: technicianName.trim(),
       licenseNumber: technicianLicenseNumber.trim(),
       signatureBase64: currentSignature,
     })
       .catch((error) => {
         console.error('❌ Error saving settings:', error)
-        // Dane są już zapisane lokalnie w Zustand, sync nastąpi później
       })
-    
-    // Alert pokazuje się NATYCHMIAST (nie czeka na Firebase)
+
     alert('Ustawienia zapisane!')
   }
 

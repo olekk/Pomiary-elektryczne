@@ -1,9 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
-import { signOut } from 'firebase/auth'
-import { auth } from '../../firebase'
-import { useAppStore, resetAllStores } from '../../store/useAppStore'
+import { useAuth, useOnlineStatus, usePendingSync } from '../../hooks'
 import { StatusBadge } from '../molecules'
 import { logger } from '../../utils/logger'
 
@@ -20,39 +18,16 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   showBackBtn = false,
   backUrl = '/',
 }) => {
-  // Atomowe selektory Zustand dla optymalizacji re-renderów
-  const isOnline = useAppStore((state) => state.isOnline)
-  const pendingSyncCount = useAppStore((state) => state.pendingSyncCount)
-  const retryPendingSync = useAppStore((state) => state.retryPendingSync)
-  const unsubscribeFromProjects = useAppStore(
-    (state) => state.unsubscribeFromProjects
-  )
-  const unsubscribeFromBuildings = useAppStore(
-    (state) => state.unsubscribeFromBuildings
-  )
-  const unsubscribeFromInspections = useAppStore(
-    (state) => state.unsubscribeFromInspections
-  )
+  const { signOutUser } = useAuth()
+  const isOnline = useOnlineStatus()
+  const { pendingSyncCount, retryPendingSync } = usePendingSync()
 
   const handleLogout = async () => {
     if (confirm('Czy na pewno chcesz się wylogować?')) {
       try {
-        // 🛡️ GHOST DATA PROTECTION: 3-step cleanup process
-        // Step 1: Unsubscribe from all realtime listeners
-        logger.log('🧹 Step 1/3: Unsubscribing from realtime listeners...')
-        unsubscribeFromProjects()
-        unsubscribeFromBuildings()
-        unsubscribeFromInspections()
-
-        // Step 2: Clear all store data (CRITICAL - prevents data leaks!)
-        logger.log('🧹 Step 2/3: Clearing all stores...')
-        resetAllStores()
-
-        // Step 3: Sign out from Firebase Auth
-        logger.log('🧹 Step 3/3: Signing out from Firebase...')
-        await signOut(auth)
-
-        logger.log('✅ Logout complete - all data cleared')
+        logger.log('🧹 Signing out...')
+        await signOutUser()
+        logger.log('✅ Logout complete')
       } catch (error) {
         logger.error('Błąd wylogowania:', error)
         alert('Błąd podczas wylogowania')

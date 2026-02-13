@@ -1,35 +1,41 @@
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Loader, Trash2 } from 'lucide-react'
-import { useAppStore } from '../store/useAppStore'
+import { useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
+import { collection, query, orderBy, type QueryDocumentSnapshot } from 'firebase/firestore'
+import { db } from '../firebase'
+import { saveProjectToFirestore, deleteProjectFromFirestore } from '../services'
+import type { Project } from '../types'
+import { logger } from '../utils/logger'
+
+const projectMapper = (doc: QueryDocumentSnapshot): Project => {
+  const data = doc.data()
+  return {
+    id: doc.id,
+    name: data.name,
+    status: data.status || 'active',
+    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+  }
+}
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
-  const {
-    user,
-    projects,
-    isLoadingProjects,
-    subscribeToProjects,
-    unsubscribeFromProjects,
-    createNewProject,
-    deleteProject,
-  } = useAppStore()
+
+  const projectsQuery = useMemo(
+    () => query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
+    []
+  )
+
+  const { data: projects, isLoading: isLoadingProjects } = useCollection<Project>(
+    projectsQuery,
+    projectMapper,
+    'Projects'
+  )
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
-
-  // Subscribe to projects on mount, unsubscribe on unmount (Offline-First)
-  useEffect(() => {
-    if (user?.uid) {
-      subscribeToProjects(user.uid)
-    }
-    return () => {
-      unsubscribeFromProjects()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.uid])
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
@@ -37,15 +43,23 @@ export const ProjectsScreen: React.FC = () => {
       return
     }
 
-    // KROK 2 & 3: Optimistic Update + Background Sync
-    // createNewProject już dodaje do listy natychmiast i synchronizuje w tle
-    createNewProject(newProjectName.trim())
-      .catch((error) => {
-        console.error('❌ Error creating project:', error)
-        // Store już zaktualizowany, sync nastąpi później
+    const projectId = `proj_${Date.now()}`
+    const newProject: Project = {
+      id: projectId,
+      name: newProjectName.trim(),
+      createdAt: new Date(),
+      status: 'active',
+    }
+
+    // Fire-and-forget: Save to Firestore
+    saveProjectToFirestore(newProject)
+      .then(() => {
+        logger.log(`✅ Project ${projectId} saved successfully`)
       })
-    
-    // Modal zamyka się NATYCHMIAST
+      .catch((error) => {
+        console.error(`❌ Failed to save project ${projectId}:`, error)
+      })
+
     setNewProjectName('')
     setShowNewModal(false)
   }
@@ -56,11 +70,9 @@ export const ProjectsScreen: React.FC = () => {
         `Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      // deleteProject już usuwa z listy natychmiast i synchronizuje w tle
-      deleteProject(id)
+      deleteProjectFromFirestore(id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting project:', error)
-          // Element już usunięty z UI, sync nastąpi w tle
         })
     }
   }

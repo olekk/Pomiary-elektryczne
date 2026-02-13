@@ -1,50 +1,113 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Home, Loader, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
-import { useAppStore } from '../store/useAppStore'
+import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
 import { getFullAddress } from '../utils'
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  addDoc,
+  serverTimestamp,
+  type QueryDocumentSnapshot,
+} from 'firebase/firestore'
+import { db } from '../firebase'
+import { deleteBuildingFromFirestore } from '../services'
+import type { Building, Inspection } from '../types'
+import { logger } from '../utils/logger'
+
+const buildingMapper = (doc: QueryDocumentSnapshot): Building => {
+  const data = doc.data()
+  return {
+    id: doc.id,
+    projectId: data.projectId,
+    name: data.name,
+    street: data.street || data.name || '',
+    zipCode: data.zipCode || '',
+    city: data.city || '',
+    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+    userId: data.userId || '',
+  }
+}
+
+const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
+  const data = doc.data()
+  return {
+    id: doc.id,
+    projectId: data.projectId,
+    buildingId: data.buildingId,
+    address: data.address,
+    apartmentNumber: data.apartmentNumber,
+    ownerName: data.ownerName || '',
+    date: data.date?.toDate ? data.date.toDate() : new Date(),
+    technicianName: data.technicianName || data.technician || '',
+    technicianLicenseNumber: data.technicianLicenseNumber || '',
+    technicianSignature: data.technicianSignature || '',
+    measurements: data.measurements || [],
+    notes: data.notes || '',
+    ownerSignature: data.ownerSignature || data.signature || '',
+    protocolNumber: data.protocolNumber,
+    synced: data.synced ?? true,
+    status: data.status || 'COMPLETED',
+  }
+}
 
 export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
   const { id: projectId } = useParams<{ id: string }>()
-  const {
-    user,
-    buildings,
-    isLoadingBuildings,
-    subscribeToBuildings,
-    unsubscribeFromBuildings,
-    addBuilding,
-    deleteBuilding,
-    projects,
-    projectInspections,
-    subscribeToProjectInspections,
-    unsubscribeFromProjectInspections,
-  } = useAppStore()
+  const { user } = useAuth()
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newStreet, setNewStreet] = useState('')
   const [newZipCode, setNewZipCode] = useState('')
   const [newCity, setNewCity] = useState('')
 
-  // Subscribe to buildings for this project (Offline-First)
-  useEffect(() => {
-    if (projectId) {
-      subscribeToBuildings(projectId)
-      subscribeToProjectInspections(projectId)
-    }
-    return () => {
-      unsubscribeFromBuildings()
-      unsubscribeFromProjectInspections()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  // Query for buildings in this project
+  const buildingsQuery = useMemo(
+    () =>
+      projectId
+        ? query(
+            collection(db, 'buildings'),
+            where('projectId', '==', projectId),
+            orderBy('createdAt', 'desc')
+          )
+        : null,
+    [projectId]
+  )
 
-  // Oblicz statystyki inspekcji per budynek (reaktywne - odświeża się automatycznie)
+  // Query for all inspections in this project (for per-building stats)
+  const projectInspectionsQuery = useMemo(
+    () =>
+      projectId
+        ? query(
+            collection(db, 'inspections'),
+            where('projectId', '==', projectId),
+            orderBy('createdAt', 'desc')
+          )
+        : null,
+    [projectId]
+  )
+
+  // Query for all projects (to find current project name)
+  const projectsQuery = useMemo(
+    () => query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
+    []
+  )
+
+  const { data: buildings, isLoading: isLoadingBuildings } =
+    useCollection<Building>(buildingsQuery, buildingMapper, 'Buildings')
+  const { data: projectInspections } =
+    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, 'ProjectInspections')
+  const { data: projects } =
+    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'Projects')
+
+  // Oblicz statystyki inspekcji per budynek
   const buildingStats = useMemo(() => {
-    const stats: Record<string, { completed: number; inaccessible: number }> =
-      {}
+    const stats: Record<string, { completed: number; inaccessible: number }> = {}
     for (const inspection of projectInspections) {
       const bId = inspection.buildingId
       if (!stats[bId]) {
@@ -53,7 +116,6 @@ export const ProjectDetailsScreen: React.FC = () => {
       if (inspection.status === 'INACCESSIBLE') {
         stats[bId].inaccessible++
       } else {
-        // COMPLETED lub brak statusu (stare pomiary) = wykonano
         stats[bId].completed++
       }
     }
@@ -76,21 +138,23 @@ export const ProjectDetailsScreen: React.FC = () => {
       return
     }
 
-    // KROK 2 & 3: Optimistic Update + Background Sync
-    // addBuilding już dodaje do listy natychmiast i synchronizuje w tle
-    addBuilding(
+    // Save directly to Firestore — onSnapshot will update the list
+    addDoc(collection(db, 'buildings'), {
       projectId,
-      newStreet.trim(),
-      newZipCode.trim(),
-      newCity.trim(),
-      user.uid
-    )
-      .catch((error) => {
-        console.error('❌ Error adding building:', error)
-        // Store już zaktualizowany, sync nastąpi później
+      street: newStreet.trim(),
+      zipCode: newZipCode.trim(),
+      city: newCity.trim(),
+      userId: user.uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+      .then((docRef) => {
+        logger.log(`✅ Building created with ID: ${docRef.id}`)
       })
-    
-    // Modal zamyka się NATYCHMIAST
+      .catch((error) => {
+        logger.error('❌ Error adding building:', error)
+      })
+
     setNewStreet('')
     setNewZipCode('')
     setNewCity('')
@@ -103,11 +167,9 @@ export const ProjectDetailsScreen: React.FC = () => {
         `Czy na pewno chcesz usunąć budynek "${address}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      // deleteBuilding już usuwa z listy natychmiast i synchronizuje w tle
-      deleteBuilding(id)
+      deleteBuildingFromFirestore(id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting building:', error)
-          // Element już usunięty z UI, sync nastąpi w tle
         })
     }
   }

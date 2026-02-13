@@ -56,7 +56,7 @@ export default defineConfig({
             'firebase/auth',
             'firebase/firestore',
           ],
-          'vendor-ui': ['lucide-react', 'zustand', 'clsx', 'tailwind-merge'],
+          'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
           'pdf-lib': ['@react-pdf/renderer'],
         },
       },

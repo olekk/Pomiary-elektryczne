@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { useAppStore } from '../store/useAppStore'
+import { useCollection, useDocument, useUserSettings, useAuth } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import {
   DashboardStats,
@@ -9,33 +9,104 @@ import {
   CreateInspectionModal,
 } from './organisms'
 import { incrementApartmentNumber, getFullAddress } from '../utils'
-import type { Inspection } from '../types'
+import {
+  generateInspectionId,
+  generateProtocolNumber,
+} from '../utils'
+import type { Inspection, Building } from '../types'
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  doc,
+  type QueryDocumentSnapshot,
+  type DocumentSnapshot,
+} from 'firebase/firestore'
+import { db } from '../firebase'
+import {
+  saveInspectionToFirestore,
+  markInspectionAsSynced,
+  deleteInspectionFromFirestore,
+} from '../services'
+import { logger } from '../utils/logger'
+
+const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
+  const data = doc.data()
+  return {
+    id: doc.id,
+    projectId: data.projectId,
+    buildingId: data.buildingId,
+    address: data.address,
+    apartmentNumber: data.apartmentNumber,
+    ownerName: data.ownerName || '',
+    date: data.date?.toDate ? data.date.toDate() : new Date(),
+    technicianName: data.technicianName || data.technician || '',
+    technicianLicenseNumber: data.technicianLicenseNumber || '',
+    technicianSignature: data.technicianSignature || '',
+    measurements: data.measurements || [],
+    notes: data.notes || '',
+    ownerSignature: data.ownerSignature || data.signature || '',
+    protocolNumber: data.protocolNumber,
+    synced: data.synced ?? true,
+    status: data.status || 'COMPLETED',
+  }
+}
+
+const buildingMapper = (snap: DocumentSnapshot): Building | null => {
+  if (!snap.exists()) return null
+  const data = snap.data()!
+  return {
+    id: snap.id,
+    projectId: data.projectId,
+    name: data.name,
+    street: data.street || data.name || '',
+    zipCode: data.zipCode || '',
+    city: data.city || '',
+    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+    userId: data.userId || '',
+  }
+}
 
 export const BuildingDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { id: buildingId } = useParams<{ id: string }>()
-  const {
-    inspections,
-    isLoadingInspections,
-    subscribeToInspections,
-    unsubscribeFromInspections,
-    createNewInspection,
-    saveInaccessibleInspection,
-    resumeInaccessibleInspection,
-    deleteInspection,
-    pendingSyncCount,
-    buildings,
-    fetchBuildingById,
-    technicianName,
-    technicianSignature,
-  } = useAppStore()
+  const { user } = useAuth()
+  const { technicianName, technicianSignature } = useUserSettings(user?.uid)
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null)
 
-  // Znajdź nazwę budynku i projectId
-  const currentBuilding = buildings.find((b) => b.id === buildingId)
+  // Subscribe to inspections for this building
+  const inspectionsQuery = useMemo(
+    () =>
+      buildingId
+        ? query(
+            collection(db, 'inspections'),
+            where('buildingId', '==', buildingId),
+            orderBy('createdAt', 'desc')
+          )
+        : null,
+    [buildingId]
+  )
+
+  const { data: inspections, isLoading: isLoadingInspections } =
+    useCollection<Inspection>(inspectionsQuery, inspectionMapper, 'Inspections')
+
+  // Subscribe to building document
+  const buildingDocRef = useMemo(
+    () => (buildingId ? doc(db, 'buildings', buildingId) : null),
+    [buildingId]
+  )
+
+  const { data: currentBuilding } = useDocument<Building>(
+    buildingDocRef,
+    buildingMapper,
+    'Building'
+  )
+
   const buildingName = currentBuilding ? getFullAddress(currentBuilding) : 'Nieznany budynek'
   const projectId = currentBuilding?.projectId
 
@@ -52,29 +123,10 @@ export const BuildingDetailsScreen: React.FC = () => {
     ? incrementApartmentNumber(lastApartmentNumber)
     : ''
 
-  // Subscribe to inspections for this building (Offline-First)
-  useEffect(() => {
-    if (buildingId) {
-      subscribeToInspections(buildingId)
-    }
-    return () => {
-      unsubscribeFromInspections()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildingId])
-
-  // Fetch building data if not in store (e.g. on page reload)
-  useEffect(() => {
-    if (buildingId && !currentBuilding) {
-      fetchBuildingById(buildingId)
-    }
-  }, [buildingId, currentBuilding, fetchBuildingById])
-
   // Automatycznie otwórz modal jeśli przychodzi z flow "następny pomiar"
   useEffect(() => {
     if (locationState?.lastApartmentNumber) {
       setShowNewModal(true)
-      // Wyczyść state po użyciu (opcjonalnie)
       window.history.replaceState({}, document.title)
     }
   }, [locationState?.lastApartmentNumber])
@@ -97,24 +149,36 @@ export const BuildingDetailsScreen: React.FC = () => {
     ownerName: string,
     street?: string
   ) => {
-    if (!buildingId || !validateTechnician()) return
+    if (!buildingId || !currentBuilding || !validateTechnician()) return
 
-    const building = buildings.find((b) => b.id === buildingId)
-    if (!building) {
-      alert('Błąd: Nie znaleziono budynku')
-      return
-    }
+    const { technicianName: tName, technicianSignature: tSig } = { technicianName, technicianSignature }
 
-    createNewInspection(
-      building.projectId,
+    const date = new Date()
+    const buildingStreet = street || address
+    const protocolNumber = generateProtocolNumber(date, apartmentNumber, buildingStreet)
+
+    // Build inspection object locally (ephemeral, not saved yet)
+    const newInspection: Inspection = {
+      projectId: currentBuilding.projectId,
       buildingId,
       address,
       apartmentNumber,
       ownerName,
-      street
-    )
+      technicianName: tName,
+      technicianLicenseNumber: '', // will be loaded from useUserSettings in MeasurementScreen
+      technicianSignature: tSig,
+      date,
+      protocolNumber,
+      notes: '',
+      measurements: [],
+      synced: false,
+      status: 'COMPLETED',
+    }
+
     setShowNewModal(false)
-    navigate(`/measurement/${buildingId}`)
+    navigate(`/measurement/${buildingId}`, {
+      state: { inspection: newInspection },
+    })
   }
 
   const handleMarkInaccessible = (
@@ -123,29 +187,41 @@ export const BuildingDetailsScreen: React.FC = () => {
     ownerName: string,
     street?: string
   ) => {
-    if (!buildingId || !validateTechnician()) return
+    if (!buildingId || !currentBuilding || !validateTechnician()) return
 
-    const building = buildings.find((b) => b.id === buildingId)
-    if (!building) {
-      alert('Błąd: Nie znaleziono budynku')
-      return
-    }
+    const date = new Date()
+    const buildingStreet = street || address
+    const protocolNumber = generateProtocolNumber(date, apartmentNumber, buildingStreet)
+    const savedId = generateInspectionId()
 
-    // saveInaccessibleInspection już aktualizuje store natychmiast i synchronizuje w tle
-    saveInaccessibleInspection(
-      building.projectId,
+    const inaccessibleInspection: Inspection = {
+      id: savedId,
+      projectId: currentBuilding.projectId,
       buildingId,
       address,
       apartmentNumber,
       ownerName,
-      street
-    )
-      .catch((error) => {
-        console.error('❌ Error saving inaccessible inspection:', error)
-        // Store już zaktualizowany, sync nastąpi później
+      technicianName,
+      technicianLicenseNumber: '',
+      technicianSignature,
+      date,
+      protocolNumber,
+      notes: '',
+      measurements: [],
+      synced: false,
+      status: 'INACCESSIBLE',
+    }
+
+    // Save directly to Firestore — onSnapshot will update the list
+    saveInspectionToFirestore(inaccessibleInspection, savedId)
+      .then(async () => {
+        await markInspectionAsSynced(savedId)
+        logger.log(`✅ Inaccessible inspection ${savedId} synced`)
       })
-    
-    // Modal zamyka się NATYCHMIAST
+      .catch((error) => {
+        logger.error(`❌ Sync failed for inaccessible inspection ${savedId}:`, error)
+      })
+
     setShowNewModal(false)
   }
 
@@ -158,26 +234,45 @@ export const BuildingDetailsScreen: React.FC = () => {
   ) => {
     if (!buildingId) return
 
-    resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName, street)
+    const shouldRegenerateProtocol = street && inspection.protocolNumber
+    let protocolNumber = inspection.protocolNumber
+
+    if (shouldRegenerateProtocol) {
+      const buildingStreet = street || address
+      protocolNumber = generateProtocolNumber(
+        inspection.date,
+        apartmentNumber,
+        buildingStreet
+      )
+    }
+
+    const resumedInspection: Inspection = {
+      ...inspection,
+      address,
+      protocolNumber,
+      apartmentNumber,
+      ownerName,
+      status: 'COMPLETED',
+    }
+
     setEditingInspection(null)
     setShowNewModal(false)
-    navigate(`/measurement/${buildingId}`)
+    navigate(`/measurement/${buildingId}`, {
+      state: { inspection: resumedInspection },
+    })
   }
 
   const handleDelete = (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
-      // deleteInspection już usuwa z listy natychmiast i synchronizuje w tle
-      deleteInspection(id)
+      deleteInspectionFromFirestore(id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting inspection:', error)
-          // Element już usunięty z UI, sync nastąpi w tle
         })
     }
   }
 
   const handleInspectionClick = (inspection: Inspection) => {
     if (inspection.status === 'INACCESSIBLE') {
-      // Otwórz modal z wypełnionymi danymi do wznowienia
       setEditingInspection(inspection)
       setShowNewModal(true)
     } else {
@@ -196,8 +291,8 @@ export const BuildingDetailsScreen: React.FC = () => {
   }
 
   const syncedCount = inspections.filter((i) => i.synced).length
+  const pendingSyncCount = inspections.filter((i) => !i.synced).length
 
-  // Jeśli brak buildingId, przekieruj do głównego ekranu
   if (!buildingId) {
     navigate('/')
     return null

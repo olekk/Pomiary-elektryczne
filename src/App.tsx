@@ -1,7 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect, useState } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from './firebase'
 import { ProjectsScreen } from './components/ProjectsScreen'
 import { ProjectDetailsScreen } from './components/ProjectDetailsScreen'
 import { BuildingDetailsScreen } from './components/BuildingDetailsScreen'
@@ -9,74 +6,10 @@ import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { LoginScreen } from './components/LoginScreen'
-import { useAppStore } from './store/useAppStore'
-import { logger } from './utils/logger'
+import { AuthProvider, useAuth } from './hooks'
 
-function App() {
-  // Atomowe selektory Zustand dla optymalizacji re-renderów
-  const setOnlineStatus = useAppStore((state) => state.setOnlineStatus)
-  const retryPendingSync = useAppStore((state) => state.retryPendingSync)
-  const setUser = useAppStore((state) => state.setUser)
-  const loadUserSettings = useAppStore((state) => state.loadUserSettings)
-  const resetUserSettings = useAppStore((state) => state.resetUserSettings)
-  const user = useAppStore((state) => state.user)
-  const [isAuthChecking, setIsAuthChecking] = useState(true)
-
-  // ===== UI NETWORK STATUS MONITORING + AUTO-SYNC =====
-  // ✅ Update UI badge status (isOnline in store)
-  // ✅ Trigger auto-sync when connection restored
-  // ❌ NO manual enableNetwork - trust Firebase SDK
-  useEffect(() => {
-    const handleOnline = () => {
-      logger.log('🌐 UI detected: Online')
-      setOnlineStatus(true)
-      retryPendingSync()
-    }
-
-    const handleOffline = () => {
-      logger.log('📴 UI detected: Offline')
-      setOnlineStatus(false)
-    }
-
-    // Set initial state + auto-sync pending uploads if already online
-    setOnlineStatus(navigator.onLine)
-    if (navigator.onLine) {
-      retryPendingSync().catch((error) => {
-        logger.error('❌ Auto-sync on page load failed:', error)
-      })
-    }
-
-    // Listen for network changes
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [setOnlineStatus, retryPendingSync])
-
-  // ===== MONITORING AUTH STATE =====
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        logger.log('✅ User authenticated:', firebaseUser.email)
-        setUser(firebaseUser)
-        try {
-          await loadUserSettings(firebaseUser.uid)
-        } catch (error) {
-          console.error('Error loading user settings:', error)
-        }
-      } else {
-        logger.log('❌ User logged out')
-        setUser(null)
-        resetUserSettings()
-      }
-      setIsAuthChecking(false)
-    })
-
-    return () => unsubscribe()
-  }, [setUser, loadUserSettings, resetUserSettings])
+function AppRoutes() {
+  const { user, isAuthChecking } = useAuth()
 
   // Loading state podczas sprawdzania sesji
   if (isAuthChecking) {
@@ -108,6 +41,14 @@ function App() {
         <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   )
 }
 
