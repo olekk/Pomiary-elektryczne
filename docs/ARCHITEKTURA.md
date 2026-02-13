@@ -1,26 +1,19 @@
 # 🏗️ Architektura Aplikacji - Pomiary Elektryczne
 
-## ⚡ Kluczowa Architektura: Offline-First z Realtime Listeners
+## ⚡ Kluczowa Architektura: Offline-First z Custom Hooks + Firestore
 
-### Fundamentalna zmiana (2026)
+### Fundamentalna architektura (2026)
 
-Aplikacja używa **`onSnapshot` (Realtime Listeners)** zamiast tradycyjnego `getDocs` (Request-Response):
+Aplikacja używa **custom React hooks** z **`onSnapshot` (Realtime Listeners)** jako jedyne źródło prawdy. Zarządzanie stanem odbywa się bezpośrednio przez Firestore — bez pośredniczących store'ów.
 
-**PRZED (Request-Response):**
+**Architektura (Firestore-Only):**
 ```typescript
-❌ loadProjects() → getDocs() → Wisi w nieskończoność offline
-❌ loadInspections() → getDocs() → Nieskończony spinner
-❌ Ręczne sprawdzanie navigator.onLine
-❌ Manualny refresh button
-```
-
-**TERAZ (Offline-First):**
-```typescript
-✅ subscribeToProjects() → onSnapshot() → Natychmiast zwraca cache
-✅ subscribeToInspections() → onSnapshot() → Auto-sync w tle
-✅ Firebase sam obsługuje offline/online
-✅ Realtime updates bez odświeżania
-✅ Automatyczny cleanup (unsubscribe)
+✅ useCollection(query) → onSnapshot() → Natychmiast zwraca cache
+✅ useDocument(docRef) → onSnapshot() → Auto-sync w tle
+✅ useAuth() → React Context → onAuthStateChanged
+✅ useUserSettings(uid) → Firestore + localStorage fallback
+✅ useOnlineStatus() → navigator.onLine events
+✅ usePendingSync(uid) → Query unsynced inspections
 ```
 
 ### Zalety architektury:
@@ -30,24 +23,23 @@ Aplikacja używa **`onSnapshot` (Realtime Listeners)** zamiast tradycyjnego `get
 3. **Prostszy kod** - brak warunkowej logiki `if (navigator.onLine)`
 4. **Lepsza UX** - użytkownik widzi dane natychmiast (cache), a potem aktualizacje (serwer)
 5. **Memory-safe** - automatyczny cleanup przez `useEffect` return function
+6. **Brak "ghost data"** - każdy hook zarządza własnym lifecycle
 
 ### Struktura Read Operations:
 
 ```
 Komponenty UI
     │
-    ├─► useEffect (mount)
+    ├─► useCollection / useDocument (mount)
     │       │
-    │       └─► subscribeToProjects/Inspections()
+    │       └─► onSnapshot(query/docRef)
     │               │
-    │               └─► onSnapshot(query)
-    │                       │
-    │                       ├─► 1st emit: Cache ⚡ (offline OK)
-    │                       └─► 2nd emit: Server 🌐 (auto-sync)
+    │               ├─► 1st emit: Cache ⚡ (offline OK)
+    │               └─► 2nd emit: Server 🌐 (auto-sync)
     │
     └─► useEffect cleanup (unmount)
             │
-            └─► unsubscribeFromProjects/Inspections()
+            └─► unsubscribe() — automatyczny
 ```
 
 ---
@@ -63,7 +55,7 @@ Aplikacja rozdziela podpisy na dwa niezależne źródła:
 
 ### Snapshotting do inspekcji (offline-safe PDF)
 
-Przy tworzeniu nowej inspekcji `inspectionSlice.createNewInspection()` snapshotuje dane technika ze store:
+Przy tworzeniu nowej inspekcji hook `useUserSettings` dostarcza dane technika, które są snapshotowane do inspekcji:
 
 - `technicianName`
 - `technicianLicenseNumber`
@@ -89,13 +81,13 @@ localStorage:
 userSettings:{uid} → JSON { displayName, licenseNumber, signatureBase64 }
 ```
 
-**Zapis:** `saveUserSettings()` zapisuje równolegle do Firestore + `localStorage` (per-user key).
+**Zapis:** `useUserSettings.save()` zapisuje równolegle do Firestore + `localStorage` (per-user key).
 
-**Odczyt (hydration):** `loadUserSettings()` próbuje pobrać z Firestore. Jeśli dokument nie istnieje lub `getDoc` rzuci błędem (race condition auth, offline), używa danych z `localStorage` jako fallback. Po udanym odczycie z dowolnego źródła odświeża lokalny backup.
+**Odczyt (hydration):** `useUserSettings` subskrybuje się przez `onSnapshot`. Jeśli dokument nie istnieje lub sieć niedostępna, używa danych z `localStorage` jako fallback.
 
 **Wywołania:**
-1. `App.tsx` → `onAuthStateChanged` → `loadUserSettings(uid)` — automatycznie po zalogowaniu
-2. `SettingsScreen` → `useEffect` → `loadUserSettings(uid)` — odświeżenie przy wejściu w ustawienia
+1. `SettingsScreen` → `useUserSettings(user.uid)` — automatyczna subskrypcja
+2. `BuildingDetailsScreen` → `useUserSettings(user.uid)` — do snapshotowania danych technika przy tworzeniu inspekcji
 
 ---
 
@@ -136,13 +128,27 @@ pomiary-elektryczne/
 │   │   │   ├── SignaturePanel.tsx   # Panel podpisu
 │   │   │   └── index.ts        # Re-export
 │   │   │
+│   │   ├── layout/             # Layout components
+│   │   │   └── MainLayout.tsx  # Header + footer + navigation
+│   │   │
 │   │   ├── ProjectsScreen.tsx  # 📄 Ekran główny (lista projektów)
-│   │   ├── ProjectDetailsScreen.tsx  # 📄 Szczegóły projektu (lista pomiarów)
+│   │   ├── ProjectDetailsScreen.tsx  # 📄 Szczegóły projektu
+│   │   ├── BuildingDetailsScreen.tsx # 📄 Szczegóły budynku
 │   │   ├── LoginScreen.tsx     # 🔐 Ekran logowania
 │   │   ├── MeasurementScreen.tsx  # 📄 Ekran wprowadzania pomiarów
 │   │   ├── NumericKeypad.tsx   # ⌨️ Klawiatura numeryczna
 │   │   ├── PdfGenerator.tsx    # 📄 Generator PDF
+│   │   ├── SettingsScreen.tsx  # ⚙️ Ustawienia technika
 │   │   └── SummaryScreen.tsx   # 📄 Podsumowanie
+│   │
+│   ├── hooks/                  # 🪝 Custom React Hooks (State Management)
+│   │   ├── useAuth.tsx         # AuthContext + Provider (onAuthStateChanged)
+│   │   ├── useCollection.ts   # Generic hook: onSnapshot on Firestore queries
+│   │   ├── useDocument.ts     # Generic hook: onSnapshot on single documents
+│   │   ├── useOnlineStatus.ts # Browser online/offline events
+│   │   ├── useUserSettings.ts # Firestore + localStorage fallback
+│   │   ├── usePendingSync.ts  # Track unsynced inspections + retry
+│   │   └── index.ts           # Barrel export
 │   │
 │   ├── services/               # 🔥 Integracje zewnętrzne
 │   │   ├── firebaseService.ts  # Write operations (Firestore)
@@ -154,21 +160,10 @@ pomiary-elektryczne/
 │   │   ├── validators.ts       # Walidacja danych
 │   │   └── index.ts            # Re-export
 │   │
-│   ├── store/                  # 🗄️ State management (Slices Pattern)
-│   │   ├── slices/             # Store slices
-│   │   │   ├── authSlice.ts    # Autoryzacja (user)
-│   │   │   ├── projectSlice.ts # Projekty
-│   │   │   ├── inspectionSlice.ts  # Przeglądy i pomiary
-│   │   │   ├── userSettingsSlice.ts # Ustawienia użytkownika (technik)
-│   │   │   ├── offlineSlice.ts # Offline & settings
-│   │   │   └── index.ts        # Re-export
-│   │   ├── useAppStore.ts      # Główny store (łączy wszystkie slice'y)
-│   │   └── index.ts            # Re-export
-│   │
 │   ├── types/                  # 📝 TypeScript types
 │   │   └── index.ts            # Typy i stałe
 │   │
-│   ├── App.tsx                 # 🔐 Routing + Auth Guard
+│   ├── App.tsx                 # 🔐 Routing + AuthProvider
 │   ├── main.tsx                # Entry point
 │   ├── firebase.ts             # Konfiguracja Firebase (Auth + Firestore)
 │   └── index.css               # Style globalne
@@ -199,7 +194,7 @@ pomiary-elektryczne/
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                        App.tsx                           │
-│  onAuthStateChanged() → Nasłuchuje zmian sesji          │
+│  AuthProvider → onAuthStateChanged() → React Context     │
 └──────────────┬──────────────────────┬───────────────────┘
                │                      │
       user === null           user !== null
@@ -207,7 +202,7 @@ pomiary-elektryczne/
                ▼                      ▼
     ┌──────────────────┐   ┌──────────────────────────┐
     │  LoginScreen     │   │  BrowserRouter           │
-    │  - Email/Hasło   │   │  - Dashboard             │
+    │  - Email/Hasło   │   │  - ProjectsScreen        │
     │  - Error Handling│   │  - MeasurementScreen     │
     │  - Offline Info  │   │  - SummaryScreen         │
     └──────────────────┘   └──────────────────────────┘
@@ -227,26 +222,57 @@ export { auth }
 // → Działa offline! 👍
 ```
 
-#### 2. **App.tsx - Auth Guard**
+#### 2. **useAuth.tsx - AuthContext + Provider**
 
 ```typescript
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-    if (firebaseUser) {
-      setUser(firebaseUser)  // Zapisz do Zustand Store
-    } else {
-      setUser(null)
-    }
-  })
-  return () => unsubscribe()
-}, [])
+// AuthProvider opakowuje całą aplikację (w App.tsx)
+const AuthContext = createContext<AuthContextType | null>(null)
 
-// Warunkowe renderowanie
+export const AuthProvider: React.FC = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser)
+      setIsLoading(false)
+    })
+    return () => unsubscribe()
+  }, [])
+
+  const signOutUser = async () => {
+    if (confirm('Czy na pewno chcesz się wylogować?')) {
+      await signOut(auth)
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, signOutUser }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+// Użycie w komponentach:
+const { user, signOutUser } = useAuth()
+```
+
+#### 3. **App.tsx - Auth Guard**
+
+```typescript
+// App.tsx opakowuje aplikację w AuthProvider
+<AuthProvider>
+  <AppContent />      // Wewnętrzny komponent z logiką routingu
+</AuthProvider>
+
+// AppContent:
+const { user, isLoading } = useAuth()
+if (isLoading) return <LoadingScreen />
 if (!user) return <LoginScreen />
 return <BrowserRouter>{/* Routes */}</BrowserRouter>
 ```
 
-#### 3. **LoginScreen.tsx**
+#### 4. **LoginScreen.tsx**
 
 ```typescript
 const handleLogin = async (e) => {
@@ -260,32 +286,15 @@ const handleLogin = async (e) => {
 // - itd.
 ```
 
-#### 4. **Dashboard.tsx - Wylogowanie**
+#### 5. **MainLayout.tsx - Wylogowanie**
 
 ```typescript
-const handleLogout = async () => {
-  if (confirm('Czy na pewno chcesz się wylogować?')) {
-    await signOut(auth)
-    // onAuthStateChanged automatycznie przekieruje do LoginScreen
-  }
-}
+const { signOutUser } = useAuth()
+const isOnline = useOnlineStatus()
+const { pendingCount, retrySync } = usePendingSync(user?.uid)
 
-// Przycisk wylogowania w DashboardHeader (ikona LogOut)
-```
-
-#### 5. **useAppStore.ts - User State (via AuthSlice)**
-
-Store zarządza stanem użytkownika poprzez `authSlice`:
-
-```typescript
-// authSlice.ts
-interface AuthSlice {
-  user: User | null // Firebase User
-  setUser: (user: User | null) => void
-}
-
-// useAppStore.ts - łączy wszystkie slice'y
-type AppStore = AuthSlice & ProjectSlice & InspectionSlice & OfflineSlice
+// Wylogowanie jest obsługiwane przez AuthContext
+// Cleanup subskrypcji Firestore jest automatyczny (hooki z useEffect cleanup)
 ```
 
 ### Offline Support
@@ -324,27 +333,26 @@ service cloud.firestore {
 
 ## 🔄 Przepływ Danych (Data Flow) - Offline-First Architecture
 
-### Architektura Realtime Listeners (onSnapshot)
+### Architektura Custom Hooks + Firestore
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     USER INTERFACE                               │
 │  (LoginScreen → ProjectsScreen → ProjectDetailsScreen →         │
-│   MeasurementScreen → Summary)                                   │
+│   BuildingDetailsScreen → MeasurementScreen → Summary)           │
 └────────────────┬────────────────────────┬─────────────────────┘
                  │                        │
                  ▼                        ▼
          ┌───────────────┐        ┌──────────────┐
-         │  Zustand Store │◄──────►│ Firebase Auth│
-         │  (Slices)      │        │              │
-         │                │        └──────────────┘
-         │ - projectSlice │               
+         │ Custom Hooks  │◄──────►│ Firebase Auth│
+         │               │        │ (AuthContext) │
+         │ useCollection │        └──────────────┘
          │   └─► onSnapshot        ┌──────────────┐
-         │       (projects)  ◄─────┤  Firestore   │
+         │       (queries)  ◄─────┤  Firestore   │
          │                          │  (Cloud)     │
-         │ - inspectionSlice        └──────┬───────┘
+         │ useDocument             └──────┬───────┘
          │   └─► onSnapshot                │
-         │       (inspections) ◄───────────┘
+         │       (single docs) ◄──────────┘
          └───────────────┘                 │
                  │                         │
                  ▼                         ▼
@@ -361,7 +369,7 @@ service cloud.firestore {
 1. **Write Operations** → `firebaseService.ts`
    - Zapisywanie, usuwanie, aktualizacja danych
    
-2. **Read Operations** → `onSnapshot` w slices
+2. **Read Operations** → `onSnapshot` w custom hooks
    - Natychmiastowe dane z cache (offline)
    - Automatyczna synchronizacja z serwerem (online)
    
@@ -370,8 +378,8 @@ service cloud.firestore {
    - Brak ręcznego odświeżania
 
 4. **Cleanup** → Automatyczny
-   - `useEffect` return function wywołuje `unsubscribe()`
-   - Cleanup przy wylogowaniu w `MainLayout`
+   - Hook `useEffect` return function wywołuje `unsubscribe()`
+   - Cleanup automatyczny przy odmontowaniu komponentu
 
 ## 🧩 Komponenty - Szczegóły (Atomic Design)
 
@@ -403,16 +411,18 @@ service cloud.firestore {
 
 **Stan lokalny:**
 
-- `isLoading` - status ładowania
 - `showNewModal` - widoczność modala tworzenia projektu
 - `newProjectName` - nazwa nowego projektu
 
-**Zustand actions:**
+**Hooks:**
 
-- `subscribeToProjects()` - subskrypcja do projektów (Realtime Listener)
-- `unsubscribeFromProjects()` - cleanup subskrypcji
-- `createNewProject(name)` - utworzenie nowego projektu (offline ID: `proj_[timestamp]`)
-- `deleteProject(id)` - usunięcie projektu
+- `useCollection(projectsQuery, mapper)` - subskrypcja do projektów (Realtime Listener)
+- Cleanup automatyczny przy odmontowaniu
+
+**Operacje zapisu:**
+
+- `saveProjectToFirestore(project)` - fire-and-forget
+- `deleteProjectFromFirestore(id)` - fire-and-forget
 
 **Routing:**
 
@@ -428,35 +438,25 @@ service cloud.firestore {
 
 ---
 
-### ProjectDetailsScreen.tsx (Dawny Dashboard)
+### ProjectDetailsScreen.tsx (Szczegóły Projektu)
 
-**Odpowiedzialność:** Lista pomiarów dla konkretnego projektu
+**Odpowiedzialność:** Lista budynków i inspekcji dla konkretnego projektu
 
-**Zmiana od wersji Dashboard.tsx:**
+**Hooks:**
 
-- Pobiera `projectId` z URL (`useParams`)
-- Subskrybuje inspekcje dla projektu: `subscribeToInspections(projectId)`
-- Wyświetla tylko pomiary należące do danego projektu
-- Przycisk "Powrót" (← ikona) prowadzący do `/` (ProjectsScreen)
-- Automatyczny cleanup subskrypcji przy opuszczeniu ekranu
+- `useCollection(buildingsQuery, mapper)` - subskrypcja do budynków projektu
+- `useCollection(inspectionsQuery, mapper)` - subskrypcja do inspekcji projektu
+- Nazwa projektu pobierana z osobnego query
 
-**Stan lokalny:**
+**Operacje zapisu:**
 
-- `isLoading` - status ładowania
-- `showNewModal` - widoczność modala
-
-**Zustand actions:**
-
-- `subscribeToInspections(projectId)` - subskrypcja do inspekcji (Realtime Listener)
-- `unsubscribeFromInspections()` - cleanup subskrypcji
-- `createNewInspection(projectId, ..., ownerName)` - utworzenie nowego pomiaru
-- `deleteInspection(id)` - usunięcie
-- `retryPendingSync()` - ponowna synchronizacja offline
+- `saveBuildingToFirestore(building)` - fire-and-forget
+- `deleteBuildingFromFirestore(id)` - fire-and-forget
 
 **Routing:**
 
 - `/project/:id` → ProjectDetailsScreen
-- Kliknięcie "+" → Modal → `/measurement`
+- Kliknięcie budynku → `/building/:id`
 
 **OPTYMALIZACJA:**
 
@@ -467,6 +467,23 @@ where('projectId', '==', projectId)
 ```
 
 Dzięki temu pobieramy tylko **mały wycinek bazy danych**, nie wszystkie pomiary.
+
+---
+
+### BuildingDetailsScreen.tsx (Szczegóły Budynku)
+
+**Odpowiedzialność:** Lista inspekcji dla konkretnego budynku
+
+**Hooks:**
+
+- `useCollection(inspectionsQuery, mapper)` - subskrypcja do inspekcji budynku
+- `useDocument(buildingDocRef, mapper)` - dane budynku (reload-safe)
+- `useUserSettings(user.uid)` - dane technika do snapshotowania
+
+**Nawigacja:**
+
+- Nowe inspekcje przekazywane przez `location.state` do `MeasurementScreen`
+- Wznowienie inspekcji INACCESSIBLE → modal → MeasurementScreen
 
 ---
 
@@ -493,13 +510,6 @@ await signInWithEmailAndPassword(auth, email, password)
 - `auth/network-request-failed` → "Brak połączenia z internetem"
 - `auth/user-disabled` → "To konto zostało zablokowane"
 
-**Design:**
-
-- Gradientowe tło (blue-50 → blue-100)
-- Wycentrowany formularz z białą kartą
-- Wykorzystanie atomów: `Input`, `Button`
-- Ikony: `AlertCircle`, `Loader` (lucide-react)
-
 **Routing:**
 
 - Nie jest w routerze - renderowany przez `App.tsx` warunkowo
@@ -511,95 +521,77 @@ await signInWithEmailAndPassword(auth, email, password)
 
 **Stan lokalny:**
 
+- `currentInspection` - zarządzany przez `useState` (nie store)
 - `inputValue` - wartość z keypada
 - `showNoGroundingModal` - modal B.UZ
 - `nextProtectionType`, `nextAmperage`, `nextKFactor` - ustawienia
 
-**Zustand actions:**
+**Dane wejściowe:**
 
-- `addMeasurement()` - dodanie punktu
-- `removeMeasurement()` - usunięcie punktu
-- `setLastDefaults()` - zapisanie Smart Defaults
-- `saveToFirestore()` - zapis do bazy
+- Inspekcja przekazywana przez `location.state` z `BuildingDetailsScreen`
+- Na reload: dane pobierane z Firestore przez `useDocument`
 
-**Logika:**
+**Operacje zapisu:**
+
+- `saveInspectionToFirestore(inspection, id)` - fire-and-forget przy zapisie
+- `markInspectionAsSynced(id)` - po udanym zapisie
+
+**Logika pomiarów:**
 
 ```typescript
-// Smart Defaults
-useEffect(() => {
-  setNextProtectionType(lastProtectionType)
-  setNextAmperage(lastAmperage)
-  setNextKFactor(lastKFactor)
-}, [lastProtectionType, lastAmperage, lastKFactor])
-
-// Auto-update k factor
-useEffect(() => {
-  const defaultK = DEFAULT_K_FACTORS[nextProtectionType]
-  setNextKFactor(defaultK)
-}, [nextProtectionType])
+// Dodawanie pomiaru — lokalna operacja na useState
+const addMeasurement = (zsValue, protectionType, amperage, kFactor) => {
+  const zsDop = ZS_DOP_TABLE[protectionType][amperage]
+  const result = zsValue <= zsDop ? 'TAK' : 'NIE'
+  setCurrentInspection(prev => ({
+    ...prev,
+    measurements: [...prev.measurements, newMeasurement]
+  }))
+}
 ```
 
 **Routing:**
 
 - `/measurement` → Nowy pomiar
-- Kliknięcie "Zapisz" → `/summary`
+- Kliknięcie "Zapisz" → `/summary/:inspectionId`
 
 ---
 
-### 3. NumericKeypad.tsx
-
-**Odpowiedzialność:** Wprowadzanie wartości numerycznych
-
-**Props:**
-
-- `value: string` - aktualna wartość
-- `onValueChange: (value: string) => void` - callback zmiany
-- `onEnter: () => void` - callback ENTER
-
-**Logika:**
-
-```typescript
-// Zapobieganie wielokrotnej kropce
-if (digit === '.' && value.includes('.')) return
-
-// Zamiana "0" na cyfrę
-if (value === '0' && digit !== '.') {
-  onValueChange(digit)
-}
-```
-
----
-
-### 4. SummaryScreen.tsx
+### SummaryScreen.tsx
 
 **Odpowiedzialność:** Podsumowanie, ogólne uwagi do protokołu, podpis, PDF
 
 **Stan lokalny:**
 
-- `hasSignature` - czy podpis został dodany
-- `signatureRef` - ref do canvas
+- `localInspection` - inspekcja z `location.state` lub Firestore
+- `notes` - uwagi do protokołu
+- `isSignatureVisible` - widoczność panelu podpisu
 
-**Zustand actions:**
+**Hooks:**
 
-- `updateInspectionNotes()` - aktualizacja pola `notes` (ogólne uwagi)
-- `setSignature()` - zapisanie podpisu
+- `useDocument(inspectionDocRef, mapper)` - fallback na reload
+
+**Operacje zapisu:**
+
+- `saveInspectionToFirestore(inspection, id)` - przy podpisie i "Zapisz i Dodaj Kolejny"
 
 **Generowanie PDF:**
 
 ```typescript
-const blob = await pdf(<PdfGenerator inspection={currentInspection} />).toBlob();
+const blob = await pdf(<PdfGenerator inspection={inspection} />).toBlob();
 const url = URL.createObjectURL(blob);
 // Download
 ```
 
 **Routing:**
 
-- `/summary` → Podsumowanie
-- Kliknięcie "Powrót" → `/`
+- `/summary/:inspectionId` → Podsumowanie
+- "Zapisz i Dodaj Kolejny" → `/building/:buildingId`
+- "Powrót" → `/building/:buildingId`
 
 ---
 
-### 5. PdfGenerator.tsx
+### PdfGenerator.tsx
 
 **Odpowiedzialność:** Renderowanie dokumentu PDF
 
@@ -619,125 +611,90 @@ Document
     └── Footer (norma, podpis)
 ```
 
-## 🗄️ State Management (Zustand)
+## 🪝 State Management (Custom Hooks + Firestore)
 
-### Store Structure
+### Architektura — Firestore jako Single Source of Truth
+
+Od lutego 2026 aplikacja **nie używa Zustand** ani żadnego globalnego store'a. Zarządzanie stanem opiera się na:
+
+1. **Custom React Hooks** — `useCollection`, `useDocument` subskrybują się do Firestore
+2. **React Context** — `useAuth` dostarcza stan autentykacji
+3. **Local `useState`** — dla danych tymczasowych (formularz, currentInspection)
+4. **`location.state`** — do przekazywania danych między ekranami
+
+### Hooks Reference
+
+| Hook | Odpowiedzialnik | Dane |
+|------|----------------|------|
+| `useAuth()` | Autentykacja | `user`, `isLoading`, `signOutUser()` |
+| `useCollection(query, mapper)` | Listy danych | `data[]`, `isLoading`, `error` |
+| `useDocument(docRef, mapper)` | Pojedyncze dokumenty | `data`, `isLoading`, `error` |
+| `useOnlineStatus()` | Status sieci | `boolean` |
+| `useUserSettings(uid)` | Profil technika | `technicianName`, `technicianLicenseNumber`, `technicianSignature`, `save()` |
+| `usePendingSync(uid)` | Niesynchronizowane | `pendingCount`, `retrySync()` |
+
+### useCollection — Generic Realtime Listener
 
 ```typescript
-interface InspectionState {
-  // ===== AUTH STATE =====
-  user: User | null;                    // Zalogowany użytkownik (Firebase)
-  setUser: (user: User | null) => void; // Akcja: ustaw użytkownika
+function useCollection<T>(
+  query: Query | null,
+  mapper: (doc: QueryDocumentSnapshot) => T,
+  label?: string
+): { data: T[]; isLoading: boolean; error: FirestoreError | null }
+```
 
-  // ===== PROJECT STATE ===== (Offline-First)
-  projects: Project[];                  // Lista projektów
-  currentProjectId: string | null;      // Aktualnie wybrany projekt
-  isLoadingProjects: boolean;           // Status ładowania projektów
-  createNewProject: (name: string) => Promise<void>;
-  subscribeToProjects: () => void;      // Realtime Listener (onSnapshot)
-  unsubscribeFromProjects: () => void;  // Cleanup subskrypcji
-  deleteProject: (id: string) => Promise<void>;
-  setCurrentProjectId: (projectId: string | null) => void;
+Używany przez: `ProjectsScreen`, `ProjectDetailsScreen`, `BuildingDetailsScreen`
 
-  // ===== INSPECTION STATE ===== (Offline-First)
-  currentInspection: Inspection | null; // Aktualnie edytowany pomiar
-  inspections: Inspection[];            // Lista pomiarów (dla konkretnego projektu)
-  isLoadingInspections: boolean;        // Status ładowania inspekcji
+### useDocument — Single Document Listener
 
-  // ===== OFFLINE STATE =====
-  isOnline: boolean;                    // Status połączenia
-  pendingSyncCount: number;             // Liczba niezsynchronizowanych pomiarów
+```typescript
+function useDocument<T>(
+  docRef: DocumentReference | null,
+  mapper: (snap: DocumentSnapshot) => T | null,
+  label?: string
+): { data: T | null; isLoading: boolean; error: FirestoreError | null }
+```
 
-  // ===== SMART DEFAULTS STATE =====
-  lastProtectionType: ProtectionType;   // Ostatni typ zabezpieczenia
-  lastAmperage: Amperage;               // Ostatni amperaż
-  lastKFactor: number;                  // Ostatni współczynnik k
+Używany przez: `BuildingDetailsScreen` (dane budynku), `SummaryScreen` (inspekcja na reload)
 
-  // ===== INSPECTION ACTIONS =====
-  createNewInspection: (projectId, ..., ownerName) => void; // ZMIANA: wymaga projectId + ownerName
-  setCurrentInspection: (...) => void;
-  setSignature: (signature: string) => void;
+### useUserSettings — Firestore + localStorage Fallback
 
-  // ===== MEASUREMENT ACTIONS =====
-  addMeasurement: (zsValue: number | null, noGrounding?: boolean) => void;
-  updateMeasurement: (id: string, zsValue: number | null) => void;
-  removeMeasurement: (id: string) => void;
-
-  // ===== PERSISTENCE ACTIONS =====
-  saveToFirestore: () => Promise<void>;
-  subscribeToInspections: (projectId: string) => void; // Realtime Listener (onSnapshot)
-  unsubscribeFromInspections: () => void; // Cleanup subskrypcji
-  deleteInspection: (id: string) => Promise<void>;
-
-  // ===== SYNC ACTIONS =====
-  retryPendingSync: () => Promise<void>;
-  setOnlineStatus: (status: boolean) => void;
-
-  // ===== SETTINGS ACTIONS =====
-  setLastDefaults: (protectionType, amperage, kFactor) => void;
+```typescript
+function useUserSettings(uid?: string): {
+  technicianName: string;
+  technicianLicenseNumber: string;
+  technicianSignature: string;
+  isLoading: boolean;
+  save: (settings: UserSettingsPayload) => Promise<void>;
 }
 ```
 
-### Kluczowe Akcje
+Hook subskrybuje się do `users/{uid}` w Firestore. Przy zamontowaniu pokonuje "cold start" loading z localStorage:
 
-#### addMeasurement()
+1. **Mount** → odczyt z `localStorage` (natychmiast)
+2. **onSnapshot** → Firestore dane nadchodzą → aktualizacja stanu
+3. **save()** → zapis do Firestore + `localStorage` równocześnie
 
-```typescript
-addMeasurement: (zsValue, noGrounding = false) => {
-  const { lastProtectionType, lastAmperage, lastKFactor } = get()
+### Lifecycle hooków — automatyczny cleanup
 
-  // Pobierz Zs_dop z tabeli
-  const zsDop = ZS_DOP_TABLE[lastProtectionType][lastAmperage]
-
-  // Oceń wynik
-  let result: 'TAK' | 'NIE' | 'B.UZ' = 'NIE'
-  if (noGrounding) {
-    result = 'B.UZ'
-  } else if (zsValue !== null && zsValue <= zsDop) {
-    result = 'TAK'
-  }
-
-  // Dodaj do listy
-  set({
-    currentInspection: {
-      ...currentInspection,
-      measurements: [...measurements, newMeasurement],
-    },
-  })
-}
+```
+Mount komponentu
+    │
+    └─► useCollection / useDocument
+            │
+            └─► onSnapshot(query)     // tworzy subskrypcję
+                    │
+                    ├─► callback: set state z danymi
+                    └─► cleanup: return () => unsubscribe()
+                            │
+Unmount komponentu ──────────┘  // automatyczny unsubscribe
 ```
 
-#### saveToFirestore()
-
-```typescript
-saveToFirestore: async () => {
-  const { currentInspection } = get()
-
-  const dataToSave = {
-    address: currentInspection.address,
-    apartmentNumber: currentInspection.apartmentNumber,
-    date: Timestamp.fromDate(currentInspection.date),
-    technician: currentInspection.technician,
-    measurements: currentInspection.measurements,
-    signature: currentInspection.signature || '',
-    synced: true,
-  }
-
-  if (currentInspection.id) {
-    // Update existing
-    await updateDoc(doc(db, 'inspections', currentInspection.id), dataToSave)
-  } else {
-    // Create new
-    await addDoc(collection(db, 'inspections'), dataToSave)
-  }
-
-  // onSnapshot automatically updates inspections list - no manual reload needed!
-}
-```
+**Brak potrzeby manualnego cleanup** — React sam wywołuje cleanup function.
 
 ## 🔥 Firebase Architecture
 
-### Firestore Schema (UPDATED!)
+### Firestore Schema
 
 ```
 projects (collection)
@@ -746,9 +703,17 @@ projects (collection)
 │   ├── status: 'active' | 'archived'
 │   └── createdAt: Timestamp
 
+buildings (collection)
+├── {buildingId} (document)
+│   ├── projectId: string         // WYMAGANE
+│   ├── name: string
+│   ├── address: string
+│   └── createdAt: Timestamp
+
 inspections (collection)
 ├── {inspectionId} (document)
-│   ├── projectId: string         // NOWE POLE - WYMAGANE
+│   ├── projectId: string         // WYMAGANE
+│   ├── buildingId: string        // WYMAGANE
 │   ├── address: string
 │   ├── apartmentNumber: string
 │   ├── ownerName: string        // Imię i nazwisko właściciela/najemcy
@@ -760,6 +725,7 @@ inspections (collection)
 │   ├── synced: boolean
 │   ├── ownerSignature: string (base64 podpisu klienta)
 │   ├── status: 'COMPLETED' | 'INACCESSIBLE'  // domyślnie 'COMPLETED'
+│   ├── protocolNumber: string
 │   └── measurements: array
 │       └── [
 │           {
@@ -774,16 +740,24 @@ inspections (collection)
 │             noGrounding: boolean
 │           }
 │         ]
+
+users (collection)
+├── {uid} (document)
+│   ├── displayName: string
+│   ├── licenseNumber: string
+│   ├── signatureBase64: string
+│   └── updatedAt: Timestamp
 ```
 
-**KLUCZOWA ZMIANA:**
+**KLUCZOWE:**
 
-Każdy `Inspection` **MUSI** mieć `projectId`. Typ TypeScript wymusza to pole:
+Każdy `Inspection` **MUSI** mieć `projectId` i `buildingId`. Typ TypeScript wymusza te pola:
 
 ```typescript
 export interface Inspection {
   id?: string
-  projectId: string // WYMAGANE - bez tego TypeScript rzuci błąd
+  projectId: string  // WYMAGANE
+  buildingId: string // WYMAGANE
   notes?: string
   address: string
   // ... reszta pól
@@ -797,44 +771,40 @@ Zapytanie do Firestore używa `where()`:
 ```typescript
 query(
   collection(db, 'inspections'),
-  where('projectId', '==', projectId),
-  orderBy('createdAt', 'desc')
+  where('buildingId', '==', buildingId),
+  orderBy('date', 'desc')
 )
 ```
 
-Dzięki temu pobieramy **tylko pomiary dla konkretnego projektu**, nie wszystkie dane z bazy.
-
-**WYMÓG INDEKSU:**
-
-Firebase może wymagać utworzenia złożonego indeksu dla `projectId` + `createdAt`. Link do tworzenia pojawi się w konsoli przy pierwszym użyciu.
-```
+Dzięki temu pobieramy **tylko pomiary dla konkretnego budynku**, nie wszystkie dane z bazy.
 
 ### Offline-First Architecture (Realtime Listeners)
 
 **Architektura pobierania danych:**
 
-Aplikacja używa **`onSnapshot` (Realtime Listeners)** zamiast tradycyjnego `getDocs` (Request-Response):
+Aplikacja używa **`onSnapshot` (Realtime Listeners)** przez custom hooks:
 
 ```typescript
-// projectSlice.ts
-subscribeToProjects: () => {
-  const q = query(collection(db, 'projects'), orderBy('createdAt', 'desc'))
-  
-  unsubscribeProjects = onSnapshot(q, (snapshot) => {
-    // ✅ Wykonuje się 2 razy:
-    // 1. Natychmiast z cache (fromCache: true) - OFFLINE SUPPORT
-    // 2. Po synchronizacji z serwerem (fromCache: false) - ONLINE SYNC
+// useCollection.ts
+export function useCollection<T>(query, mapper, label) {
+  const [data, setData] = useState<T[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!query) return
     
-    const projects = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    const unsubscribe = onSnapshot(query, (snapshot) => {
+      // ✅ Wykonuje się 2 razy:
+      // 1. Natychmiast z cache (fromCache: true) - OFFLINE SUPPORT
+      // 2. Po synchronizacji z serwerem (fromCache: false) - ONLINE SYNC
+      
+      const items = snapshot.docs.map(mapper)
+      setData(items)
+      setIsLoading(false)
+    })
     
-    set({ projects, isLoadingProjects: false })
-  }, (error) => {
-    console.error('Subscription error:', error)
-    set({ isLoadingProjects: false })
-  })
+    return () => unsubscribe()  // Automatyczny cleanup!
+  }, [query])
 }
 ```
 
@@ -845,28 +815,14 @@ subscribeToProjects: () => {
 3. ✅ **Brak ręcznego sprawdzania `navigator.onLine`** - Firebase obsługuje to sam
 4. ✅ **Automatyczny cleanup** - `useEffect` return function wywołuje `unsubscribe()`
 
-**Cleanup przy wylogowaniu:**
-
-```typescript
-// MainLayout.tsx
-const handleLogout = async () => {
-  // KLUCZOWE: Cleanup subskrypcji przed wylogowaniem
-  unsubscribeFromProjects()
-  unsubscribeFromInspections()
-  await signOut(auth)
-}
-```
-
 **Offline Persistence:**
 
 ```typescript
 // firebase.ts
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Multiple tabs open')
-  } else if (err.code === 'unimplemented') {
-    console.warn('Browser not supported')
-  }
+initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
 })
 ```
 
@@ -962,16 +918,15 @@ const handleEnterMeasurement = () => {
 
 ### Service Worker Strategy
 
+Aplikacja używa **Workbox InjectManifest** (vite-plugin-pwa) z precache'owaniem:
+
 ```javascript
-// sw.js - Cache-First Strategy
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => response || fetch(event.request))
-  )
-})
+// sw.js — Workbox precacheAndRoute
+import { precacheAndRoute } from 'workbox-precaching'
+precacheAndRoute(self.__WB_MANIFEST)
 ```
+
+Wszystkie zasoby aplikacji (JS, CSS, HTML, fonty, ikony) są precache'owane podczas instalacji Service Workera.
 
 ### Manifest
 
@@ -981,7 +936,7 @@ self.addEventListener('fetch', (event) => {
   "short_name": "Pomiary",
   "display": "standalone",
   "start_url": "/",
-  "theme_color": "#2563eb"
+  "theme_color": "#1e293b"
 }
 ```
 
@@ -990,14 +945,10 @@ self.addEventListener('fetch', (event) => {
 ### Unit Tests (przykład - nie zaimplementowane)
 
 ```typescript
-// useAppStore.test.ts (InspectionSlice)
-describe('addMeasurement', () => {
-  it('should add measurement with correct result', () => {
-    const store = useAppStore.getState()
-    store.addMeasurement(0.45)
-
-    const measurements = store.currentInspection?.measurements
-    expect(measurements[0].result).toBe('TAK')
+// hooks/useCollection.test.ts
+describe('useCollection', () => {
+  it('should return data from Firestore snapshot', () => {
+    // ...
   })
 })
 ```
@@ -1083,26 +1034,42 @@ components/
 └── [Screens].tsx    → Page-level components
 ```
 
+### Hooks Layer (State Management)
+
+```
+hooks/
+├── useAuth.tsx           → AuthContext + Provider (React Context)
+├── useCollection.ts      → Generic onSnapshot na kolekcjach Firestore
+├── useDocument.ts        → Generic onSnapshot na dokumentach Firestore
+├── useOnlineStatus.ts    → Browser online/offline events
+├── useUserSettings.ts    → Ustawienia technika (Firestore + localStorage)
+├── usePendingSync.ts     → Tracking niesynchronizowanych inspekcji
+└── index.ts              → Barrel export
+```
+
+**Read operations** (`onSnapshot`) są w **hookach**:
+- `useCollection` → listy (projekty, budynki, inspekcje)
+- `useDocument` → pojedyncze dokumenty (budynek, inspekcja)
+- `useUserSettings` → profil technika
+
 ### Services Layer
 
 ```
 services/
 └── firebaseService.ts  → TYLKO Write Operations (Create, Update, Delete)
-                         → Read operations (onSnapshot) w slices
                          → Izolacja od UI
 ```
 
 **firebaseService.ts** zawiera tylko:
 - ✅ `saveProjectToFirestore()` - zapisywanie projektów
+- ✅ `saveBuildingToFirestore()` - zapisywanie budynków
 - ✅ `saveInspectionToFirestore()` - zapisywanie inspekcji
-- ✅ `deleteProjectFromFirestore()` - usuwanie projektów
+- ✅ `deleteProjectFromFirestore()` - usuwanie projektów (kaskadowe)
+- ✅ `deleteBuildingFromFirestore()` - usuwanie budynków (kaskadowe)
 - ✅ `deleteInspectionFromFirestore()` - usuwanie inspekcji
 - ✅ `markInspectionAsSynced()` - oznaczanie jako zsynchronizowane
 - ✅ `retrySyncInspection()` - retry synchronizacji
-
-**Read operations** (`onSnapshot`) są w **slices**:
-- `projectSlice.ts` → `subscribeToProjects()`
-- `inspectionSlice.ts` → `subscribeToInspections(projectId)`
+- ✅ `saveUserSettingsToFirestore()` - zapis ustawień technika
 
 ### Utils Layer
 
@@ -1112,28 +1079,6 @@ utils/
 ├── measurementCalculations.ts  → Pure functions (Zs_dop, wyniki)
 └── validators.ts               → Pure functions (walidacja)
 ```
-
-### Store Layer (Slices Pattern)
-
-```
-store/
-├── slices/
-│   ├── authSlice.ts         → Stan autoryzacji (user)
-│   ├── projectSlice.ts      → Stan projektów (projects, currentProjectId)
-│   ├── inspectionSlice.ts   → Stan przeglądów (inspections, currentInspection, measurements)
-│   ├── userSettingsSlice.ts → Stan profilu technika (displayName, licenseNumber, signatureBase64)
-│   ├── offlineSlice.ts      → Stan offline i ustawienia (isOnline, lastDefaults)
-│   └── index.ts             → Re-export
-│
-└── useAppStore.ts           → Główny store łączący wszystkie slice'y
-                             → Wykorzystuje Zustand do zarządzania stanem
-                             → Orchestruje services + utils
-```
-
-**Wzorzec Slices:**
-- Każdy slice odpowiada za konkretną domenę biznesową (Single Responsibility)
-- Slice'y mogą komunikować się między sobą przez `get()` i `set()`
-- `useAppStore` łączy wszystkie slice'y w jeden spójny store
 
 ---
 
@@ -1184,8 +1129,8 @@ npm run dev
 
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
-**Wzorce:** Atomic Design, State Management (Zustand), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-02-10 (Status inspekcji INACCESSIBLE - oznaczanie mieszkań "Nie zastano")
+**Wzorce:** Atomic Design, Custom Hooks (Firestore Listeners), Offline-First, Auth Guard  
+**Ostatnia aktualizacja:** 2026-02-14 (Usunięcie Zustand — architektura Firestore-Only z custom hooks)
 
 ---
 
@@ -1203,16 +1148,11 @@ Dodano pole `status` do `Inspection`:
 
 ### Flow
 
-1. **Oznaczenie jako niedostępne:** Modal "Nowy Pomiar" → przycisk "Nie zastano" → `saveInaccessibleInspection()` → zapis do Firestore ze statusem `INACCESSIBLE`, brak pomiarów, zamknięcie modala.
+1. **Oznaczenie jako niedostępne:** Modal "Nowy Pomiar" → przycisk "Nie zastano" → `saveInspectionToFirestore()` ze statusem `INACCESSIBLE`, brak pomiarów, zamknięcie modala.
 
 2. **Wizualna identyfikacja:** `InspectionCard` wyświetla element z pomarańczowym akcentem (border-l-4, ikona AlertTriangle, badge "Nie zastano").
 
-3. **Wznowienie pomiaru:** Klik w kartę INACCESSIBLE → modal z wypełnionymi danymi → "Rozpocznij pomiar" → `resumeInaccessibleInspection()` → aktualizacja istniejącego dokumentu (status → COMPLETED), przekierowanie do ekranu pomiarów.
-
-### Nowe metody w `inspectionSlice`
-
-- `saveInaccessibleInspection(projectId, buildingId, address, apartmentNumber, ownerName)` - tworzy inspekcję INACCESSIBLE z optimistic update
-- `resumeInaccessibleInspection(inspection, address, apartmentNumber, ownerName)` - ustawia inspekcję jako currentInspection ze statusem COMPLETED
+3. **Wznowienie pomiaru:** Klik w kartę INACCESSIBLE → modal z wypełnionymi danymi → "Rozpocznij pomiar" → aktualizacja istniejącego dokumentu (status → COMPLETED), przekierowanie do ekranu pomiarów.
 
 ---
 
@@ -1229,28 +1169,24 @@ Dodano pole `status` do `Inspection`:
 #### 2. **Nowe Ekrany**
 
 - `ProjectsScreen.tsx` - Główny ekran (lista projektów, tworzenie nowego)
-- `ProjectDetailsScreen.tsx` - Szczegóły projektu (dawny Dashboard.tsx)
+- `ProjectDetailsScreen.tsx` - Szczegóły projektu
 
 #### 3. **Refaktoryzacja Routingu**
 
 - `/` → `ProjectsScreen` (główny ekran po zalogowaniu)
-- `/project/:id` → `ProjectDetailsScreen` (lista pomiarów dla projektu)
+- `/project/:id` → `ProjectDetailsScreen` (lista budynków dla projektu)
 
-#### 4. **Refaktoryzacja Store (Zustand)**
+#### 4. **Architektura Offline-First (Realtime Listeners)**
 
-- Dodano stan: `projects`, `currentProjectId`
-- **2026: Migracja na Offline-First:**
-  - ❌ Usunięto: `loadProjects()`, `loadInspections()` (Request-Response)
-  - ✅ Dodano: `subscribeToProjects()`, `subscribeToInspections()` (Realtime Listeners)
-  - ✅ Dodano: `unsubscribeFromProjects()`, `unsubscribeFromInspections()` (Cleanup)
-  - ✅ Dodano: `isLoadingProjects`, `isLoadingInspections` (Stan ładowania)
-- `createNewInspection(projectId, ..., ownerName)` - wymaga `projectId` i `ownerName`
+- ✅ `useCollection` hook z `onSnapshot` — automatyczny subscribe/unsubscribe
+- ✅ `useDocument` hook — reload-safe fetch dokumentów
+- ✅ Brak ręcznego zarządzania subskrypcjami
 
 #### 5. **Optymalizacja Firebase**
 
 - Query do Firestore: `where('projectId', '==', projectId)`
 - Pobieramy tylko pomiary dla konkretnego projektu (nie wszystkie dane)
-- Nowa kolekcja: `projects` (osobna od `inspections`)
+- Nowe kolekcje: `projects`, `buildings` (osobne od `inspections`)
 
 #### 6. **Clean Slate**
 
@@ -1297,14 +1233,14 @@ Problem: W trybie samolotowym await wisi w nieskończoność → UI zamrożone
 ```typescript
 ✅ const handleSave = () => {
      // KROK 1: Generuj ID lokalnie (jeśli nowy obiekt)
-     const newId = doc(collection(db, 'inspections')).id
+     const newId = generateInspectionId()
      
-     // KROK 2: Aktualizuj Zustand NATYCHMIAST (UI reaguje w 0ms)
-     updateInspectionInStore({ ...data, id: newId })
+     // KROK 2: Aktualizuj stan lokalny NATYCHMIAST (UI reaguje w 0ms)
+     setLocalInspection({ ...data, id: newId })
      closeModal()  // Modal zamyka się OD RAZU!
      
      // KROK 3: Firebase w tle (fire-and-forget, NIE blokuje UI)
-     saveToFirestore(data, newId)
+     saveInspectionToFirestore(data, newId)
        .catch(err => console.error('Sync failed, retrying later...', err))
    }
 
@@ -1322,21 +1258,21 @@ Zalety: UI NIGDY nie czeka na sieć. Offline queue Firebase automatycznie retry.
                  ▼
          ┌───────────────┐
          │ KROK 1:       │
-         │ Generuj ID    │  ← doc(collection(...)).id (lokalnie!)
+         │ Generuj ID    │  ← generateInspectionId() (lokalnie!)
          │ Prepare Data  │
          └───────┬───────┘
                  │
                  ▼
          ┌───────────────┐
          │ KROK 2:       │
-         │ Zustand Update│  ← set({ data: newData })
-         │ (UI 0ms)      │  ← Modal zamyka się NATYCHMIAST!
+         │ Local State   │  ← useState / setLocalInspection
+         │ Update (0ms)  │  ← Modal zamyka się NATYCHMIAST!
          └───────┬───────┘
                  │
                  ▼
          ┌───────────────┐
          │ KROK 3:       │
-         │ Firebase Sync │  ← saveToFirestore().catch(...)
+         │ Firebase Sync │  ← saveInspectionToFirestore().catch(...)
          │ (Background)  │  ← FIRE-AND-FORGET (NIE blokuje UI)
          └───────┬───────┘
                  │
@@ -1351,61 +1287,30 @@ Zalety: UI NIGDY nie czeka na sieć. Offline queue Firebase automatycznie retry.
 
 ### Zmodyfikowane Funkcje (Pełna Lista)
 
-#### 1. **inspectionSlice.ts**
-
-```typescript
-✅ saveToFirestore() - najpierw Zustand, potem Firebase w tle
-✅ saveInaccessibleInspection() - już miało optymistyczną aktualizację
-✅ deleteInspection() - najpierw usuwa z listy, potem Firebase w tle
-```
-
-#### 2. **userSettingsSlice.ts**
-
-```typescript
-✅ saveUserSettings() - najpierw localStorage + Zustand, potem Firebase w tle
-```
-
-#### 3. **projectSlice.ts**
-
-```typescript
-✅ createNewProject() - już miało optymistyczną aktualizację
-✅ deleteProject() - najpierw usuwa z listy, potem Firebase w tle
-```
-
-#### 4. **buildingSlice.ts**
-
-```typescript
-✅ addBuilding() - najpierw Zustand z temp ID, potem Firebase w tle
-✅ deleteBuilding() - najpierw usuwa z listy, potem Firebase w tle
-```
-
-#### 5. **Komponenty UI**
+#### Komponenty z Optimistic UI:
 
 ```typescript
 ✅ SummaryScreen.tsx
-   - handleSaveSignature() - NIE czeka na Firebase
-   - handleSaveAndAddNext() - nawigacja natychmiast
+   - handleSaveSignature() — NIE czeka na Firebase
+   - handleSaveAndAddNext() — nawigacja natychmiast
 
 ✅ SettingsScreen.tsx
-   - handleSave() - USUNIĘTO isSaving spinner, alert natychmiast
+   - handleSave() — alert natychmiast, sync w tle
 
 ✅ MeasurementScreen.tsx
-   - handleSave() - nawigacja do /summary natychmiast
+   - handleSave() — nawigacja do /summary natychmiast
 
 ✅ BuildingDetailsScreen.tsx
-   - handleMarkInaccessible() - modal zamyka się natychmiast
-   - handleDelete() - usuwanie natychmiast
+   - handleMarkInaccessible() — modal zamyka się natychmiast
+   - handleDelete() — usuwanie natychmiast
 
 ✅ ProjectDetailsScreen.tsx
-   - handleAddBuilding() - modal zamyka się natychmiast
-   - handleDeleteBuilding() - usuwanie natychmiast
+   - handleAddBuilding() — modal zamyka się natychmiast
+   - handleDeleteBuilding() — usuwanie natychmiast
 
 ✅ ProjectsScreen.tsx
-   - handleAddProject() - modal zamyka się natychmiast
-   - handleDeleteProject() - usuwanie natychmiast
-
-✅ SignaturePanel.tsx
-   - handleSave() - USUNIĘTO isSaving, callback natychmiast
+   - handleAddProject() — modal zamyka się natychmiast
+   - handleDeleteProject() — usuwanie natychmiast
 ```
 
 ### Kluczowe Zasady Implementacji
@@ -1414,34 +1319,33 @@ Zalety: UI NIGDY nie czeka na sieć. Offline queue Firebase automatycznie retry.
 
 ```typescript
 // ✅ DOBRZE: ID po stronie klienta
-const savedId = currentInspection.id || generateInspectionId()
+const savedId = inspection.id || generateInspectionId()
 
 // ❌ ŹLE: Czekanie na serwer dla ID
 const docRef = await addDoc(collection(db, 'inspections'), data)
 const id = docRef.id  // BLOKUJE UI!
 ```
 
-#### 2. **Aktualizuj Store NATYCHMIAST**
+#### 2. **Aktualizuj stan lokalny NATYCHMIAST**
 
 ```typescript
-// ✅ DOBRZE: Najpierw Zustand
-set({ inspections: [optimisticInspection, ...inspections] })
-closeModal()  // Modal zamyka się OD RAZU
+// ✅ DOBRZE: Najpierw local state
+setLocalInspection({ ...inspection, ownerSignature })
+setSignatureVisible(false)  // Modal zamyka się OD RAZU
 
 // ❌ ŹLE: Najpierw Firebase
 await saveInspectionToFirestore(...)  // BLOKUJE!
-set({ inspections: [...] })           // Za późno
 ```
 
 #### 3. **Firebase w tle (Fire-and-Forget)**
 
 ```typescript
 // ✅ DOBRZE: NIE używaj await w UI
-saveToFirestore(data)
+saveInspectionToFirestore(data, id)
   .catch(err => console.error('Sync failed', err))
 
 // ❌ ŹLE: await blokuje UI
-await saveToFirestore(data)
+await saveInspectionToFirestore(data, id)
 ```
 
 ### Obsługa Błędów
@@ -1450,13 +1354,13 @@ await saveToFirestore(data)
 
 ```typescript
 // ✅ DOBRZE: Loguj błędy, NIE blokuj użytkownika
-saveToFirestore(data)
-  .then(() => console.log('✅ Synced'))
-  .catch(err => console.error('❌ Sync failed, will retry later', err))
+saveInspectionToFirestore(data, id)
+  .then(() => logger.log('✅ Synced'))
+  .catch(err => logger.error('❌ Sync failed, will retry later', err))
 
 // ❌ ŹLE: Alert blokuje workflow
 try {
-  await saveToFirestore(data)
+  await saveInspectionToFirestore(data, id)
 } catch (err) {
   alert('Błąd zapisu!') // Użytkownik nie może kontynuować!
 }
@@ -1464,21 +1368,13 @@ try {
 
 ### Tryb Samolotowy - Test Scenariusz
 
-**Przed zmianą (BROKEN):**
-
-1. ✈️ Tryb samolotowy włączony
-2. Zmieniam podpis → Klik "Zapisz"
-3. ⏳ Spinner pojawia się
-4. ❌ await wisi w nieskończoność
-5. 💀 UI zamrożone - użytkownik nie może nic zrobić
-
-**Po zmianie (DZIAŁA):**
+**DZIAŁA:**
 
 1. ✈️ Tryb samolotowy włączony
 2. Zmieniam podpis → Klik "Zapisz"
 3. ✅ Modal zamyka się NATYCHMIAST (0ms)
-4. ✅ Widzę NOWY podpis na ekranie (Zustand)
-5. ✅ Generuję PDF → Jest NOWY podpis (ze store)
+4. ✅ Widzę NOWY podpis na ekranie (local state)
+5. ✅ Generuję PDF → Jest NOWY podpis (z local state)
 6. 🌐 Włączam internet → Firebase synchronizuje się w tle
 7. ✅ Aplikacja w pełni funkcjonalna offline!
 
@@ -1487,7 +1383,7 @@ try {
 1. **Zero opóźnienia UI** - wszystko działa natychmiastowo (0ms)
 2. **Offline First** - aplikacja w pełni funkcjonalna bez internetu
 3. **Lepsza UX** - brak spinnerów, brak zawieszania
-4. **PDF offline** - generowanie PDF ze store, nie z Firebase
+4. **PDF offline** - generowanie PDF z local state, nie z Firebase
 5. **Automatyczny retry** - Firebase ma wbudowaną offline queue
 6. **Prostszy kod** - brak spinnerów, brak try-catch w UI
 
@@ -1511,16 +1407,12 @@ public/fonts/
 └── Roboto-Bold.ttf (502KB)
 ```
 
-**2. Zaktualizowano Service Worker (v2):**
-```javascript
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/src/main.tsx',
-  '/src/index.css',
-  '/fonts/Roboto-Regular.ttf',  // ✅ Cache dla offline
-  '/fonts/Roboto-Bold.ttf',     // ✅ Cache dla offline
-]
+**2. Zaktualizowano Service Worker (Workbox precache):**
+
+Fonty `.ttf` są automatycznie precache'owane przez Workbox InjectManifest:
+```typescript
+// vite.config.ts
+globPatterns: ['**/*.{js,css,html,png,webmanifest,ttf}']
 ```
 
 **3. Dodano obsługę błędów w PdfGenerator:**
@@ -1556,7 +1448,7 @@ if (errorMessage.includes('font')) {
 
 **Kolejne użycie (OFFLINE):**
 1. ✅ Aplikacja działa bez internetu
-2. ✅ Dane zapisują się do Zustand (natychmiast)
+2. ✅ Dane z local state (natychmiast)
 3. ✅ PDF generuje się z fontami z cache
 4. ✅ Firebase synchronizuje się gdy pojawi się internet
 
@@ -1569,8 +1461,8 @@ if (errorMessage.includes('font')) {
                  │
                  ▼
          ┌───────────────┐
-         │ Dane z Zustand│  ← inspection object (lokalny)
-         │ (Store)       │
+         │ Dane lokalne  │  ← inspection object (local state / Firestore cache)
+         │               │
          └───────┬───────┘
                  │
                  ▼
@@ -1593,9 +1485,40 @@ if (errorMessage.includes('font')) {
 ```
 
 **Kluczowe punkty:**
-- ✅ **Dane z Zustand** - nie wymaga Firebase
-- ✅ **Fonty z Cache** - Service Worker zapewnia offline access
-- ✅ **PDF w przeglądarce** - @react-pdf działa całkowicie po stronie klienta
+- ✅ **Dane z local state** — nie wymaga sieci
+- ✅ **Fonty z Cache** — Service Worker zapewnia offline access
+- ✅ **PDF w przeglądarce** — @react-pdf działa całkowicie po stronie klienta
 - ✅ **Brak blokowania** - lazy loading z Vite chunks (cache'owane)
+
+---
+
+## 🆕 Zustand Removal (2026-02-14)
+
+### Motywacja
+
+Zustand store powodował problemy z "ghost data" i stale cache na page reload. Architektura z globalnym store'em pośredniczącym między Firestore a UI była nadmiernie złożona — Firestore z `persistentLocalCache` sam w sobie jest offline store'em.
+
+### Co zrobiono
+
+1. **Usunięto cały `src/store/` directory** — 10 plików (750+ linii `inspectionSlice`, 6 slice'ów, store, index, README)
+2. **Usunięto zależność `zustand`** z `package.json`
+3. **Stworzono 6 custom hooks** w `src/hooks/` — łącznie ~400 linii
+4. **Zrefaktoryzowano 8 komponentów** — z Zustand na hooki + direct Firestore calls
+
+### Nowa architektura vs stara
+
+| Aspekt | Stara (Zustand) | Nowa (Hooks + Firestore) |
+|--------|-----------------|--------------------------|
+| Source of truth | Zustand store | Firestore (IndexedDB cache) |
+| Subskrypcje | Manualne subscribe/unsubscribe w slicach | Automatyczne w `useCollection` / `useDocument` |
+| Cleanup | Ręczny (MainLayout logout) | Automatyczny (useEffect cleanup) |
+| Ghost data | Problem — stale data po logout/login | Brak — hooki mają własny lifecycle |
+| Reload | Wymagał `fetchBuildingById` / `fetchInspectionById` | `useDocument` z `location.state` fallback |
+| Rozmiar kodu | ~960 insertions, ~2202 deletions | Netto: **-1242 linii** |
+
+### Wpływ na bundle
+
+- Usunięto `zustand` z `vendor-ui` chunk w `vite.config.ts`
+- Bundle zmniejszony o ~5KB (zustand minified)
 
 ---
