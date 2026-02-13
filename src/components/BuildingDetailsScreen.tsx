@@ -26,6 +26,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     deleteInspection,
     pendingSyncCount,
     buildings,
+    fetchBuildingById,
     technicianName,
     technicianSignature,
   } = useAppStore()
@@ -61,6 +62,13 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildingId])
+
+  // Fetch building data if not in store (e.g. on page reload)
+  useEffect(() => {
+    if (buildingId && !currentBuilding) {
+      fetchBuildingById(buildingId)
+    }
+  }, [buildingId, currentBuilding, fetchBuildingById])
 
   // Automatycznie otwórz modal jeśli przychodzi z flow "następny pomiar"
   useEffect(() => {
@@ -173,7 +181,7 @@ export const BuildingDetailsScreen: React.FC = () => {
       setEditingInspection(inspection)
       setShowNewModal(true)
     } else {
-      navigate('/summary', {
+      navigate(`/summary/${inspection.id}`, {
         state: {
           inspection,
           buildingId,

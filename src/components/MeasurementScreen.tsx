@@ -21,6 +21,7 @@ export const MeasurementScreen: React.FC = () => {
     removeMeasurement,
     saveToFirestore,
     buildings,
+    fetchBuildingById,
   } = useAppStore()
 
   const [inputValue, setInputValue] = useState('0')
@@ -41,6 +42,13 @@ export const MeasurementScreen: React.FC = () => {
       }
     }
   }, [currentInspection, navigate, buildingId])
+
+  // Fetch building data if not in store (e.g. on page reload)
+  useEffect(() => {
+    if (buildingId && !buildings.find((b) => b.id === buildingId)) {
+      fetchBuildingById(buildingId)
+    }
+  }, [buildingId, buildings, fetchBuildingById])
 
   const handleEnterMeasurement = () => {
     const validation = validateMeasurementValue(inputValue)
@@ -87,8 +95,9 @@ export const MeasurementScreen: React.FC = () => {
         // Dane już są zaktualizowane w Zustand, sync nastąpi później
       })
 
-    // Nawigacja NATYCHMIAST (nie czeka na Firebase)
-    navigate('/summary')
+    // Read ID from store's latest state (synchronously updated by saveToFirestore)
+    const savedInspectionId = useAppStore.getState().currentInspection?.id || ''
+    navigate(`/summary/${savedInspectionId}`)
   }
 
   if (!currentInspection) {

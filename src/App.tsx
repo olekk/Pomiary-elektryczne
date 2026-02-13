@@ -99,7 +99,7 @@ function App() {
         <Route path="/building/:id" element={<BuildingDetailsScreen />} />
         {/* /measurement/:id - id = buildingId (nowy pomiar dla budynku) */}
         <Route path="/measurement/:id" element={<MeasurementScreen />} />
-        <Route path="/summary" element={<SummaryScreen />} />
+        <Route path="/summary/:inspectionId" element={<SummaryScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { Home, FileDown, CheckCircle, Plus } from 'lucide-react'
 import { useAppStore } from '../store/useAppStore'
 import { SignaturePanel } from './organisms'
@@ -18,7 +18,12 @@ export const SummaryScreen: React.FC = () => {
     setOwnerSignature,
     updateInspectionNotes,
     saveToFirestore,
+    fetchInspectionById,
+    fetchBuildingById,
   } = useAppStore()
+
+  // Read inspectionId from URL params (reload-safe)
+  const { inspectionId } = useParams<{ inspectionId: string }>()
 
   // Priorytet: dane z nawigacji (kliknięcie w listę) > dane ze store'a (nowy pomiar)
   const locationState = location.state as
@@ -36,6 +41,20 @@ export const SummaryScreen: React.FC = () => {
   const buildingId = locationState?.buildingId || inspection?.buildingId
   const [notes, setNotes] = useState(inspection?.notes || '')
   const [isSignatureVisible, setSignatureVisible] = useState(false)
+
+  // Fetch inspection from Firestore if not in store (e.g. on page reload)
+  useEffect(() => {
+    if (inspectionId && !inspection) {
+      fetchInspectionById(inspectionId)
+    }
+  }, [inspectionId, inspection, fetchInspectionById])
+
+  // Fetch building data for navigation (e.g. on page reload)
+  useEffect(() => {
+    if (buildingId) {
+      fetchBuildingById(buildingId)
+    }
+  }, [buildingId, fetchBuildingById])
 
   useEffect(() => {
     if (locationState?.inspection) {

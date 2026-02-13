@@ -10,6 +10,8 @@ import {
   onSnapshot,
   addDoc,
   serverTimestamp,
+  doc,
+  getDoc,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 import { deleteBuildingFromFirestore } from '../../services'
@@ -25,6 +27,7 @@ export interface BuildingSlice {
   unsubscribeFromBuildings: () => void
   addBuilding: (projectId: string, street: string, zipCode: string, city: string, userId: string) => Promise<void>
   deleteBuilding: (id: string) => Promise<void>
+  fetchBuildingById: (buildingId: string) => Promise<void>
   resetBuildings: () => void
 }
 
@@ -224,6 +227,46 @@ export const createBuildingSlice: StateCreator<
         logger.error(`❌ Error deleting building ${id}:`, error)
         // TODO: Można dodać rollback - przywrócić budynek do listy
       })
+  },
+
+  /**
+   * Fetch a single building by ID from Firestore.
+   * Used when landing directly on /building/:id or /measurement/:id on page reload.
+   */
+  fetchBuildingById: async (buildingId: string) => {
+    const { buildings } = get()
+    if (buildings.find((b) => b.id === buildingId)) {
+      return // Already in store
+    }
+
+    logger.log(`🔍 Fetching building ${buildingId} from Firestore...`)
+    try {
+      const snap = await getDoc(doc(db, 'buildings', buildingId))
+      if (snap.exists()) {
+        const data = snap.data()
+        const building: Building = {
+          id: snap.id,
+          projectId: data.projectId,
+          name: data.name,
+          street: data.street || data.name || '',
+          zipCode: data.zipCode || '',
+          city: data.city || '',
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+          updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
+          userId: data.userId || '',
+        }
+        // Merge into existing buildings array
+        const current = get().buildings
+        if (!current.find((b) => b.id === buildingId)) {
+          set({ buildings: [...current, building] })
+        }
+        logger.log(`✅ Building ${buildingId} fetched successfully`)
+      } else {
+        logger.error(`❌ Building ${buildingId} not found in Firestore`)
+      }
+    } catch (error) {
+      logger.error(`❌ Error fetching building ${buildingId}:`, error)
+    }
   },
 
   /**

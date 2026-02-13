@@ -23,6 +23,8 @@ import {
   where,
   orderBy,
   onSnapshot,
+  doc,
+  getDoc,
 } from 'firebase/firestore'
 import { db } from '../../firebase'
 
@@ -79,6 +81,7 @@ export interface InspectionSlice {
   subscribeToProjectInspections: (projectId: string) => void
   unsubscribeFromProjectInspections: () => void
   deleteInspection: (id: string) => Promise<void>
+  fetchInspectionById: (inspectionId: string) => Promise<void>
   markInspectionAsSynced: (inspectionId: string) => void
   resetInspections: () => void
 }
@@ -682,6 +685,49 @@ export const createInspectionSlice: StateCreator<
           synced: true,
         },
       })
+    }
+  },
+
+  /**
+   * Fetch a single inspection by ID from Firestore.
+   * Used when landing directly on /summary/:inspectionId on page reload.
+   */
+  fetchInspectionById: async (inspectionId: string) => {
+    const { currentInspection } = get()
+    if (currentInspection?.id === inspectionId) {
+      return // Already loaded
+    }
+
+    logger.log(`🔍 Fetching inspection ${inspectionId} from Firestore...`)
+    try {
+      const snap = await getDoc(doc(db, 'inspections', inspectionId))
+      if (snap.exists()) {
+        const data = snap.data()
+        const inspection: Inspection = {
+          id: snap.id,
+          projectId: data.projectId,
+          buildingId: data.buildingId,
+          address: data.address,
+          apartmentNumber: data.apartmentNumber,
+          ownerName: data.ownerName || '',
+          date: data.date?.toDate ? data.date.toDate() : new Date(),
+          technicianName: data.technicianName || data.technician || '',
+          technicianLicenseNumber: data.technicianLicenseNumber || '',
+          technicianSignature: data.technicianSignature || '',
+          measurements: data.measurements || [],
+          notes: data.notes || '',
+          ownerSignature: data.ownerSignature || data.signature || '',
+          protocolNumber: data.protocolNumber,
+          synced: data.synced ?? true,
+          status: data.status || 'COMPLETED',
+        }
+        set({ currentInspection: inspection })
+        logger.log(`✅ Inspection ${inspectionId} fetched successfully`)
+      } else {
+        logger.error(`❌ Inspection ${inspectionId} not found in Firestore`)
+      }
+    } catch (error) {
+      logger.error(`❌ Error fetching inspection ${inspectionId}:`, error)
     }
   },
 
