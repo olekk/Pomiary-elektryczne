@@ -38,8 +38,13 @@ function App() {
       setOnlineStatus(false)
     }
 
-    // Set initial state
+    // Set initial state + auto-sync pending uploads if already online
     setOnlineStatus(navigator.onLine)
+    if (navigator.onLine) {
+      retryPendingSync().catch((error) => {
+        logger.error('❌ Auto-sync on page load failed:', error)
+      })
+    }
 
     // Listen for network changes
     window.addEventListener('online', handleOnline)
