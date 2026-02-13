@@ -10,6 +10,7 @@ import { SummaryScreen } from './components/SummaryScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { useAppStore } from './store/useAppStore'
+import { logger } from './utils/logger'
 
 function App() {
   // Atomowe selektory Zustand dla optymalizacji re-renderów
@@ -27,13 +28,13 @@ function App() {
   // ❌ NO manual enableNetwork - trust Firebase SDK
   useEffect(() => {
     const handleOnline = () => {
-      console.log('🌐 UI detected: Online')
+      logger.log('🌐 UI detected: Online')
       setOnlineStatus(true)
       retryPendingSync()
     }
 
     const handleOffline = () => {
-      console.log('📴 UI detected: Offline')
+      logger.log('📴 UI detected: Offline')
       setOnlineStatus(false)
     }
 
@@ -54,7 +55,7 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        console.log('✅ User authenticated:', firebaseUser.email)
+        logger.log('✅ User authenticated:', firebaseUser.email)
         setUser(firebaseUser)
         try {
           await loadUserSettings(firebaseUser.uid)
@@ -62,7 +63,7 @@ function App() {
           console.error('Error loading user settings:', error)
         }
       } else {
-        console.log('❌ User logged out')
+        logger.log('❌ User logged out')
         setUser(null)
         resetUserSettings()
       }

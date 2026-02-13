@@ -1,6 +1,8 @@
 import type { StateCreator } from 'zustand'
 import type { Inspection } from '../../types'
 import { retrySyncInspection } from '../../services'
+import type { InspectionSlice } from './inspectionSlice'
+import { logger } from '../../utils/logger'
 
 export interface OfflineSlice {
   isOnline: boolean
@@ -21,11 +23,11 @@ export const createOfflineSlice: StateCreator<
   },
 
   retryPendingSync: async () => {
-    const state = get() as any
+    const state = get() as OfflineSlice & InspectionSlice
     const { inspections, markInspectionAsSynced } = state
     const pendingInspections = inspections.filter((i: Inspection) => !i.synced)
 
-    console.log(
+    logger.log(
       `🔄 Retrying sync for ${pendingInspections.length} pending inspections...`
     )
 

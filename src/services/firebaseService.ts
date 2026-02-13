@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, Project, UserSettings } from '../types'
+import { logger } from '../utils/logger'
 import { ensureDate } from '../utils'
 
 /**
@@ -49,7 +50,7 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   )
   const buildingsSnapshot = await getDocs(buildingsQuery)
 
-  console.log(
+  logger.log(
     `🗑️  Cascading delete: Found ${buildingsSnapshot.size} buildings to delete for project ${id}`
   )
 
@@ -64,7 +65,7 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   )
   const inspectionsSnapshot = await getDocs(inspectionsQuery)
 
-  console.log(
+  logger.log(
     `🗑️  Cascading delete: Found ${inspectionsSnapshot.size} inspections to delete for project ${id}`
   )
 
@@ -75,7 +76,7 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   // 4. Execute atomic batch operation (all or nothing)
   await batch.commit()
 
-  console.log(
+  logger.log(
     `✅ Successfully deleted project ${id} with ${buildingsSnapshot.size} buildings and ${inspectionsSnapshot.size} inspections`
   )
 }
@@ -100,7 +101,7 @@ export const deleteBuildingFromFirestore = async (
   )
   const inspectionsSnapshot = await getDocs(inspectionsQuery)
 
-  console.log(
+  logger.log(
     `🗑️  Cascading delete: Found ${inspectionsSnapshot.size} inspections to delete for building ${id}`
   )
 
@@ -111,7 +112,7 @@ export const deleteBuildingFromFirestore = async (
   // 3. Execute atomic batch operation (all or nothing)
   await batch.commit()
 
-  console.log(
+  logger.log(
     `✅ Successfully deleted building ${id} and ${inspectionsSnapshot.size} related inspections`
   )
 }
@@ -181,10 +182,10 @@ export const retrySyncInspection = async (
   try {
     await saveInspectionToFirestore(inspection, inspection.id)
     await markInspectionAsSynced(inspection.id)
-    console.log(`✅ Retry successful for inspection ${inspection.id}`)
+    logger.log(`✅ Retry successful for inspection ${inspection.id}`)
     return true
   } catch (error) {
-    console.error(`❌ Retry failed for inspection ${inspection.id}:`, error)
+    logger.error(`❌ Retry failed for inspection ${inspection.id}:`, error)
     return false
   }
 }

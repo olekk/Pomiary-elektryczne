@@ -1,5 +1,6 @@
 import type { User } from 'firebase/auth'
 import type { StateCreator } from 'zustand'
+import { logger } from '../../utils/logger'
 
 export interface AuthSlice {
   user: User | null
@@ -20,7 +21,7 @@ export const createAuthSlice: StateCreator<
   },
 
   resetAuth: () => {
-    console.log('🧹 Resetting auth state')
+    logger.log('🧹 Resetting auth state')
     set({ user: null })
   },
 })

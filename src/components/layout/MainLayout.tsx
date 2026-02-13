@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth'
 import { auth } from '../../firebase'
 import { useAppStore, resetAllStores } from '../../store/useAppStore'
 import { StatusBadge } from '../molecules'
+import { logger } from '../../utils/logger'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -38,22 +39,22 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       try {
         // 🛡️ GHOST DATA PROTECTION: 3-step cleanup process
         // Step 1: Unsubscribe from all realtime listeners
-        console.log('🧹 Step 1/3: Unsubscribing from realtime listeners...')
+        logger.log('🧹 Step 1/3: Unsubscribing from realtime listeners...')
         unsubscribeFromProjects()
         unsubscribeFromBuildings()
         unsubscribeFromInspections()
 
         // Step 2: Clear all store data (CRITICAL - prevents data leaks!)
-        console.log('🧹 Step 2/3: Clearing all stores...')
+        logger.log('🧹 Step 2/3: Clearing all stores...')
         resetAllStores()
 
         // Step 3: Sign out from Firebase Auth
-        console.log('🧹 Step 3/3: Signing out from Firebase...')
+        logger.log('🧹 Step 3/3: Signing out from Firebase...')
         await signOut(auth)
 
-        console.log('✅ Logout complete - all data cleared')
+        logger.log('✅ Logout complete - all data cleared')
       } catch (error) {
-        console.error('Błąd wylogowania:', error)
+        logger.error('Błąd wylogowania:', error)
         alert('Błąd podczas wylogowania')
       }
     }

@@ -11,6 +11,7 @@ import {
   createUserSettingsSlice,
   type UserSettingsSlice,
 } from './slices/userSettingsSlice'
+import { logger } from '../utils/logger'
 
 type AppStore = AuthSlice &
   ProjectSlice &
@@ -35,7 +36,7 @@ export const useAppStore = create<AppStore>()((...a) => ({
 export const resetAllStores = () => {
   const store = useAppStore.getState()
   
-  console.log('🧹 Resetting ALL stores (Ghost Data Protection)')
+  logger.log('🧹 Resetting ALL stores (Ghost Data Protection)')
   
   // Reset each slice using their dedicated reset methods
   store.resetAuth()
@@ -44,5 +45,5 @@ export const resetAllStores = () => {
   store.resetBuildings()
   store.resetUserSettings()
   
-  console.log('✅ All stores cleared successfully')
+  logger.log('✅ All stores cleared successfully')
 }

@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { Inspection } from '../../types'
+import { logger } from '../../utils/logger'
 import type { Unsubscribe } from 'firebase/firestore'
 import {
   saveInspectionToFirestore,
@@ -194,7 +195,7 @@ export const createInspectionSlice: StateCreator<
     saveInspectionToFirestore(inaccessibleInspection, savedId)
       .then(async () => {
         await markInspectionAsSynced(savedId)
-        console.log(`✅ Inaccessible inspection ${savedId} synced`)
+        logger.log(`✅ Inaccessible inspection ${savedId} synced`)
         const currentState = get() as InspectionSlice
         const syncedList = currentState.inspections.map((insp: Inspection) =>
           insp.id === savedId ? { ...insp, synced: true } : insp
@@ -206,7 +207,7 @@ export const createInspectionSlice: StateCreator<
         })
       })
       .catch((error) => {
-        console.error(
+        logger.error(
           `❌ Sync failed for inaccessible inspection ${savedId}:`,
           error
         )
@@ -405,7 +406,7 @@ export const createInspectionSlice: StateCreator<
     saveInspectionToFirestore(optimisticInspection, savedId)
       .then(async () => {
         await markInspectionAsSynced(savedId)
-        console.log(`✅ Inspection ${savedId} synced successfully`)
+        logger.log(`✅ Inspection ${savedId} synced successfully`)
         
         const currentState = get() as InspectionSlice
         const syncedList = currentState.inspections.map((insp: Inspection) =>
@@ -428,9 +429,9 @@ export const createInspectionSlice: StateCreator<
         }
       })
       .catch((error) => {
-        console.error(`❌ Sync failed for inspection ${savedId}:`, error)
+        logger.error(`❌ Sync failed for inspection ${savedId}:`, error)
         if ((error as { code?: string })?.code === 'unavailable') {
-          console.log('📴 Offline mode: Data queued, will sync when online')
+          logger.log('📴 Offline mode: Data queued, will sync when online')
         }
         // NIE rzucamy błędu - użytkownik już widzi zaktualizowane dane w UI
         // Firebase automatycznie spróbuje ponownie gdy będzie internet
@@ -445,7 +446,7 @@ export const createInspectionSlice: StateCreator<
    * - Ghost Data Protection: Clears data when switching buildings
    */
   subscribeToInspections: (buildingId: string) => {
-    console.log(
+    logger.log(
       `🔔 Subscribing to inspections for building ${buildingId} (Stale-While-Revalidate)...`
     )
 
@@ -453,7 +454,7 @@ export const createInspectionSlice: StateCreator<
 
     // 🛡️ GHOST DATA PROTECTION: Check if building ID changed
     if (loadedBuildingId !== buildingId) {
-      console.log(
+      logger.log(
         `🧹 Building changed (${loadedBuildingId} → ${buildingId}) - clearing ghost data`
       )
       set({
@@ -465,10 +466,10 @@ export const createInspectionSlice: StateCreator<
     } else {
       // 🎯 STALE-WHILE-REVALIDATE: Same building, check if we have stale data
       if (inspections.length === 0) {
-        console.log('📭 No stale data - showing spinner')
+        logger.log('📭 No stale data - showing spinner')
         set({ isLoadingInspections: true })
       } else {
-        console.log(
+        logger.log(
           `♻️  Showing ${inspections.length} stale inspections while revalidating`
         )
       }
@@ -476,7 +477,7 @@ export const createInspectionSlice: StateCreator<
 
     // Cleanup existing subscription to avoid duplicates
     if (unsubscribeInspections) {
-      console.log('🧹 Cleaning up existing inspections subscription')
+      logger.log('🧹 Cleaning up existing inspections subscription')
       unsubscribeInspections()
     }
 
@@ -520,7 +521,7 @@ export const createInspectionSlice: StateCreator<
 
         const pendingCount = inspections.filter((i) => !i.synced).length
 
-        console.log(
+        logger.log(
           `📥 Inspections snapshot: ${inspections.length} inspections, ${pendingCount} pending (fromCache: ${snapshot.metadata.fromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites})`
         )
 
@@ -531,7 +532,7 @@ export const createInspectionSlice: StateCreator<
         })
       },
       (error) => {
-        console.error(
+        logger.error(
           '❌ Inspections subscription error:',
           error.code,
           error.message
@@ -547,7 +548,7 @@ export const createInspectionSlice: StateCreator<
    * Call this on component unmount or when switching projects
    */
   unsubscribeFromInspections: () => {
-    console.log('🔕 Unsubscribing from inspections')
+    logger.log('🔕 Unsubscribing from inspections')
     if (unsubscribeInspections) {
       unsubscribeInspections()
       unsubscribeInspections = null
@@ -559,7 +560,7 @@ export const createInspectionSlice: StateCreator<
    * Used in ProjectDetailsScreen to compute per-building stats.
    */
   subscribeToProjectInspections: (projectId: string) => {
-    console.log(
+    logger.log(
       `🔔 Subscribing to project inspections for project ${projectId}...`
     )
 
@@ -604,7 +605,7 @@ export const createInspectionSlice: StateCreator<
           })
         })
 
-        console.log(
+        logger.log(
           `📥 Project inspections snapshot: ${projectInspections.length} inspections`
         )
 
@@ -614,7 +615,7 @@ export const createInspectionSlice: StateCreator<
         })
       },
       (error) => {
-        console.error(
+        logger.error(
           '❌ Project inspections subscription error:',
           error.code,
           error.message
@@ -625,7 +626,7 @@ export const createInspectionSlice: StateCreator<
   },
 
   unsubscribeFromProjectInspections: () => {
-    console.log('🔕 Unsubscribing from project inspections')
+    logger.log('🔕 Unsubscribing from project inspections')
     if (unsubscribeProjectInspections) {
       unsubscribeProjectInspections()
       unsubscribeProjectInspections = null
@@ -642,10 +643,10 @@ export const createInspectionSlice: StateCreator<
     // KROK 2: Background sync (Fire-and-Forget)
     deleteInspectionFromFirestore(id)
       .then(() => {
-        console.log(`✅ Inspection ${id} deleted from Firestore`)
+        logger.log(`✅ Inspection ${id} deleted from Firestore`)
       })
       .catch((error) => {
-        console.error(`❌ Error deleting inspection ${id}:`, error)
+        logger.error(`❌ Error deleting inspection ${id}:`, error)
         // TODO: Można dodać rollback - przywrócić inspekcję do listy
         // ale na razie zostawiamy jako fire-and-forget
       })
@@ -664,7 +665,7 @@ export const createInspectionSlice: StateCreator<
 
     const newPendingCount = syncedList.filter((i) => !i.synced).length
 
-    console.log(
+    logger.log(
       `✅ Marked inspection ${inspectionId} as synced (${newPendingCount} pending)`
     )
 
@@ -685,7 +686,7 @@ export const createInspectionSlice: StateCreator<
   },
 
   resetInspections: () => {
-    console.log('🧹 Resetting inspections state')
+    logger.log('🧹 Resetting inspections state')
     if (unsubscribeProjectInspections) {
       unsubscribeProjectInspections()
       unsubscribeProjectInspections = null

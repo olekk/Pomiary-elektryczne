@@ -11,9 +11,6 @@ export default defineConfig({
       srcDir: 'public',
       filename: 'sw.js',
       registerType: 'autoUpdate',
-      injectManifest: {
-        injectionPoint: undefined,
-      },
       manifest: {
         name: 'Pomiary Elektryczne',
         short_name: 'Pomiary',

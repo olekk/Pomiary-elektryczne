@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { Building } from '../../types'
+import { logger } from '../../utils/logger'
 import type { Unsubscribe } from 'firebase/firestore'
 import {
   collection,
@@ -45,7 +46,7 @@ export const createBuildingSlice: StateCreator<
    * - Ghost Data Protection: Clears data when switching projects
    */
   subscribeToBuildings: (projectId: string) => {
-    console.log(
+    logger.log(
       `🔔 Subscribing to buildings for project ${projectId} (Stale-While-Revalidate)...`
     )
 
@@ -53,7 +54,7 @@ export const createBuildingSlice: StateCreator<
 
     // 🛡️ GHOST DATA PROTECTION: Check if project ID changed
     if (loadedProjectId !== projectId) {
-      console.log(
+      logger.log(
         `🧹 Project changed (${loadedProjectId} → ${projectId}) - clearing ghost data`
       )
       set({
@@ -64,10 +65,10 @@ export const createBuildingSlice: StateCreator<
     } else {
       // 🎯 STALE-WHILE-REVALIDATE: Same project, check if we have stale data
       if (buildings.length === 0) {
-        console.log('📭 No stale data - showing spinner')
+        logger.log('📭 No stale data - showing spinner')
         set({ isLoadingBuildings: true })
       } else {
-        console.log(
+        logger.log(
           `♻️  Showing ${buildings.length} stale buildings while revalidating`
         )
       }
@@ -75,7 +76,7 @@ export const createBuildingSlice: StateCreator<
 
     // Cleanup existing subscription to avoid duplicates
     if (unsubscribeBuildings) {
-      console.log('🧹 Cleaning up existing buildings subscription')
+      logger.log('🧹 Cleaning up existing buildings subscription')
       unsubscribeBuildings()
     }
 
@@ -113,7 +114,7 @@ export const createBuildingSlice: StateCreator<
           })
         })
 
-        console.log(
+        logger.log(
           `📥 Buildings snapshot: ${buildings.length} buildings (fromCache: ${snapshot.metadata.fromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites})`
         )
 
@@ -123,7 +124,7 @@ export const createBuildingSlice: StateCreator<
         })
       },
       (error) => {
-        console.error(
+        logger.error(
           '❌ Buildings subscription error:',
           error.code,
           error.message
@@ -139,7 +140,7 @@ export const createBuildingSlice: StateCreator<
    * Call this on component unmount or when switching projects
    */
   unsubscribeFromBuildings: () => {
-    console.log('🔕 Unsubscribing from buildings')
+    logger.log('🔕 Unsubscribing from buildings')
     if (unsubscribeBuildings) {
       unsubscribeBuildings()
       unsubscribeBuildings = null
@@ -150,7 +151,7 @@ export const createBuildingSlice: StateCreator<
    * Add a new building (Offline-First with Optimistic Update)
    */
   addBuilding: async (projectId: string, street: string, zipCode: string, city: string, userId: string) => {
-    console.log(`➕ Adding building: ${street}, ${zipCode} ${city} to project ${projectId}`)
+    logger.log(`➕ Adding building: ${street}, ${zipCode} ${city} to project ${projectId}`)
 
     // KROK 1: Optimistic Update - dodaj do lokalnej listy NATYCHMIAST
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -181,7 +182,7 @@ export const createBuildingSlice: StateCreator<
       updatedAt: serverTimestamp(),
     })
       .then((docRef) => {
-        console.log(`✅ Building created with ID: ${docRef.id}`)
+        logger.log(`✅ Building created with ID: ${docRef.id}`)
         
         // Replace temporary ID with real ID (onSnapshot will also handle this)
         const updatedBuildings = get().buildings.map((b) =>
@@ -190,7 +191,7 @@ export const createBuildingSlice: StateCreator<
         set({ buildings: updatedBuildings })
       })
       .catch((error) => {
-        console.error('❌ Error adding building:', error)
+        logger.error('❌ Error adding building:', error)
         // Rollback optimistic update on error
         const { buildings } = get()
         set({
@@ -206,7 +207,7 @@ export const createBuildingSlice: StateCreator<
    * Removes building AND all related inspections atomically
    */
   deleteBuilding: async (id: string) => {
-    console.log(`🗑️  Deleting building: ${id}`)
+    logger.log(`🗑️  Deleting building: ${id}`)
 
     // KROK 1: Optimistic Update - usuń z lokalnej listy NATYCHMIAST
     const { buildings } = get()
@@ -217,10 +218,10 @@ export const createBuildingSlice: StateCreator<
     // KROK 2: Background sync (Fire-and-Forget) - cascading delete w tle
     deleteBuildingFromFirestore(id)
       .then(() => {
-        console.log(`✅ Building ${id} deleted successfully with cascading delete`)
+        logger.log(`✅ Building ${id} deleted successfully with cascading delete`)
       })
       .catch((error) => {
-        console.error(`❌ Error deleting building ${id}:`, error)
+        logger.error(`❌ Error deleting building ${id}:`, error)
         // TODO: Można dodać rollback - przywrócić budynek do listy
       })
   },
@@ -229,7 +230,7 @@ export const createBuildingSlice: StateCreator<
    * Reset buildings state (called on logout)
    */
   resetBuildings: () => {
-    console.log('🧹 Resetting buildings state')
+    logger.log('🧹 Resetting buildings state')
     if (unsubscribeBuildings) {
       unsubscribeBuildings()
       unsubscribeBuildings = null

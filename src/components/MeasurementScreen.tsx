@@ -8,6 +8,7 @@ import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
 import type { ProtectionType, Amperage, Room } from '../types'
+import { getFullAddress } from '../utils/addressHelper'
 import { validateMeasurementValue } from '../utils'
 
 export const MeasurementScreen: React.FC = () => {
@@ -96,7 +97,7 @@ export const MeasurementScreen: React.FC = () => {
 
   // Znajdź nazwę budynku
   const currentBuilding = buildings.find((b) => b.id === buildingId)
-  const buildingName = currentBuilding?.name || 'Nieznany budynek'
+  const buildingName = currentBuilding ? getFullAddress(currentBuilding) : 'Nieznany budynek'
 
   return (
     <MainLayout

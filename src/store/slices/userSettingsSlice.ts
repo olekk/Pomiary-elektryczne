@@ -4,6 +4,7 @@ import {
   getUserSettingsFromFirestore,
   saveUserSettingsToFirestore,
 } from '../../services'
+import { logger } from '../../utils/logger'
 
 const USER_SETTINGS_STORAGE_KEY = 'userSettings'
 
@@ -95,9 +96,9 @@ export const createUserSettingsSlice: StateCreator<
       const isAbortError = error instanceof Error && error.name === 'AbortError'
       
       if (isAbortError) {
-        console.log('⚠️ User settings load was aborted (this is OK)')
+        logger.log('⚠️ User settings load was aborted (this is OK)')
       } else {
-        console.error('Error loading user settings from cloud:', error)
+        logger.error('Error loading user settings from cloud:', error)
       }
 
       const localFallbackSettings = readUserSettingsFromLocal(userId)
@@ -105,7 +106,7 @@ export const createUserSettingsSlice: StateCreator<
         // Jeśli to AbortError i nie ma lokalnych ustawień, nie rzucaj błędu
         // Aplikacja może działać z pustymi ustawieniami
         if (isAbortError) {
-          console.log('⚠️ No local fallback settings, continuing with empty state')
+          logger.log('⚠️ No local fallback settings, continuing with empty state')
           set({
             technicianName: '',
             technicianLicenseNumber: '',
@@ -142,10 +143,10 @@ export const createUserSettingsSlice: StateCreator<
     // KROK 3: Background sync (Fire-and-Forget) - NIE blokuje UI!
     saveUserSettingsToFirestore(userId, settings)
       .then(() => {
-        console.log('✅ User settings synced to Firestore')
+        logger.log('✅ User settings synced to Firestore')
       })
       .catch((error) => {
-        console.error('❌ Failed to sync user settings to Firestore:', error)
+        logger.error('❌ Failed to sync user settings to Firestore:', error)
         // Dane są już zapisane lokalnie, więc użytkownik nie traci pracy
         // Firebase spróbuje ponownie gdy będzie internet
       })

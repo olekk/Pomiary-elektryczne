@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { Project } from '../../types'
+import { logger } from '../../utils/logger'
 import type { Unsubscribe } from 'firebase/firestore'
 import {
   saveProjectToFirestore,
@@ -52,7 +53,7 @@ export const createProjectSlice: StateCreator<
     // Fire-and-forget: Save to Firestore in background
     saveProjectToFirestore(newProject)
       .then(() => {
-        console.log(`✅ Project ${projectId} saved successfully`)
+        logger.log(`✅ Project ${projectId} saved successfully`)
       })
       .catch((error) => {
         console.error(`❌ Failed to save project ${projectId}:`, error)
@@ -70,13 +71,17 @@ export const createProjectSlice: StateCreator<
    * - Ghost Data Protection: Clears data when switching users
    */
   subscribeToProjects: (userId: string) => {
-    console.log(`🔔 Subscribing to projects for user ${userId} (Stale-While-Revalidate)...`)
+    logger.log(
+      `🔔 Subscribing to projects for user ${userId} (Stale-While-Revalidate)...`
+    )
     
     const { projects, loadedUserId } = get()
     
     // 🛡️ GHOST DATA PROTECTION: Check if user ID changed
     if (loadedUserId !== userId) {
-      console.log(`🧹 User changed (${loadedUserId} → ${userId}) - clearing ghost data`)
+      logger.log(
+        `🧹 User changed (${loadedUserId} → ${userId}) - clearing ghost data`
+      )
       set({ 
         projects: [], // Clear old user data immediately
         loadedUserId: userId, // Update loaded user ID
@@ -85,16 +90,18 @@ export const createProjectSlice: StateCreator<
     } else {
       // 🎯 STALE-WHILE-REVALIDATE: Same user, check if we have stale data
       if (projects.length === 0) {
-        console.log('📭 No stale data - showing spinner')
+        logger.log('📭 No stale data - showing spinner')
         set({ isLoadingProjects: true })
       } else {
-        console.log(`♻️  Showing ${projects.length} stale projects while revalidating`)
+        logger.log(
+          `♻️  Showing ${projects.length} stale projects while revalidating`
+        )
       }
     }
 
     // Cleanup existing subscription to avoid duplicates
     if (unsubscribeProjects) {
-      console.log('🧹 Cleaning up existing subscription')
+      logger.log('🧹 Cleaning up existing projects subscription')
       unsubscribeProjects()
     }
 
@@ -121,14 +128,16 @@ export const createProjectSlice: StateCreator<
           })
         })
 
-        console.log(
+        logger.log(
           `📥 Projects snapshot: ${projects.length} projects (fromCache: ${snapshot.metadata.fromCache}, hasPendingWrites: ${snapshot.metadata.hasPendingWrites})`
         )
 
         set({ projects, isLoadingProjects: false })
       },
       (error) => {
-        console.error('❌ Projects subscription error:', error.code, error.message)
+        logger.error(
+          '❌ Projects subscription error:',
+          error.code, error.message)
         // Set loading to false even on error to prevent infinite spinner
         set({ isLoadingProjects: false })
       }
@@ -140,7 +149,7 @@ export const createProjectSlice: StateCreator<
    * Call this on component unmount or user logout
    */
   unsubscribeFromProjects: () => {
-    console.log('🔕 Unsubscribing from projects')
+    logger.log('🔕 Unsubscribing from projects')
     if (unsubscribeProjects) {
       unsubscribeProjects()
       unsubscribeProjects = null
@@ -157,10 +166,10 @@ export const createProjectSlice: StateCreator<
     // KROK 2: Background sync (Fire-and-Forget)
     deleteProjectFromFirestore(id)
       .then(() => {
-        console.log(`✅ Project ${id} deleted successfully`)
+        logger.log(`🗑️  Deleting project: ${id} deleted successfully`)
       })
       .catch((error) => {
-        console.error(`❌ Error deleting project ${id}:`, error)
+        logger.error('❌ Error creating project:', error)
         // TODO: Można dodać rollback - przywrócić projekt do listy
       })
   },
@@ -170,7 +179,7 @@ export const createProjectSlice: StateCreator<
   },
 
   resetProjects: () => {
-    console.log('🧹 Resetting projects state')
+    logger.log('🧹 Resetting projects state')
     set({ 
       projects: [], 
       currentProjectId: null, 
