@@ -7,6 +7,7 @@ import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { countMeasurementsByResult } from '../utils'
 import type { Inspection } from '../types'
+import { logger } from '../utils/logger'
 
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -68,7 +69,7 @@ export const SummaryScreen: React.FC = () => {
     // KROK 3: Background sync - Firebase w tle (NIE blokuje UI!)
     saveToFirestore(ownerSignature)
       .catch((error) => {
-        console.error('❌ Error saving signature:', error)
+        logger.error('❌ Error saving signature:', error)
         // UI już pokazuje nowy podpis, synchronizacja nastąpi później
       })
     
@@ -98,7 +99,7 @@ export const SummaryScreen: React.FC = () => {
     // KROK 3: Background sync - Firebase w tle (NIE blokuje nawigacji!)
     saveToFirestore(inspection?.ownerSignature ?? '')
       .catch((error) => {
-        console.error('❌ Error saving inspection:', error)
+        logger.error('❌ Error saving inspection:', error)
         // Użytkownik już przeszedł dalej, dane synchronizują się w tle
       })
 

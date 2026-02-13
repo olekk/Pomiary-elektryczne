@@ -9,29 +9,30 @@ import {
   Font,
 } from '@react-pdf/renderer'
 import type { Inspection } from '../types'
+import { logger } from '../utils/logger'
 
 interface PdfGeneratorProps {
   inspection: Inspection
 }
 
 // Rejestracja fontów Roboto dla offline PDF
-// Fonty są cache'owane przez Service Worker dla trybu offline
+// Fonty są precache'owane przez Service Worker dla trybu offline
 try {
   Font.register({
     family: 'Roboto',
     fonts: [
       {
-        src: '/fonts/Roboto-Regular.ttf', // Cache'owane przez SW
+        src: '/fonts/Roboto-Regular.ttf', // Precache'owane przez SW
         fontWeight: 'normal',
       },
       {
-        src: '/fonts/Roboto-Bold.ttf', // Cache'owane przez SW
+        src: '/fonts/Roboto-Bold.ttf', // Precache'owane przez SW
         fontWeight: 'bold',
       },
     ],
   })
 } catch (error) {
-  console.warn('Failed to register Roboto fonts, using default font:', error)
+  logger.warn('Failed to register Roboto fonts, using default font:', error)
   // Fallback: @react-pdf/renderer użyje domyślnego fontu systemowego
 }
 

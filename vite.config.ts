@@ -11,6 +11,12 @@ export default defineConfig({
       srcDir: 'public',
       filename: 'sw.js',
       registerType: 'autoUpdate',
+      injectManifest: {
+        // Include font files in SW precache — required for offline PDF generation
+        // @react-pdf/renderer fetches fonts via plain fetch(), not as font requests,
+        // so runtime caching with request.destination === 'font' won't work
+        globPatterns: ['**/*.{js,css,html,png,webmanifest,ttf}'],
+      },
       manifest: {
         name: 'Pomiary Elektryczne',
         short_name: 'Pomiary',
