@@ -48,7 +48,7 @@ export const MeasurementScreen: React.FC = () => {
   }, [currentInspection, navigate, buildingId])
 
   const buildingDocRef = useMemo(() => buildingId ? doc(db, 'buildings', buildingId) : null, [buildingId])
-  const { data: currentBuilding } = useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
+  const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
 
   const handleEnterMeasurement = () => {
     const validation = validateMeasurementValue(inputValue)
@@ -84,7 +84,11 @@ export const MeasurementScreen: React.FC = () => {
   }
 
   if (!currentInspection) return <div className="p-4">Ładowanie...</div>
-  const buildingName = currentBuilding ? getFullAddress(currentBuilding) : 'Nieznany budynek'
+  const buildingName = currentBuilding
+    ? getFullAddress(currentBuilding)
+    : isLoadingBuilding
+      ? 'Ładowanie…'
+      : 'Nieznany budynek'
 
   return (
     <MainLayout title="Nowy Pomiar" showBackBtn={true} backUrl={buildingId ? `/building/${buildingId}` : '/'}>

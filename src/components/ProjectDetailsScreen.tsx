@@ -102,7 +102,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     useCollection<Building>(buildingsQuery, buildingMapper, 'Buildings')
   const { data: projectInspections } =
     useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, 'ProjectInspections')
-  const { data: projects } =
+  const { data: projects, isLoading: isLoadingProjects } =
     useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'Projects')
 
   // Oblicz statystyki inspekcji per budynek
@@ -176,7 +176,7 @@ export const ProjectDetailsScreen: React.FC = () => {
 
   // Znajdź nazwę projektu
   const currentProject = projects.find((p) => p.id === projectId)
-  const projectName = currentProject?.name || 'Nieznany projekt'
+  const projectName = currentProject?.name || (isLoadingProjects ? 'Ładowanie…' : 'Nieznany projekt')
 
   // Jeśli brak projectId, przekieruj do głównego ekranu
   if (!projectId) {

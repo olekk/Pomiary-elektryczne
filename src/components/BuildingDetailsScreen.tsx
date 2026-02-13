@@ -101,13 +101,17 @@ export const BuildingDetailsScreen: React.FC = () => {
     [buildingId]
   )
 
-  const { data: currentBuilding } = useDocument<Building>(
+  const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(
     buildingDocRef,
     buildingMapper,
     'Building'
   )
 
-  const buildingName = currentBuilding ? getFullAddress(currentBuilding) : 'Nieznany budynek'
+  const buildingName = currentBuilding
+    ? getFullAddress(currentBuilding)
+    : isLoadingBuilding
+      ? 'Ładowanie…'
+      : 'Nieznany budynek'
   const projectId = currentBuilding?.projectId
 
   // Pobierz domyślne wartości

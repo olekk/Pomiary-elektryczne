@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   onSnapshot,
   type DocumentReference,
@@ -17,6 +17,15 @@ interface UseDocumentResult<T> {
  * Generic hook for subscribing to a single Firestore document.
  * Automatically subscribes on mount and unsubscribes on unmount.
  * Works offline via Firestore's persistentLocalCache.
+ *
+ * Key design decisions for offline resilience:
+ * - Uses `docRef.path` as a stable string key for useEffect so that
+ *   structurally identical refs don't cause re-subscriptions.
+ * - `includeMetadataChanges: true` ensures the callback fires
+ *   immediately from cache when offline (critical fix — without it
+ *   onSnapshot may wait forever for a server response).
+ * - Stale data is preserved on errors so the UI doesn't flash to
+ *   "Unknown building" on transient network failures.
  */
 export function useDocument<T>(
   docRef: DocumentReference<DocumentData> | null,
@@ -27,8 +36,21 @@ export function useDocument<T>(
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
+  // Stable string key: the document path (e.g. "buildings/abc123").
+  const docPath = docRef?.path ?? '__null__'
+
+  // Keep the latest refs accessible inside the effect
+  // without adding them as dependencies.
+  const docRefRef = useRef(docRef)
+  docRefRef.current = docRef
+
+  const mapperRef = useRef(mapper)
+  mapperRef.current = mapper
+
   useEffect(() => {
-    if (!docRef) {
+    const currentDocRef = docRefRef.current
+
+    if (!currentDocRef) {
       setData(null)
       setIsLoading(false)
       return
@@ -37,13 +59,19 @@ export function useDocument<T>(
     setIsLoading(true)
 
     const unsubscribe = onSnapshot(
-      docRef,
+      currentDocRef,
+      // CRITICAL: includeMetadataChanges ensures the callback fires
+      // immediately from the offline cache. Without this flag,
+      // Firestore may wait indefinitely for a server response.
+      { includeMetadataChanges: true },
       (snap) => {
         if (snap.exists()) {
-          const result = mapper(snap)
+          const result = mapperRef.current(snap)
           setData(result)
           if (label) {
-            logger.log(`📥 ${label}: loaded`)
+            logger.log(
+              `📥 ${label}: loaded (fromCache: ${snap.metadata.fromCache})`
+            )
           }
         } else {
           setData(null)
@@ -58,12 +86,14 @@ export function useDocument<T>(
         logger.error(`❌ ${label || 'Document'} error:`, err)
         setError(err)
         setIsLoading(false)
+        // Intentionally NOT clearing data here — keep stale data visible
+        // so the UI doesn't break on transient network errors.
       }
     )
 
     return () => unsubscribe()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [docRef, label])
+  }, [docPath, label])
 
   return { data, isLoading, error }
 }
