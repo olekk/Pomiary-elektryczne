@@ -35,9 +35,8 @@ function AppRoutes() {
         <Route path="/" element={<ProjectsScreen />} />
         <Route path="/project/:id" element={<ProjectDetailsScreen />} />
         <Route path="/building/:id" element={<BuildingDetailsScreen />} />
-        {/* /measurement/:id - id = buildingId (nowy pomiar dla budynku) */}
-        <Route path="/measurement/:id" element={<MeasurementScreen />} />
-        <Route path="/summary/:inspectionId" element={<SummaryScreen />} />
+        <Route path="/building/:buildingId/measurement" element={<MeasurementScreen />} />
+        <Route path="/building/:buildingId/summary/:inspectionId" element={<SummaryScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>

@@ -31,6 +31,7 @@ export const ProjectsScreen: React.FC = () => {
   const { data: projects, isLoading: isLoadingProjects } = useCollection<Project>(
     projectsQuery,
     projectMapper,
+    'all-projects',
     'Projects'
   )
 

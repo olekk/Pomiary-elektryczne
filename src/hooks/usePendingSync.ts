@@ -46,7 +46,7 @@ export function usePendingSync() {
     []
   )
 
-  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, 'PendingSync')
+  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, 'pending-sync', 'PendingSync')
 
   const pendingSyncCount = pendingInspections.length
 

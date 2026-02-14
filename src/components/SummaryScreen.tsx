@@ -39,11 +39,14 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { inspectionId } = useParams<{ inspectionId: string }>()
+  const { buildingId, inspectionId } = useParams<{ buildingId: string; inspectionId: string }>()
 
   const locationState = location.state as
     | { inspection: Inspection; buildingId: string }
     | null
+
+  // buildingId comes from URL first, then from location state, then from inspection data
+  const resolvedBuildingId = buildingId || locationState?.buildingId
 
   // Live Firestore subscription for reload case
   const inspectionDocRef = useMemo(
@@ -68,7 +71,7 @@ export const SummaryScreen: React.FC = () => {
   }, [firestoreInspection, localInspection])
 
   const inspection = localInspection || firestoreInspection
-  const buildingId = locationState?.buildingId || inspection?.buildingId
+  const effectiveBuildingId = resolvedBuildingId || inspection?.buildingId
 
   const [notes, setNotes] = useState(inspection?.notes || '')
   const [isSignatureVisible, setSignatureVisible] = useState(false)
@@ -118,16 +121,16 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const handleReturnToBuilding = () => {
-    navigate(buildingId ? `/building/${buildingId}` : '/')
+    navigate(effectiveBuildingId ? `/building/${effectiveBuildingId}` : '/')
   }
 
   const handleSaveAndAddNext = () => {
-    if (!buildingId || !inspection) {
+    if (!effectiveBuildingId || !inspection) {
       alert('Błąd: Brak ID budynku lub danych pomiaru')
       return
     }
     saveInspection(inspection.ownerSignature || '')
-    navigate(`/building/${buildingId}`, {
+    navigate(`/building/${effectiveBuildingId}`, {
       state: { lastApartmentNumber: inspection.apartmentNumber },
     })
   }

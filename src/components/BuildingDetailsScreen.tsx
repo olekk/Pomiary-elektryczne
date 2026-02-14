@@ -93,7 +93,7 @@ export const BuildingDetailsScreen: React.FC = () => {
   )
 
   const { data: inspections, isLoading: isLoadingInspections } =
-    useCollection<Inspection>(inspectionsQuery, inspectionMapper, 'Inspections')
+    useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
 
   // Subscribe to building document
   const buildingDocRef = useMemo(
@@ -180,7 +180,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
 
     setShowNewModal(false)
-    navigate(`/measurement/${buildingId}`, {
+    navigate(`/building/${buildingId}/measurement`, {
       state: { inspection: newInspection },
     })
   }
@@ -261,7 +261,7 @@ export const BuildingDetailsScreen: React.FC = () => {
 
     setEditingInspection(null)
     setShowNewModal(false)
-    navigate(`/measurement/${buildingId}`, {
+    navigate(`/building/${buildingId}/measurement`, {
       state: { inspection: resumedInspection },
     })
   }
@@ -280,7 +280,7 @@ export const BuildingDetailsScreen: React.FC = () => {
       setEditingInspection(inspection)
       setShowNewModal(true)
     } else {
-      navigate(`/summary/${inspection.id}`, {
+      navigate(`/building/${buildingId}/summary/${inspection.id}`, {
         state: {
           inspection,
           buildingId,

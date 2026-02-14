@@ -22,7 +22,7 @@ const buildingMapper = (snap: DocumentSnapshot): Building | null => {
 
 export const MeasurementScreen: React.FC = () => {
   const navigate = useNavigate()
-  const { id: buildingId } = useParams<{ id: string }>()
+  const { buildingId } = useParams<{ buildingId: string }>()
   const location = useLocation()
   const { user } = useAuth()
   const { technicianLicenseNumber } = useUserSettings(user?.uid)
@@ -80,7 +80,7 @@ export const MeasurementScreen: React.FC = () => {
     saveInspectionToFirestore(inspectionToSave, savedId)
       .then(async () => { await markInspectionAsSynced(savedId); logger.log(`✅ Inspection ${savedId} synced`) })
       .catch(err => logger.error(`❌ Sync failed for ${savedId}:`, err))
-    navigate(`/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
+    navigate(`/building/${buildingId}/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
   }
 
   if (!currentInspection) return <div className="p-4">Ładowanie...</div>

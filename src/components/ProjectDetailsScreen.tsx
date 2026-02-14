@@ -99,11 +99,11 @@ export const ProjectDetailsScreen: React.FC = () => {
   )
 
   const { data: buildings, isLoading: isLoadingBuildings } =
-    useCollection<Building>(buildingsQuery, buildingMapper, 'Buildings')
+    useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${projectId || 'none'}`, 'Buildings')
   const { data: projectInspections } =
-    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, 'ProjectInspections')
+    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${projectId || 'none'}`, 'ProjectInspections')
   const { data: projects, isLoading: isLoadingProjects } =
-    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'Projects')
+    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'all-projects', 'Projects')
 
   // Oblicz statystyki inspekcji per budynek
   const buildingStats = useMemo(() => {
