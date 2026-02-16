@@ -181,6 +181,15 @@ export const SummaryScreen: React.FC = () => {
       } else {
         alert(`Błąd podczas generowania PDF: ${errorMessage}`)
       }
+    } finally {
+      // PDF generation saturates iOS Safari's connection pool, killing
+      // Firestore's WebChannel. Recover by terminating and re-initializing.
+      try {
+        const { recoverFirestore } = await import('../firebase')
+        await recoverFirestore()
+      } catch (err) {
+        logger.warn('⚠️ recoverFirestore after PDF failed:', err)
+      }
     }
   }
 

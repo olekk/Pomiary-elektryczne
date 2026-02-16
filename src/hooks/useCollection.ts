@@ -81,7 +81,6 @@ export function useCollection<T>(
         logger.error(`❌ ${label || 'Collection'} subscription error:`, err)
         setError(err)
         setIsLoading(false)
-        // Keep stale data visible on transient errors.
       }
     )
 
