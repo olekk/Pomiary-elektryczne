@@ -1,19 +1,11 @@
 /**
- * Logger utility — wraps console methods behind a dev-only guard.
- * In production builds, all log/warn calls become no-ops.
- * Errors are always logged regardless of environment.
+ * Logger utility — wraps console methods.
+ * All levels always log so that vConsole (activated via ?debug=1)
+ * can capture them on mobile devices.
  */
 
-const isDev = import.meta.env.DEV
-
 export const logger = {
-  log: isDev
-    ? (...args: unknown[]) => console.log(...args)
-    : () => {},
-
-  warn: isDev
-    ? (...args: unknown[]) => console.warn(...args)
-    : () => {},
-
+  log: (...args: unknown[]) => console.log(...args),
+  warn: (...args: unknown[]) => console.warn(...args),
   error: (...args: unknown[]) => console.error(...args),
 }

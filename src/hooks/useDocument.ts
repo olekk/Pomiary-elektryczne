@@ -53,8 +53,11 @@ export function useDocument<T>(
     if (!currentDocRef) {
       setData(null)
       setIsLoading(false)
+      logger.log(`📭 ${label || 'Document'}: ref is null, skipping subscription`)
       return
     }
+
+    logger.log(`🔌 ${label || 'Document'}: subscribing (path=${docPath})`)
 
     const unsubscribe = onSnapshot(
       currentDocRef,
@@ -89,7 +92,10 @@ export function useDocument<T>(
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      logger.log(`🔌 ${label || 'Document'}: unsubscribing (path=${docPath})`)
+      unsubscribe()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath, label])
 

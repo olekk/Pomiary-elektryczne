@@ -48,8 +48,11 @@ export function useCollection<T>(
     if (!currentQuery) {
       setData([])
       setIsLoading(false)
+      logger.log(`📭 ${label || 'Collection'}: query is null, skipping subscription`)
       return
     }
+
+    logger.log(`🔌 ${label || 'Collection'}: subscribing (key=${key})`)
 
     const unsubscribe = onSnapshot(
       currentQuery,
@@ -78,7 +81,10 @@ export function useCollection<T>(
       }
     )
 
-    return () => unsubscribe()
+    return () => {
+      logger.log(`🔌 ${label || 'Collection'}: unsubscribing (key=${key})`)
+      unsubscribe()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 

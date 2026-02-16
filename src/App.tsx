@@ -7,6 +7,7 @@ import { SummaryScreen } from './components/SummaryScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { LoginScreen } from './components/LoginScreen'
 import { AuthProvider, useAuth } from './hooks'
+import { DebugConsole } from './components/DebugConsole'
 
 function AppRoutes() {
   const { user, isAuthChecking } = useAuth()
@@ -46,6 +47,7 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
+      <DebugConsole />
       <AppRoutes />
     </AuthProvider>
   )
