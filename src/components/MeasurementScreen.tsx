@@ -72,14 +72,18 @@ export const MeasurementScreen: React.FC = () => {
     setCurrentInspection({ ...currentInspection, measurements: renumbered })
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentInspection || currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
     const savedId = currentInspection.id || generateInspectionId()
     const inspectionToSave: Inspection = { ...currentInspection, id: savedId, date: ensureDate(currentInspection.date), synced: false }
-    saveInspectionToFirestore(inspectionToSave, savedId)
-      .then(async () => { await markInspectionAsSynced(savedId); logger.log(`✅ Inspection ${savedId} synced`) })
-      .catch(err => logger.error(`❌ Sync failed for ${savedId}:`, err))
+    try {
+      await saveInspectionToFirestore(inspectionToSave, savedId)
+      await markInspectionAsSynced(savedId)
+      logger.log(`✅ Inspection ${savedId} synced`)
+    } catch (err) {
+      logger.error(`❌ Sync failed for ${savedId}:`, err)
+    }
     navigate(`/building/${buildingId}/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
   }
 

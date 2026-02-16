@@ -54,10 +54,13 @@ export function useCollection<T>(
 
     logger.log(`🔌 ${label || 'Collection'}: subscribing (key=${key})`)
 
+    let snapshotReceived = false
+
     const unsubscribe = onSnapshot(
       currentQuery,
       { includeMetadataChanges: true },
       (snapshot) => {
+        snapshotReceived = true
         const results: T[] = []
         snapshot.forEach((doc) => {
           results.push(mapperRef.current(doc))
@@ -74,6 +77,7 @@ export function useCollection<T>(
         setError(null)
       },
       (err) => {
+        snapshotReceived = true
         logger.error(`❌ ${label || 'Collection'} subscription error:`, err)
         setError(err)
         setIsLoading(false)
@@ -81,7 +85,17 @@ export function useCollection<T>(
       }
     )
 
+    // Safety timeout: if onSnapshot never fires (iOS Safari stuck state),
+    // force isLoading to false so the UI doesn't hang permanently.
+    const timeoutId = setTimeout(() => {
+      if (!snapshotReceived) {
+        logger.warn(`⏰ ${label || 'Collection'}: no snapshot after 5s, forcing isLoading=false (key=${key})`)
+        setIsLoading(false)
+      }
+    }, 5000)
+
     return () => {
+      clearTimeout(timeoutId)
       logger.log(`🔌 ${label || 'Collection'}: unsubscribing (key=${key})`)
       unsubscribe()
     }

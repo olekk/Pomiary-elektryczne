@@ -92,7 +92,7 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const saveInspection = (sig?: string) => {
+  const saveInspection = async (sig?: string) => {
     if (!inspection) return
     const savedId = inspection.id || generateInspectionId()
     const toSave: Inspection = {
@@ -103,21 +103,22 @@ export const SummaryScreen: React.FC = () => {
       date: ensureDate(inspection.date),
       synced: false,
     }
-    saveInspectionToFirestore(toSave, savedId)
-      .then(async () => {
-        await markInspectionAsSynced(savedId)
-        logger.log(`✅ Inspection ${savedId} synced`)
-      })
-      .catch(err => logger.error(`❌ Sync failed:`, err))
+    try {
+      await saveInspectionToFirestore(toSave, savedId)
+      await markInspectionAsSynced(savedId)
+      logger.log(`✅ Inspection ${savedId} synced`)
+    } catch (err) {
+      logger.error(`❌ Sync failed:`, err)
+    }
     return toSave
   }
 
-  const handleSaveSignature = (ownerSignature: string) => {
+  const handleSaveSignature = async (ownerSignature: string) => {
     if (!inspection) return
     // Optimistic local update
     setLocalInspection({ ...inspection, notes, ownerSignature })
     // Save to Firestore
-    saveInspection(ownerSignature)
+    await saveInspection(ownerSignature)
     setSignatureVisible(false)
   }
 
@@ -125,9 +126,9 @@ export const SummaryScreen: React.FC = () => {
     navigate(effectiveBuildingId ? `/building/${effectiveBuildingId}` : '/')
   }
 
-  const handleSaveOnly = () => {
+  const handleSaveOnly = async () => {
     if (!inspection) return
-    saveInspection(inspection.ownerSignature || '')
+    await saveInspection(inspection.ownerSignature || '')
     setIsSaved(true)
     setTimeout(() => setIsSaved(false), 2000)
   }

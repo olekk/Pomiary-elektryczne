@@ -59,6 +59,8 @@ export function useDocument<T>(
 
     logger.log(`🔌 ${label || 'Document'}: subscribing (path=${docPath})`)
 
+    let snapshotReceived = false
+
     const unsubscribe = onSnapshot(
       currentDocRef,
       // CRITICAL: includeMetadataChanges ensures the callback fires
@@ -66,6 +68,7 @@ export function useDocument<T>(
       // Firestore may wait indefinitely for a server response.
       { includeMetadataChanges: true },
       (snap) => {
+        snapshotReceived = true
         if (snap.exists()) {
           const result = mapperRef.current(snap)
           setData(result)
@@ -84,6 +87,7 @@ export function useDocument<T>(
         setError(null)
       },
       (err) => {
+        snapshotReceived = true
         logger.error(`❌ ${label || 'Document'} error:`, err)
         setError(err)
         setIsLoading(false)
@@ -92,7 +96,17 @@ export function useDocument<T>(
       }
     )
 
+    // Safety timeout: if onSnapshot never fires (iOS Safari stuck state),
+    // force isLoading to false so the UI doesn't hang permanently.
+    const timeoutId = setTimeout(() => {
+      if (!snapshotReceived) {
+        logger.warn(`⏰ ${label || 'Document'}: no snapshot after 5s, forcing isLoading=false (path=${docPath})`)
+        setIsLoading(false)
+      }
+    }, 5000)
+
     return () => {
+      clearTimeout(timeoutId)
       logger.log(`🔌 ${label || 'Document'}: unsubscribing (path=${docPath})`)
       unsubscribe()
     }
