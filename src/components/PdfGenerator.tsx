@@ -224,6 +224,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#555',
   },
+  directionImage: {
+    width: 30,
+  },
 })
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
@@ -267,6 +270,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
+          <Image src={`${window.location.origin}/logo.png`} style={{ width: '50%', marginBottom: 10 }} />
           <Text style={styles.title}>PROTOKÓŁ POMIARÓW OCHRONNYCH</Text>
           <Text style={styles.subtitle}>
             Nr protokołu: {inspection.protocolNumber}
@@ -361,7 +365,10 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             )
           })}
         </View>
-
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text> 
+          <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
+        </View>
         {/* --- SEKCJA OGLĘDZINY --- */}
         <View style={styles.inspectionContainer}>
           <Text style={styles.sectionTitle}>
@@ -482,11 +489,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
         <View style={styles.footer}>
           <Text style={styles.conclusionsTitle}>
-            Najemca (właściciel) poinformowany został o konieczności zerowania
-            gniazdek w kuchni i łazience, oraz o zagrożeniach wynikających ze
-            złej eksploatacji urządzeń elektrycznych. W przypadku
-            nieprawidłowości otrzymał załącznik z uwagami do usunięcia usterek w
-            instalacji odbiorcy.
+            Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (kuchnia, łazienka) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
           </Text>
         </View>
         <View style={styles.ownerSignature}>

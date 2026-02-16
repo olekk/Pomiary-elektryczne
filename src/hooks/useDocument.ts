@@ -56,8 +56,6 @@ export function useDocument<T>(
       return
     }
 
-    setIsLoading(true)
-
     const unsubscribe = onSnapshot(
       currentDocRef,
       // CRITICAL: includeMetadataChanges ensures the callback fires

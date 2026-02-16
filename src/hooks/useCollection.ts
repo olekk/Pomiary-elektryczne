@@ -51,8 +51,6 @@ export function useCollection<T>(
       return
     }
 
-    setIsLoading(true)
-
     const unsubscribe = onSnapshot(
       currentQuery,
       { includeMetadataChanges: true },

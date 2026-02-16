@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus, Save } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -75,6 +75,7 @@ export const SummaryScreen: React.FC = () => {
 
   const [notes, setNotes] = useState(inspection?.notes || '')
   const [isSignatureVisible, setSignatureVisible] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   useEffect(() => {
     setNotes(inspection?.notes || '')
@@ -124,12 +125,18 @@ export const SummaryScreen: React.FC = () => {
     navigate(effectiveBuildingId ? `/building/${effectiveBuildingId}` : '/')
   }
 
-  const handleSaveAndAddNext = () => {
+  const handleSaveOnly = () => {
+    if (!inspection) return
+    saveInspection(inspection.ownerSignature || '')
+    setIsSaved(true)
+    setTimeout(() => setIsSaved(false), 2000)
+  }
+
+  const handleAddNext = () => {
     if (!effectiveBuildingId || !inspection) {
       alert('Błąd: Brak ID budynku lub danych pomiaru')
       return
     }
-    saveInspection(inspection.ownerSignature || '')
     navigate(`/building/${effectiveBuildingId}`, {
       state: { lastApartmentNumber: inspection.apartmentNumber },
     })
@@ -268,8 +275,11 @@ export const SummaryScreen: React.FC = () => {
           <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
             Generuj PDF
           </Button>
-          <Button variant="primary" size="lg" fullWidth onClick={handleSaveAndAddNext} icon={<Plus size={24} />}>
-            Zapisz i Dodaj Kolejny
+          <Button variant="primary" size="lg" fullWidth onClick={handleSaveOnly} icon={<Save size={24} />}>
+            {isSaved ? '✓ Zapisano!' : 'Zapisz'}
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
+            Dodaj Kolejny
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleReturnToBuilding} icon={<Home size={24} />}>
             Powrót do Listy Pomiarów
