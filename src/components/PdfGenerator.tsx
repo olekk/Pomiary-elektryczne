@@ -262,7 +262,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const hasAnyRemarks = hasAuto || hasManual
 
   const hasProblems = inspection.measurements.some(
-    (m) => m.result === 'NIE' || m.result === 'B.UZ'
+    (m) => m.result === 'NIE'
   )
 
   return (
@@ -348,7 +348,6 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
             if (m.result === 'TAK') rowStyle = styles.tableRowPass
             else if (m.result === 'NIE') rowStyle = styles.tableRowFail
-            else if (m.result === 'B.UZ') rowStyle = styles.tableRowNoGround
 
             return (
               <View style={rowStyle} key={m.id}>

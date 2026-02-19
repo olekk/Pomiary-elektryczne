@@ -200,7 +200,7 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const { passed, failed, noGrounding } = countMeasurementsByResult(inspection.measurements)
+  const { passed, failed } = countMeasurementsByResult(inspection.measurements)
   const hasStoredSignature = Boolean(inspection.ownerSignature && inspection.ownerSignature.trim().length > 0)
 
   return (
@@ -220,7 +220,7 @@ export const SummaryScreen: React.FC = () => {
       <div className="p-4">
         <Card className="mb-4">
           <h2 className="font-bold text-lg text-slate-100 mb-3">Podsumowanie</h2>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-green-400">{passed}</div>
               <div className="text-xs text-slate-400">Pozytywne</div>
@@ -228,10 +228,6 @@ export const SummaryScreen: React.FC = () => {
             <div className="text-center">
               <div className="text-3xl font-bold text-red-400">{failed}</div>
               <div className="text-xs text-slate-400">Negatywne</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-400">{noGrounding}</div>
-              <div className="text-xs text-slate-400">B.UZ</div>
             </div>
           </div>
         </Card>

@@ -11,7 +11,7 @@ export interface Measurement {
   amperage: Amperage
   zsValue: number | null // Zmierzony Zs
   zsDop: number // Dopuszczalny Zs
-  result: 'TAK' | 'NIE' | 'B.UZ' // Ocena
+  result: 'TAK' | 'NIE' // Ocena
   noGrounding?: NoGroundingType // Rodzaj braku uziemienia
 }
 

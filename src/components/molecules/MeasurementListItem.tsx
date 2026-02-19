@@ -15,18 +15,10 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
   showDelete = true,
 }) => {
   const borderColor =
-    m.result === 'TAK'
-      ? 'border-green-500'
-      : m.result === 'B.UZ'
-        ? 'border-orange-500'
-        : 'border-red-500'
+    m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
 
   const resultColor =
-    m.result === 'TAK'
-      ? 'text-green-600'
-      : m.result === 'B.UZ'
-        ? 'text-orange-600'
-        : 'text-red-600'
+    m.result === 'TAK' ? 'text-green-600' : 'text-red-600'
 
   return (
     <div
@@ -84,25 +76,13 @@ export const CompactMeasurementListItem: React.FC<
   CompactMeasurementListItemProps
 > = ({ measurement: m }) => {
   const borderColor =
-    m.result === 'TAK'
-      ? 'border-green-500'
-      : m.result === 'B.UZ'
-        ? 'border-orange-500'
-        : 'border-red-500'
+    m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
 
   const bgColor =
-    m.result === 'TAK'
-      ? 'bg-green-900/20'
-      : m.result === 'B.UZ'
-        ? 'bg-orange-900/20'
-        : 'bg-red-900/20'
+    m.result === 'TAK' ? 'bg-green-900/20' : 'bg-red-900/20'
 
   const resultColor =
-    m.result === 'TAK'
-      ? 'text-green-400'
-      : m.result === 'B.UZ'
-        ? 'text-orange-400'
-        : 'text-red-400'
+    m.result === 'TAK' ? 'text-green-400' : 'text-red-400'
 
   return (
     <div className={cn('p-2 rounded border-l-4', borderColor, bgColor)}>

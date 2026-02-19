@@ -18,15 +18,15 @@ export const calculateZsDop = (
 }
 
 /**
- * Determine the result of a measurement (TAK/NIE/B.UZ)
+ * Determine the result of a measurement (TAK/NIE)
  */
 export const determineMeasurementResult = (
   zsValue: number | null,
   zsDop: number,
   noGrounding?: NoGroundingType
-): 'TAK' | 'NIE' | 'B.UZ' => {
+): 'TAK' | 'NIE' => {
   if (noGrounding) {
-    return 'B.UZ'
+    return 'NIE'
   }
 
   if (zsValue !== null && zsValue <= zsDop) {
@@ -86,6 +86,5 @@ export const countMeasurementsByResult = (measurements: Measurement[]) => {
   return {
     passed: measurements.filter((m) => m.result === 'TAK').length,
     failed: measurements.filter((m) => m.result === 'NIE').length,
-    noGrounding: measurements.filter((m) => m.result === 'B.UZ').length,
   }
 }
