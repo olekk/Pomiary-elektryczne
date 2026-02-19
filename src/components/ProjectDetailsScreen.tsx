@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Loader, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
+import { Plus, Home, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
@@ -188,11 +188,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     <MainLayout title={projectName} showBackBtn={true}>
       {/* Content */}
       <div className="p-4 min-h-full">
-        {isLoadingBuildings ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader className="animate-spin text-blue-600" size={32} />
-          </div>
-        ) : buildings.length === 0 ? (
+        {!isLoadingBuildings && buildings.length === 0 ? (
           <div className="text-center py-12">
             <Home size={64} className="mx-auto text-slate-600 mb-4" />
             <h2 className="text-xl font-semibold text-slate-200 mb-2">

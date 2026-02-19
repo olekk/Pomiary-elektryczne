@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus, Save } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus, Save, ArrowLeft } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -92,8 +92,8 @@ export const SummaryScreen: React.FC = () => {
     }
   }
 
-  const saveInspection = async (sig?: string) => {
-    if (!inspection) return
+  const saveInspection = (sig?: string) => {
+    if (!inspection) return null
     const savedId = inspection.id || generateInspectionId()
     const toSave: Inspection = {
       ...inspection,
@@ -103,22 +103,22 @@ export const SummaryScreen: React.FC = () => {
       date: ensureDate(inspection.date),
       synced: false,
     }
-    try {
-      await saveInspectionToFirestore(toSave, savedId)
-      await markInspectionAsSynced(savedId)
-      logger.log(`✅ Inspection ${savedId} synced`)
-    } catch (err) {
-      logger.error(`❌ Sync failed:`, err)
-    }
+
+    // Fire-and-forget: write to Firestore cache (works offline), sync when online
+    saveInspectionToFirestore(toSave, savedId)
+      .then(() => markInspectionAsSynced(savedId))
+      .then(() => logger.log(`✅ Inspection ${savedId} synced`))
+      .catch((err) => logger.error(`❌ Sync failed:`, err))
+
     return toSave
   }
 
-  const handleSaveSignature = async (ownerSignature: string) => {
+  const handleSaveSignature = (ownerSignature: string) => {
     if (!inspection) return
     // Optimistic local update
     setLocalInspection({ ...inspection, notes, ownerSignature })
-    // Save to Firestore
-    await saveInspection(ownerSignature)
+    // Save to Firestore (fire-and-forget)
+    saveInspection(ownerSignature)
     setSignatureVisible(false)
   }
 
@@ -126,9 +126,9 @@ export const SummaryScreen: React.FC = () => {
     navigate(effectiveBuildingId ? `/building/${effectiveBuildingId}` : '/')
   }
 
-  const handleSaveOnly = async () => {
+  const handleSaveOnly = () => {
     if (!inspection) return
-    await saveInspection(inspection.ownerSignature || '')
+    saveInspection(inspection.ownerSignature || '')
     setIsSaved(true)
     setTimeout(() => setIsSaved(false), 2000)
   }
@@ -140,6 +140,13 @@ export const SummaryScreen: React.FC = () => {
     }
     navigate(`/building/${effectiveBuildingId}`, {
       state: { lastApartmentNumber: inspection.apartmentNumber },
+    })
+  }
+
+  const handleBackToMeasurement = () => {
+    if (!effectiveBuildingId || !inspection) return
+    navigate(`/building/${effectiveBuildingId}/measurement`, {
+      state: { inspection: { ...inspection, notes } },
     })
   }
 
@@ -287,6 +294,9 @@ export const SummaryScreen: React.FC = () => {
           </Button>
           <Button variant="primary" size="lg" fullWidth onClick={handleSaveOnly} icon={<Save size={24} />}>
             {isSaved ? '✓ Zapisano!' : 'Zapisz'}
+          </Button>
+          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<ArrowLeft size={24} />}>
+            Edytuj pomiary
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
             Dodaj Kolejny

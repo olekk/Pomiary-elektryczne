@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FolderOpen, Loader, Trash2 } from 'lucide-react'
+import { Plus, FolderOpen, Trash2 } from 'lucide-react'
 import { useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
@@ -82,11 +82,7 @@ export const ProjectsScreen: React.FC = () => {
     <MainLayout title="Moje Projekty">
       {/* Content */}
       <div className="p-4 min-h-full">
-        {isLoadingProjects ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader className="animate-spin text-blue-600" size={32} />
-          </div>
-        ) : projects.length === 0 ? (
+        {!isLoadingProjects && projects.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen size={64} className="mx-auto text-slate-600 mb-4" />
             <h2 className="text-xl font-semibold text-slate-200 mb-2">

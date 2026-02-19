@@ -10,6 +10,7 @@ import { logger } from '../utils/logger'
 interface UseCollectionResult<T> {
   data: T[]
   isLoading: boolean
+  isInitialized: boolean
   error: Error | null
 }
 
@@ -31,7 +32,8 @@ export function useCollection<T>(
   label?: string
 ): UseCollectionResult<T> {
   const [data, setData] = useState<T[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   // Refs keep the latest values accessible inside the effect
@@ -74,6 +76,7 @@ export function useCollection<T>(
 
         setData(results)
         setIsLoading(false)
+        setIsInitialized(true)
         setError(null)
       },
       (err) => {
@@ -101,5 +104,5 @@ export function useCollection<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
-  return { data, isLoading, error }
+  return { data, isLoading, isInitialized, error }
 }

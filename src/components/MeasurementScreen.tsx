@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
@@ -14,6 +14,30 @@ import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { logger } from '../utils/logger'
 
+const SESSION_KEY_PREFIX = 'draft-inspection:'
+
+function saveDraftToSession(buildingId: string, inspection: Inspection) {
+  try {
+    sessionStorage.setItem(
+      SESSION_KEY_PREFIX + buildingId,
+      JSON.stringify({ ...inspection, date: inspection.date instanceof Date ? inspection.date.toISOString() : inspection.date })
+    )
+  } catch { /* quota exceeded — ignore */ }
+}
+
+function loadDraftFromSession(buildingId: string): Inspection | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY_PREFIX + buildingId)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    return { ...parsed, date: new Date(parsed.date) }
+  } catch { return null }
+}
+
+function clearDraftFromSession(buildingId: string) {
+  sessionStorage.removeItem(SESSION_KEY_PREFIX + buildingId)
+}
+
 const buildingMapper = (snap: DocumentSnapshot): Building | null => {
   if (!snap.exists()) return null
   const d = snap.data()!
@@ -28,7 +52,21 @@ export const MeasurementScreen: React.FC = () => {
   const { technicianLicenseNumber } = useUserSettings(user?.uid)
   const locationState = location.state as { inspection: Inspection } | null
 
-  const [currentInspection, setCurrentInspection] = useState<Inspection | null>(locationState?.inspection || null)
+  // Priority: location.state (fresh from BuildingDetailsScreen) > sessionStorage (returning from Summary)
+  const [currentInspection, setCurrentInspection] = useState<Inspection | null>(() => {
+    if (locationState?.inspection) return locationState.inspection
+    if (buildingId) return loadDraftFromSession(buildingId)
+    return null
+  })
+
+  // Persist every change to sessionStorage so it survives navigation
+  const updateInspection = useCallback((updater: (prev: Inspection | null) => Inspection | null) => {
+    setCurrentInspection(prev => {
+      const next = updater(prev)
+      if (next && buildingId) saveDraftToSession(buildingId, next)
+      return next
+    })
+  }, [buildingId])
   const [inputValue, setInputValue] = useState('0')
   const [nextRoom, setNextRoom] = useState<Room>('Kuchnia')
   const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>('WNP')
@@ -37,7 +75,7 @@ export const MeasurementScreen: React.FC = () => {
   // Update license number when loaded
   useEffect(() => {
     if (technicianLicenseNumber && currentInspection && !currentInspection.technicianLicenseNumber) {
-      setCurrentInspection(prev => prev ? { ...prev, technicianLicenseNumber } : null)
+      updateInspection(prev => prev ? { ...prev, technicianLicenseNumber } : null)
     }
   }, [technicianLicenseNumber]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -55,35 +93,36 @@ export const MeasurementScreen: React.FC = () => {
     if (!validation.isValid) { alert(validation.error); return }
     if (!currentInspection) return
     const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, parseFloat(inputValue))
-    setCurrentInspection({ ...currentInspection, measurements: [...currentInspection.measurements, m] })
+    updateInspection(() => ({ ...currentInspection, measurements: [...currentInspection.measurements, m] }))
     setInputValue('0')
   }
 
   const handleNoGrounding = (type: import('../types').NoGroundingType) => {
     if (!currentInspection) return
     const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, null, type)
-    setCurrentInspection({ ...currentInspection, measurements: [...currentInspection.measurements, m] })
+    updateInspection(() => ({ ...currentInspection, measurements: [...currentInspection.measurements, m] }))
     setInputValue('0')
   }
 
   const handleRemoveMeasurement = (id: string) => {
     if (!currentInspection) return
     const renumbered = renumberMeasurements(currentInspection.measurements.filter(m => m.id !== id))
-    setCurrentInspection({ ...currentInspection, measurements: renumbered })
+    updateInspection(() => ({ ...currentInspection, measurements: renumbered }))
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!currentInspection || currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
     const savedId = currentInspection.id || generateInspectionId()
     const inspectionToSave: Inspection = { ...currentInspection, id: savedId, date: ensureDate(currentInspection.date), synced: false }
-    try {
-      await saveInspectionToFirestore(inspectionToSave, savedId)
-      await markInspectionAsSynced(savedId)
-      logger.log(`✅ Inspection ${savedId} synced`)
-    } catch (err) {
-      logger.error(`❌ Sync failed for ${savedId}:`, err)
-    }
+
+    // Fire-and-forget: write to Firestore cache (works offline), sync when online
+    saveInspectionToFirestore(inspectionToSave, savedId)
+      .then(() => markInspectionAsSynced(savedId))
+      .then(() => logger.log(`✅ Inspection ${savedId} synced`))
+      .catch((err) => logger.error(`❌ Sync failed for ${savedId}:`, err))
+
+    // Navigate immediately — don't wait for server ACK
     navigate(`/building/${buildingId}/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
   }
 
@@ -95,7 +134,7 @@ export const MeasurementScreen: React.FC = () => {
       : 'Nieznany budynek'
 
   return (
-    <MainLayout title="Nowy Pomiar" showBackBtn={true} backUrl={buildingId ? `/building/${buildingId}` : '/'}>
+    <MainLayout title="Nowy Pomiar" showBackBtn={true} backUrl={buildingId ? `/building/${buildingId}` : '/'} onBackClick={() => { if (buildingId) clearDraftFromSession(buildingId) }}>
       <div className="flex flex-col min-h-full">
         <div className="bg-slate-900 border-b border-slate-800 p-4">
           <div className="text-sm text-slate-400 mb-1">Budynek: <span className="text-slate-200 font-medium">{buildingName}</span></div>

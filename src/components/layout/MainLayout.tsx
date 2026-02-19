@@ -10,6 +10,7 @@ interface MainLayoutProps {
   title: string
   showBackBtn?: boolean
   backUrl?: string // Custom URL for back button (defaults to '/')
+  onBackClick?: () => void // Optional callback invoked when back button is clicked
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -17,6 +18,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   title,
   showBackBtn = false,
   backUrl = '/',
+  onBackClick,
 }) => {
   const { signOutUser } = useAuth()
   const isOnline = useOnlineStatus()
@@ -46,6 +48,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               <>
                 <Link
                   to={backUrl}
+                  onClick={onBackClick}
                   className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <ArrowLeft size={24} className="text-slate-100" />

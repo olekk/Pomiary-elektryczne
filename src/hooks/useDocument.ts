@@ -10,6 +10,7 @@ import { logger } from '../utils/logger'
 interface UseDocumentResult<T> {
   data: T | null
   isLoading: boolean
+  isInitialized: boolean
   error: Error | null
 }
 
@@ -24,7 +25,8 @@ export function useDocument<T>(
   label?: string
 ): UseDocumentResult<T> {
   const [data, setData] = useState<T | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   const docPath = docRef?.path ?? '__null__'
@@ -69,6 +71,7 @@ export function useDocument<T>(
           }
         }
         setIsLoading(false)
+        setIsInitialized(true)
         setError(null)
       },
       (err) => {
@@ -96,5 +99,5 @@ export function useDocument<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath, label])
 
-  return { data, isLoading, error }
+  return { data, isLoading, isInitialized, error }
 }
