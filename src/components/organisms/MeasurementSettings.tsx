@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Select, Card } from '../atoms'
 import type { ProtectionType, Amperage, Room } from '../../types'
+
+const KNOWN_ROOMS = ['Kuchnia', 'Łazienka'] as const
+const INNE_SENTINEL = '__inne__'
 
 interface MeasurementSettingsProps {
   room: Room
@@ -19,6 +22,22 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
   onProtectionTypeChange,
   onAmperageChange,
 }) => {
+  const isCustom = !KNOWN_ROOMS.includes(room as typeof KNOWN_ROOMS[number])
+  const [customRoom, setCustomRoom] = useState(isCustom ? room : '')
+
+  const handleSelectChange = (value: string) => {
+    if (value === INNE_SENTINEL) {
+      onRoomChange(customRoom || 'Inne')
+    } else {
+      onRoomChange(value as Room)
+    }
+  }
+
+  const handleCustomRoomChange = (value: string) => {
+    setCustomRoom(value)
+    onRoomChange(value || 'Inne')
+  }
+
   return (
     <Card className="shadow-md">
       <h2 className="text-sm font-semibold text-slate-300 mb-3">
@@ -56,13 +75,24 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
 
         <Select
           label="Pokój"
-          value={room}
-          onChange={(e) => onRoomChange(e.target.value as Room)}
+          value={isCustom ? INNE_SENTINEL : room}
+          onChange={(e) => handleSelectChange(e.target.value)}
           options={[
             { value: 'Kuchnia', label: 'Kuchnia' },
             { value: 'Łazienka', label: 'Łazienka' },
+            { value: INNE_SENTINEL, label: 'Inne' },
           ]}
         />
+
+        {isCustom && (
+          <input
+            type="text"
+            value={customRoom}
+            onChange={(e) => handleCustomRoomChange(e.target.value)}
+            placeholder="Wpisz nazwę pokoju..."
+            className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        )}
       </div>
     </Card>
   )
