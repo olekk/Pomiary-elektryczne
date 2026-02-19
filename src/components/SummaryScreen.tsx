@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus, Save, ArrowLeft } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus, Save, Pencil } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -295,7 +295,7 @@ export const SummaryScreen: React.FC = () => {
           <Button variant="primary" size="lg" fullWidth onClick={handleSaveOnly} icon={<Save size={24} />}>
             {isSaved ? '✓ Zapisano!' : 'Zapisz'}
           </Button>
-          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<ArrowLeft size={24} />}>
+          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />}>
             Edytuj pomiary
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>

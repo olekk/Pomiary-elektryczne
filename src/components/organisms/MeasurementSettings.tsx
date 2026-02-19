@@ -26,16 +26,6 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
       </h2>
 
       <div className="space-y-2">
-        <Select
-          label="Pokój"
-          value={room}
-          onChange={(e) => onRoomChange(e.target.value as Room)}
-          options={[
-            { value: 'Kuchnia', label: 'Kuchnia' },
-            { value: 'Łazienka', label: 'Łazienka' },
-          ]}
-        />
-
         <div className="grid grid-cols-2 gap-2">
           <Select
             label="Zabezpieczenie"
@@ -63,6 +53,16 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
             ]}
           />
         </div>
+
+        <Select
+          label="Pokój"
+          value={room}
+          onChange={(e) => onRoomChange(e.target.value as Room)}
+          options={[
+            { value: 'Kuchnia', label: 'Kuchnia' },
+            { value: 'Łazienka', label: 'Łazienka' },
+          ]}
+        />
       </div>
     </Card>
   )

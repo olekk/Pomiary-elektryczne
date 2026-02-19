@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
-import { MeasurementSettings } from './organisms'
+import { MeasurementSettings, NotesSection } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
@@ -71,6 +71,12 @@ export const MeasurementScreen: React.FC = () => {
   const [nextRoom, setNextRoom] = useState<Room>('Kuchnia')
   const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>('WNP')
   const [nextAmperage, setNextAmperage] = useState<Amperage>(16)
+  const [notes, setNotes] = useState(currentInspection?.notes || '')
+
+  const handleNotesChange = useCallback((value: string) => {
+    setNotes(value)
+    updateInspection(prev => prev ? { ...prev, notes: value } : null)
+  }, [updateInspection])
 
   // Update license number when loaded
   useEffect(() => {
@@ -114,7 +120,7 @@ export const MeasurementScreen: React.FC = () => {
     if (!currentInspection || currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
     const savedId = currentInspection.id || generateInspectionId()
-    const inspectionToSave: Inspection = { ...currentInspection, id: savedId, date: ensureDate(currentInspection.date), synced: false }
+    const inspectionToSave: Inspection = { ...currentInspection, id: savedId, notes, date: ensureDate(currentInspection.date), synced: false }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
     saveInspectionToFirestore(inspectionToSave, savedId)
@@ -141,7 +147,8 @@ export const MeasurementScreen: React.FC = () => {
           <h2 className="text-lg font-semibold text-slate-100">{currentInspection.address} / {currentInspection.apartmentNumber}</h2>
           <p className="text-sm text-slate-400 mt-1">Pomiary: {currentInspection.measurements.length}</p>
         </div>
-        <div className="p-4 bg-slate-900 border-b border-slate-800">
+        <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
+          <NotesSection notes={notes} onNotesChange={handleNotesChange} />
           <MeasurementSettings room={nextRoom} protectionType={nextProtectionType} amperage={nextAmperage} onRoomChange={setNextRoom} onProtectionTypeChange={setNextProtectionType} onAmperageChange={setNextAmperage} />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
