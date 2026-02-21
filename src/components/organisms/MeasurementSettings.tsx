@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Select, Card } from '../atoms'
 import type { ProtectionType, Amperage, Room } from '../../types'
 
-const KNOWN_ROOMS = ['Kuchnia', 'Łazienka'] as const
+const KNOWN_ROOMS = ['Łazienka','Kuchnia'] as const
 const INNE_SENTINEL = '__inne__'
 
 interface MeasurementSettingsProps {
@@ -78,8 +78,8 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
           value={isCustom ? INNE_SENTINEL : room}
           onChange={(e) => handleSelectChange(e.target.value)}
           options={[
-            { value: 'Kuchnia', label: 'Kuchnia' },
             { value: 'Łazienka', label: 'Łazienka' },
+            { value: 'Kuchnia', label: 'Kuchnia' },
             { value: INNE_SENTINEL, label: 'Inne' },
           ]}
         />

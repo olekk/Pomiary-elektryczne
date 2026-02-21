@@ -488,7 +488,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
         <View style={styles.footer}>
           <Text style={styles.conclusionsTitle}>
-            Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (kuchnia, łazienka) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
+            Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
           </Text>
         </View>
         <View style={styles.ownerSignature}>

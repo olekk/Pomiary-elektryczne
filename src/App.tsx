@@ -24,8 +24,13 @@ function AppRoutes() {
     )
   }
 
-  // Jeśli użytkownik NIE jest zalogowany -> LoginScreen
-  if (!user) {
+  // Show the main app if user is authenticated.
+  // Also show it when user is null but we have a cached UID — the real
+  // User object will arrive from onAuthStateChanged momentarily.
+  // This prevents flashing LoginScreen on offline cold starts.
+  const hasCachedUid = (() => { try { return !!localStorage.getItem('cachedAuthUid') } catch { return false } })()
+
+  if (!user && !hasCachedUid) {
     return <LoginScreen />
   }
 

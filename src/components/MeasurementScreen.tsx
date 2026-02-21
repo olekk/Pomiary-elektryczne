@@ -68,7 +68,7 @@ export const MeasurementScreen: React.FC = () => {
     })
   }, [buildingId])
   const [inputValue, setInputValue] = useState('0')
-  const [nextRoom, setNextRoom] = useState<Room>('Kuchnia')
+  const [nextRoom, setNextRoom] = useState<Room>('Łazienka')
   const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>('WNP')
   const [nextAmperage, setNextAmperage] = useState<Amperage>(16)
   const [notes, setNotes] = useState(currentInspection?.notes || '')

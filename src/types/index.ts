@@ -1,7 +1,7 @@
 export type ProtectionType = 'WNP' | 'BI'
 export type Amperage = 10 | 16 | 20 | 25
 export type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
-export type Room = 'Kuchnia' | 'Łazienka' | (string & {})
+export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 
 export interface Measurement {
   id: string
