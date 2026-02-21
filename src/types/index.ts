@@ -2,6 +2,7 @@ export type ProtectionType = 'WNP' | 'BI'
 export type Amperage = 10 | 16 | 20 | 25
 export type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
 export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
+export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
 
 export interface Measurement {
   id: string
@@ -13,6 +14,7 @@ export interface Measurement {
   zsDop: number // Dopuszczalny Zs
   result: 'TAK' | 'NIE' // Ocena
   noGrounding?: NoGroundingType // Rodzaj braku uziemienia
+  socketType: SocketType // Typ punktu pomiarowego
 }
 
 export interface Project {

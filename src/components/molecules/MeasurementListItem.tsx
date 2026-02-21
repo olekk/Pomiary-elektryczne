@@ -33,6 +33,7 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
           <span className="font-bold text-lg text-slate-100">
             {m.room} #{m.pointNumber}
           </span>
+          <span className="text-lg text-slate-100">{m.socketType}</span>
           <span className="text-sm text-slate-400">
             {m.protectionType} {m.amperage}A
           </span>

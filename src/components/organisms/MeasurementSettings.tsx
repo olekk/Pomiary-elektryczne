@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Select, Card } from '../atoms'
-import type { ProtectionType, Amperage, Room } from '../../types'
+import type { ProtectionType, Amperage, Room, SocketType } from '../../types'
 
 const KNOWN_ROOMS = ['Łazienka','Kuchnia'] as const
 const INNE_SENTINEL = '__inne__'
@@ -9,18 +9,22 @@ interface MeasurementSettingsProps {
   room: Room
   protectionType: ProtectionType
   amperage: Amperage
+  socketType: SocketType
   onRoomChange: (value: Room) => void
   onProtectionTypeChange: (value: ProtectionType) => void
   onAmperageChange: (value: Amperage) => void
+  onSocketTypeChange: (value: SocketType) => void
 }
 
 export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
   room,
   protectionType,
   amperage,
+  socketType,
   onRoomChange,
   onProtectionTypeChange,
   onAmperageChange,
+  onSocketTypeChange,
 }) => {
   const isCustom = !KNOWN_ROOMS.includes(room as typeof KNOWN_ROOMS[number])
   const [customRoom, setCustomRoom] = useState(isCustom ? room : '')
@@ -73,6 +77,7 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-2">
         <Select
           label="Pokój"
           value={isCustom ? INNE_SENTINEL : room}
@@ -81,6 +86,16 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
             { value: 'Łazienka', label: 'Łazienka' },
             { value: 'Kuchnia', label: 'Kuchnia' },
             { value: INNE_SENTINEL, label: 'Inne' },
+          ]}
+        />
+
+        <Select
+          label="Punkt pomiarowy"
+          value={socketType}
+          onChange={(e) => onSocketTypeChange(e.target.value as SocketType)}
+          options={[
+            { value: 'Gniazdo 230V', label: 'Gniazdo 230V' },
+            { value: 'Gniazdo IP44', label: 'Gniazdo IP44' },
           ]}
         />
 
@@ -93,6 +108,7 @@ export const MeasurementSettings: React.FC<MeasurementSettingsProps> = ({
             className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         )}
+        </div>
       </div>
     </Card>
   )

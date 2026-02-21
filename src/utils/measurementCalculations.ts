@@ -4,6 +4,7 @@ import type {
   Measurement,
   NoGroundingType,
   Room,
+  SocketType,
 } from '../types'
 import { ZS_DOP_TABLE } from '../types'
 
@@ -46,7 +47,8 @@ export const createMeasurement = (
   protectionType: ProtectionType,
   amperage: Amperage,
   zsValue: number | null,
-  noGrounding?: NoGroundingType
+  noGrounding?: NoGroundingType,
+  socketType: SocketType = 'Gniazdo 230V'
 ): Measurement => {
   const zsDop = calculateZsDop(protectionType, amperage)
   const result = determineMeasurementResult(zsValue, zsDop, noGrounding)
@@ -63,6 +65,7 @@ export const createMeasurement = (
     zsValue,
     zsDop,
     result,
+    socketType,
     ...noGroundingField,
   }
 }

@@ -6,7 +6,7 @@ import { MeasurementSettings, NotesSection } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
-import type { ProtectionType, Amperage, Room, Inspection, Building } from '../types'
+import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building } from '../types'
 import { getFullAddress, validateMeasurementValue, generateInspectionId, generateMeasurementId, createMeasurement, renumberMeasurements, ensureDate } from '../utils'
 import { useDocument, useAuth, useUserSettings } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
@@ -71,6 +71,13 @@ export const MeasurementScreen: React.FC = () => {
   const [nextRoom, setNextRoom] = useState<Room>('Łazienka')
   const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>('WNP')
   const [nextAmperage, setNextAmperage] = useState<Amperage>(16)
+  const [nextSocketType, setNextSocketType] = useState<SocketType>('Gniazdo IP44')
+
+  const handleRoomChange = useCallback((room: Room) => {
+    setNextRoom(room)
+    if (room === 'Łazienka') setNextSocketType('Gniazdo IP44')
+    else if (room === 'Kuchnia') setNextSocketType('Gniazdo 230V')
+  }, [])
   const [notes, setNotes] = useState(currentInspection?.notes || '')
 
   const handleNotesChange = useCallback((value: string) => {
@@ -98,14 +105,14 @@ export const MeasurementScreen: React.FC = () => {
     const validation = validateMeasurementValue(inputValue)
     if (!validation.isValid) { alert(validation.error); return }
     if (!currentInspection) return
-    const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, parseFloat(inputValue))
+    const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, parseFloat(inputValue), undefined, nextSocketType)
     updateInspection(() => ({ ...currentInspection, measurements: [...currentInspection.measurements, m] }))
     setInputValue('0')
   }
 
   const handleNoGrounding = (type: import('../types').NoGroundingType) => {
     if (!currentInspection) return
-    const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, null, type)
+    const m = createMeasurement(generateMeasurementId(), currentInspection.measurements.length + 1, nextRoom, nextProtectionType, nextAmperage, null, type, nextSocketType)
     updateInspection(() => ({ ...currentInspection, measurements: [...currentInspection.measurements, m] }))
     setInputValue('0')
   }
@@ -149,7 +156,7 @@ export const MeasurementScreen: React.FC = () => {
         </div>
         <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
           <NotesSection notes={notes} onNotesChange={handleNotesChange} />
-          <MeasurementSettings room={nextRoom} protectionType={nextProtectionType} amperage={nextAmperage} onRoomChange={setNextRoom} onProtectionTypeChange={setNextProtectionType} onAmperageChange={setNextAmperage} />
+          <MeasurementSettings room={nextRoom} protectionType={nextProtectionType} amperage={nextAmperage} socketType={nextSocketType} onRoomChange={handleRoomChange} onProtectionTypeChange={setNextProtectionType} onAmperageChange={setNextAmperage} onSocketTypeChange={setNextSocketType} />
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {currentInspection.measurements.length === 0 ? (

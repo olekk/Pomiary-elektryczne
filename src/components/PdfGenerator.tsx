@@ -119,12 +119,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff3cd',
     fontSize: 9,
   },
-  col1: { width: '7%', textAlign: 'center' },
-  col2: { width: '17%', textAlign: 'center' },
-  col3: { width: '14%', textAlign: 'center' },
-  col4: { width: '20%', textAlign: 'center' },
-  col5: { width: '16%', textAlign: 'center' },
-  col6: { width: '16%', textAlign: 'center' },
+  col1: { width: '6%', textAlign: 'center' },
+  colSocket: { width: '13%', textAlign: 'center' },
+  col2: { width: '13%', textAlign: 'center' },
+  col3: { width: '12%', textAlign: 'center' },
+  col4: { width: '18%', textAlign: 'center' },
+  col5: { width: '14%', textAlign: 'center' },
+  col6: { width: '14%', textAlign: 'center' },
   col7: { width: '10%', textAlign: 'center' },
   footer: {
     marginTop: 30,
@@ -238,22 +239,30 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const postInspectionRecommendations = inspection.measurements.flatMap((m) => {
     const measurementLabel = `Gniazdo nr ${m.pointNumber} (${m.room})`
 
+    let recommendation = null
+
     if (m.noGrounding === 'NO_PIN') {
-      return `${measurementLabel}: Brak bolca w gnieździe. Należy wymienić na gniazdo z uziemieniem.`
+      recommendation = `${measurementLabel}: Brak bolca w gnieździe. Należy wymienić na gniazdo z uziemieniem.`
     }
 
     if (m.noGrounding === 'NO_CONN') {
-      return `${measurementLabel}: Brak połączenia z przewodem ochronnym. Należy poprawić połączenia.`
+      recommendation = `${measurementLabel}: Brak połączenia z przewodem ochronnym. Należy poprawić połączenia.`
     }
 
     if (
       m.noGrounding === 'HIGH_Z' ||
       (m.zsValue !== null && m.zsValue > m.zsDop)
     ) {
-      return `${measurementLabel}: Zbyt wysoka impedancja. Należy poprawić połączenie przewodu ochronnego.`
+      recommendation = `${measurementLabel}: Zbyt wysoka impedancja. Należy poprawić połączenie przewodu ochronnego.`
     }
 
-    return []
+    if (m.room === 'Łazienka' && m.socketType === 'Gniazdo 230V') {
+      recommendation = recommendation
+        ? `${recommendation} \n ${measurementLabel}: W łazience powinno być stosowane gniazdo z klapką IP44.`
+        : `${measurementLabel}: W łazience powinno być stosowane gniazdo z klapką IP44.`
+    }
+
+    return recommendation || []
   })
 
   const manualNotes = (inspection.notes ?? '').trim()
@@ -331,14 +340,15 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
         <View style={styles.table}>
           {/* Table Header */}
           <View style={styles.tableHeader}>
-            <Text style={styles.col1}>Pkt</Text>
+            <Text style={styles.col1}>Lp.</Text>
             <Text style={styles.col2}>Pomieszczenie</Text>
+            <Text style={styles.colSocket}>{"Punkt\npomiarowy"}</Text>
             <Text style={styles.col3}>Typ zabezpieczenia</Text>
             <Text style={styles.col4}>
               Wartość prądu In urządzenia wyłączającego [A]
             </Text>
-            <Text style={styles.col5}>Dopuszczalna impedancja Zs dop[Ω]</Text>
-            <Text style={styles.col6}>Zmierzona impedancja Zs[Ω]</Text>
+            <Text style={styles.col5}>{"Dopuszczalna\nimpedancja\nZs dop[Ω]"}</Text>
+            <Text style={styles.col6}>{"Zmierzona\nimpedancja\nZs[Ω]"}</Text>
             <Text style={styles.col7}>Ocena</Text>
           </View>
 
@@ -353,6 +363,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               <View style={rowStyle} key={m.id}>
                 <Text style={styles.col1}>{m.pointNumber}</Text>
                 <Text style={styles.col2}>{m.room}</Text>
+                <Text style={styles.colSocket}>{m.socketType || 'Gniazdo 230V'}</Text>
                 <Text style={styles.col3}>{m.protectionType}</Text>
                 <Text style={styles.col4}>{m.amperage}A</Text>
                 <Text style={styles.col5}>{m.zsDop.toFixed(2)}</Text>

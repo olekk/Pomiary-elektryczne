@@ -295,7 +295,7 @@ export const SummaryScreen: React.FC = () => {
             Edytuj pomiary
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
-            Dodaj Kolejny
+            Dodaj Kolejny Protokół
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleReturnToBuilding} icon={<Home size={24} />}>
             Powrót do Listy Pomiarów
