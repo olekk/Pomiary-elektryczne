@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus, Save, Pencil } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus, Pencil } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -75,7 +75,6 @@ export const SummaryScreen: React.FC = () => {
 
   const [notes, setNotes] = useState(inspection?.notes || '')
   const [isSignatureVisible, setSignatureVisible] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
 
   useEffect(() => {
     setNotes(inspection?.notes || '')
@@ -85,12 +84,32 @@ export const SummaryScreen: React.FC = () => {
     setSignatureVisible(false)
   }, [inspection?.id])
 
+  const hasUserEditedNotes = useRef(false)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const handleNotesChange = (value: string) => {
+    hasUserEditedNotes.current = true
     setNotes(value)
     if (localInspection) {
       setLocalInspection({ ...localInspection, notes: value })
     }
   }
+
+  // Debounced auto-save: persist notes 1s after the user stops typing
+  useEffect(() => {
+    if (!hasUserEditedNotes.current || !inspection) return
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+
+    saveTimerRef.current = setTimeout(() => {
+      saveInspection(inspection.ownerSignature || '')
+      logger.log('💾 Notes auto-saved')
+    }, 1000)
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [notes])
 
   const saveInspection = (sig?: string) => {
     if (!inspection) return null
@@ -124,13 +143,6 @@ export const SummaryScreen: React.FC = () => {
 
   const handleReturnToBuilding = () => {
     navigate(effectiveBuildingId ? `/building/${effectiveBuildingId}` : '/')
-  }
-
-  const handleSaveOnly = () => {
-    if (!inspection) return
-    saveInspection(inspection.ownerSignature || '')
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 2000)
   }
 
   const handleAddNext = () => {
@@ -288,17 +300,14 @@ export const SummaryScreen: React.FC = () => {
           <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
             Generuj PDF
           </Button>
-          <Button variant="primary" size="lg" fullWidth onClick={handleSaveOnly} icon={<Save size={24} />}>
-            {isSaved ? '✓ Zapisano!' : 'Zapisz'}
-          </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />}>
             Edytuj pomiary
           </Button>
-          <Button variant="secondary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
+          <Button variant="primary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
             Dodaj Kolejny Protokół
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleReturnToBuilding} icon={<Home size={24} />}>
-            Powrót do Listy Pomiarów
+            Powrót do Listy Protokołów
           </Button>
         </div>
       </div>
