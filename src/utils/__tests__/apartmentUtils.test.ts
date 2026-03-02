@@ -26,4 +26,12 @@ describe('incrementApartmentNumber', () => {
 
   // Edge cases
   it('empty string → ""', () => expect(incrementApartmentNumber('')).toBe(''))
+
+  // Mutant killers: ensure the guard clause is exercised
+  it('handles undefined-like falsy input', () => {
+    // @ts-expect-error testing runtime guard against falsy values
+    expect(incrementApartmentNumber(undefined)).toBe('')
+    // @ts-expect-error testing runtime guard against falsy values  
+    expect(incrementApartmentNumber(null)).toBe('')
+  })
 })

@@ -49,13 +49,13 @@ describe('validateInspectionForm', () => {
   it('returns error for empty apartment number', () => {
     const result = validateInspectionForm('ul. Testowa 1', '', 'Jan')
     expect(result.isValid).toBe(false)
-    expect(result.error).toBeDefined()
+    expect(result.error).toMatch(/mieszkania/i)
   })
 
   it('returns error for empty technician name', () => {
     const result = validateInspectionForm('ul. Testowa 1', '42', '')
     expect(result.isValid).toBe(false)
-    expect(result.error).toBeDefined()
+    expect(result.error).toMatch(/technik/i)
   })
 
   it('validates in order: address first', () => {
@@ -79,7 +79,7 @@ describe('validateMeasurementValue', () => {
   it('returns error for NaN', () => {
     const result = validateMeasurementValue('abc')
     expect(result.isValid).toBe(false)
-    expect(result.error).toBeDefined()
+    expect(result.error!.length).toBeGreaterThan(0)
   })
 
   it('returns error for empty string', () => {
@@ -87,7 +87,7 @@ describe('validateMeasurementValue', () => {
     expect(result.isValid).toBe(false)
   })
 
-  it('returns error for zero', () => {
+  it('returns error for zero with meaningful message', () => {
     const result = validateMeasurementValue('0')
     expect(result.isValid).toBe(false)
   })

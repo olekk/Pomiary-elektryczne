@@ -54,6 +54,28 @@ describe('getFullAddress', () => {
     expect(result).toContain('Nowa 1')
     expect(result).not.toBe('Legacy address')
   })
+
+  // --- Mutant killers: partial field combinations ---
+
+  it('falls back to name when only street is present', () => {
+    const building = makeBuilding({ street: 'Nowa 1', name: 'Fallback' })
+    expect(getFullAddress(building)).toBe('Fallback')
+  })
+
+  it('falls back to name when only city is present', () => {
+    const building = makeBuilding({ city: 'Katowice', name: 'Fallback' })
+    expect(getFullAddress(building)).toBe('Fallback')
+  })
+
+  it('falls back to name when street and city are set but zipCode is missing', () => {
+    const building = makeBuilding({ street: 'Nowa 1', city: 'Katowice', name: 'Fallback' })
+    expect(getFullAddress(building)).toBe('Fallback')
+  })
+
+  it('falls back to name when only zipCode is set', () => {
+    const building = makeBuilding({ zipCode: '44-100', name: 'Fallback' })
+    expect(getFullAddress(building)).toBe('Fallback')
+  })
 })
 
 // ─── normalizeAddressForProtocol ───────────────────────────────────────────────
@@ -65,6 +87,16 @@ describe('normalizeAddressForProtocol', () => {
 
   it('removes "ul." prefix', () => {
     expect(normalizeAddressForProtocol('ul. Testowa 1')).toBe('TESTOWA_1')
+  })
+
+  it('removes "ul." prefix without trailing space', () => {
+    expect(normalizeAddressForProtocol('ul.Testowa 1')).toBe('TESTOWA_1')
+  })
+
+  it('does NOT remove "ul." when it appears mid-string', () => {
+    const result = normalizeAddressForProtocol('Testowa ul. 5')
+    // "ul." mid-string should NOT be stripped (^ anchor)
+    expect(result).toContain('UL')
   })
 
   it('removes "al." prefix', () => {

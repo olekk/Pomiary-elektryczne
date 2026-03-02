@@ -48,6 +48,15 @@ describe('generateProtocolNumber', () => {
     expect(result).toMatch(/\/42$/)
   })
 
+  it('collapses multiple spaces in apartment to single underscore', () => {
+    const date = new Date(2026, 5, 15)
+    const result = generateProtocolNumber(date, 'lokal   3', 'Testowa 1')
+
+    // \s+ must collapse to single _, not leave multiple
+    expect(result).toMatch(/\/LOKAL_3$/)
+    expect(result).not.toContain('__')
+  })
+
   it('handles Polish diacritics in street name', () => {
     const date = new Date(2026, 5, 15)
     const result = generateProtocolNumber(date, '1', 'ul. Łąkowa 10')
