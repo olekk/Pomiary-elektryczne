@@ -68,10 +68,14 @@ export const MeasurementScreen: React.FC = () => {
     })
   }, [buildingId])
   const [inputValue, setInputValue] = useState('0')
-  const [nextRoom, setNextRoom] = useState<Room>('Łazienka')
+  const [nextRoom, setNextRoom] = useState<Room>(() =>
+    locationState?.inspection?.unitType === 'lokal' ? 'Inne' : 'Łazienka'
+  )
   const [nextProtectionType, setNextProtectionType] = useState<ProtectionType>('WNP')
   const [nextAmperage, setNextAmperage] = useState<Amperage>(16)
-  const [nextSocketType, setNextSocketType] = useState<SocketType>('Gniazdo IP44')
+  const [nextSocketType, setNextSocketType] = useState<SocketType>(() =>
+    locationState?.inspection?.unitType === 'lokal' ? 'Gniazdo 230V' : 'Gniazdo IP44'
+  )
 
   const handleRoomChange = useCallback((room: Room) => {
     setNextRoom(room)
@@ -151,7 +155,7 @@ export const MeasurementScreen: React.FC = () => {
       <div className="flex flex-col min-h-full">
         <div className="bg-slate-900 border-b border-slate-800 p-4">
           <div className="text-sm text-slate-400 mb-1">Budynek: <span className="text-slate-200 font-medium">{buildingName}</span></div>
-          <h2 className="text-lg font-semibold text-slate-100">{currentInspection.address} / {currentInspection.apartmentNumber}</h2>
+          <h2 className="text-lg font-semibold text-slate-100">{currentInspection.address} / {currentInspection.unitType === 'lokal' ? 'Lokal ' : ''}{currentInspection.apartmentNumber}</h2>
           <p className="text-sm text-slate-400 mt-1">Pomiary: {currentInspection.measurements.length}</p>
         </div>
         <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">

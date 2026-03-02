@@ -13,7 +13,7 @@ import {
   generateInspectionId,
   generateProtocolNumber,
 } from '../utils'
-import type { Inspection, Building } from '../types'
+import type { Inspection, Building, UnitType } from '../types'
 import {
   collection,
   query,
@@ -50,6 +50,7 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     protocolNumber: data.protocolNumber,
     synced: data.synced ?? true,
     status: data.status || 'COMPLETED',
+    unitType: data.unitType || 'mieszkanie',
   }
 }
 
@@ -151,7 +152,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => {
     if (!buildingId || !currentBuilding || !validateTechnician()) return
 
@@ -177,6 +179,7 @@ export const BuildingDetailsScreen: React.FC = () => {
       measurements: [],
       synced: false,
       status: 'COMPLETED',
+      unitType: unitType || 'mieszkanie',
     }
 
     setShowNewModal(false)
@@ -189,7 +192,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => {
     if (!buildingId || !currentBuilding || !validateTechnician()) return
 
@@ -214,6 +218,7 @@ export const BuildingDetailsScreen: React.FC = () => {
       measurements: [],
       synced: false,
       status: 'INACCESSIBLE',
+      unitType: unitType || 'mieszkanie',
     }
 
     // Save directly to Firestore — onSnapshot will update the list
@@ -234,7 +239,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => {
     if (!buildingId) return
 
@@ -257,6 +263,7 @@ export const BuildingDetailsScreen: React.FC = () => {
       apartmentNumber,
       ownerName,
       status: 'COMPLETED',
+      unitType: unitType || inspection.unitType || 'mieszkanie',
     }
 
     setEditingInspection(null)

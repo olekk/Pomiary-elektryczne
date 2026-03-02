@@ -3,6 +3,7 @@ export type Amperage = 10 | 16 | 20 | 25
 export type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
 export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
+export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 
 export interface Measurement {
   id: string
@@ -55,6 +56,7 @@ export interface Inspection {
   protocolNumber: string // Unikalny numer protokołu
   synced?: boolean
   status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = niedostępne
+  unitType?: UnitType // 'mieszkanie' domyślnie
 }
 
 export interface UserSettings {

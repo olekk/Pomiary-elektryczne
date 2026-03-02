@@ -61,7 +61,11 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               isInaccessible ? 'text-orange-200' : 'text-slate-100'
             }`}
           >
-            Mieszkanie: {inspection.apartmentNumber}
+            {inspection.unitType === 'lokal'
+              ? 'Lokal'
+              : inspection.unitType === 'klatka'
+                ? 'Klatka'
+                : 'Mieszkanie'}: {inspection.apartmentNumber}
           </h3>
           {isInaccessible && (
             <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-orange-900/50 text-orange-300 border border-orange-700/50 mb-1">

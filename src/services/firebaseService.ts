@@ -147,6 +147,7 @@ export const saveInspectionToFirestore = async (
     protocolNumber: inspection.protocolNumber || '',
     synced: false,
     status: inspection.status || 'COMPLETED',
+    unitType: inspection.unitType || 'mieszkanie',
     createdAt: Timestamp.now(),
   }
 

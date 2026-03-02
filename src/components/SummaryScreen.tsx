@@ -33,6 +33,7 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
     protocolNumber: d.protocolNumber,
     synced: d.synced ?? true,
     status: d.status || 'COMPLETED',
+    unitType: d.unitType || 'mieszkanie',
   }
 }
 
@@ -223,7 +224,7 @@ export const SummaryScreen: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold">Pomiar Zakończony</h1>
             <p className="text-sm text-green-300">
-              {inspection.address} / {inspection.apartmentNumber}
+              {inspection.address} / {inspection.unitType === 'lokal' ? 'Lokal ' : inspection.unitType === 'klatka' ? '' : ''}{inspection.apartmentNumber}
             </p>
           </div>
         </div>

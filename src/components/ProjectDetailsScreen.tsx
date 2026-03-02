@@ -53,6 +53,7 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     protocolNumber: data.protocolNumber,
     synced: data.synced ?? true,
     status: data.status || 'COMPLETED',
+    unitType: data.unitType || 'mieszkanie',
   }
 }
 

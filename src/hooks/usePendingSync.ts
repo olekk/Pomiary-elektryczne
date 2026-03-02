@@ -29,6 +29,7 @@ const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) 
     protocolNumber: data.protocolNumber || '',
     synced: data.synced ?? false,
     status: data.status || 'COMPLETED',
+    unitType: data.unitType || 'mieszkanie',
   } as Inspection
 }
 

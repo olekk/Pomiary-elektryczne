@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
-import { Button, Input } from '../atoms'
-import type { Inspection } from '../../types'
+import { Button, Input, Select } from '../atoms'
+import type { Inspection, UnitType } from '../../types'
 
 function deriveInitialValue(
   editingInspection: Inspection | null,
@@ -20,20 +20,23 @@ interface CreateInspectionModalProps {
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => void
   onMarkInaccessible?: (
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => void
   onResumeInspection?: (
     inspection: Inspection,
     address: string,
     apartmentNumber: string,
     ownerName: string,
-    street?: string
+    street?: string,
+    unitType?: UnitType
   ) => void
   defaultAddress?: string
   defaultStreet?: string
@@ -59,6 +62,9 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   const [address, setAddress] = useState(
     deriveInitialValue(editingInspection, 'address', defaultAddress)
   )
+  const [unitType, setUnitType] = useState<UnitType>(
+    editingInspection?.unitType || 'mieszkanie'
+  )
   const [apartmentNumber, setApartmentNumber] = useState(
     deriveInitialValue(
       editingInspection,
@@ -70,9 +76,21 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
     deriveInitialValue(editingInspection, 'ownerName', '')
   )
 
+  // Automatyczny numer klatki
+  const autoKlatkaNumber = useMemo(() => {
+    const existingKlatki = existingInspections.filter(
+      (i) => i.unitType === 'klatka' && (!editingInspection?.id || i.id !== editingInspection.id)
+    )
+    if (existingKlatki.length === 0) return 'klatka'
+    return `klatka ${existingKlatki.length + 1}`
+  }, [existingInspections, editingInspection])
+
+  // Efektywny numer — dla klatki automatyczny, dla reszty wpisany
+  const effectiveApartmentNumber = unitType === 'klatka' ? autoKlatkaNumber : apartmentNumber
+
   // Walidacja unikalności numeru mieszkania (case-insensitive, trim)
   const isDuplicateApartment = useMemo(() => {
-    const trimmed = apartmentNumber.trim().toLowerCase()
+    const trimmed = effectiveApartmentNumber.trim().toLowerCase()
     if (!trimmed) return false
 
     return existingInspections.some((inspection) => {
@@ -82,15 +100,19 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
       }
       return inspection.apartmentNumber.trim().toLowerCase() === trimmed
     })
-  }, [apartmentNumber, existingInspections, editingInspection])
+  }, [effectiveApartmentNumber, existingInspections, editingInspection])
 
   if (!isOpen) return null
 
   const isResumeMode = !!editingInspection
 
   const validateFields = (requireOwner = true): boolean => {
-    if (!address.trim() || !apartmentNumber.trim()) {
-      alert('Wypełnij adres i numer mieszkania!')
+    if (!address.trim()) {
+      alert('Wypełnij adres!')
+      return false
+    }
+    if (unitType !== 'klatka' && !apartmentNumber.trim()) {
+      alert(unitType === 'lokal' ? 'Wypełnij numer lokalu!' : 'Wypełnij numer mieszkania!')
       return false
     }
     if (requireOwner && !ownerName.trim()) {
@@ -110,6 +132,7 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
       )
     )
     setOwnerName('')
+    setUnitType('mieszkanie')
   }
 
   const handleSubmit = () => {
@@ -119,12 +142,13 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
       onResumeInspection(
         editingInspection,
         address.trim(),
-        apartmentNumber.trim(),
+        effectiveApartmentNumber.trim(),
         ownerName.trim(),
-        defaultStreet
+        defaultStreet,
+        unitType
       )
     } else {
-      onCreate(address.trim(), apartmentNumber.trim(), ownerName.trim(), defaultStreet)
+      onCreate(address.trim(), effectiveApartmentNumber.trim(), ownerName.trim(), defaultStreet, unitType)
     }
     resetForm()
   }
@@ -134,9 +158,10 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
 
     onMarkInaccessible?.(
       address.trim(),
-      apartmentNumber.trim(),
+      effectiveApartmentNumber.trim(),
       ownerName.trim(),
-      defaultStreet
+      defaultStreet,
+      unitType
     )
     resetForm()
   }
@@ -144,6 +169,9 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   const handleClose = () => {
     onClose()
   }
+
+  const numberLabel = unitType === 'lokal' ? 'Numer lokalu' : 'Numer mieszkania'
+  const numberPlaceholder = 'np. 42'
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -162,16 +190,36 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
           />
 
           <div>
-            <Input
-              label="Numer mieszkania"
-              type="text"
-              value={apartmentNumber}
-              onChange={(e) => setApartmentNumber(e.target.value)}
-              placeholder="np. 42"
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Typ lokalu"
+                value={unitType}
+                onChange={(e) => setUnitType(e.target.value as UnitType)}
+                options={[
+                  { value: 'mieszkanie', label: 'Mieszkanie' },
+                  { value: 'lokal', label: 'Lokal użytkowy' },
+                  { value: 'klatka', label: 'Klatka' },
+                ]}
+              />
+
+              {unitType !== 'klatka' && (
+                <Input
+                  label={numberLabel}
+                  type="text"
+                  value={apartmentNumber}
+                  onChange={(e) => setApartmentNumber(e.target.value)}
+                  placeholder={numberPlaceholder}
+                />
+              )}
+            </div>
+
             {isDuplicateApartment && (
               <p className="text-red-400 text-sm mt-1">
-                Mieszkanie o tym numerze już istnieje.
+                {unitType === 'klatka'
+                  ? 'Klatka o tym ID już istnieje.'
+                  : unitType === 'lokal'
+                    ? 'Lokal o tym numerze już istnieje.'
+                    : 'Mieszkanie o tym numerze już istnieje.'}
               </p>
             )}
           </div>

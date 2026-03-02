@@ -297,7 +297,13 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.value}>{inspection.address}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Mieszkanie:</Text>
+            <Text style={styles.label}>
+              {inspection.unitType === 'lokal'
+                ? 'Lokal:'
+                : inspection.unitType === 'klatka'
+                  ? 'Klatka:'
+                  : 'Mieszkanie:'}
+            </Text>
             <Text style={styles.value}>{inspection.apartmentNumber}</Text>
           </View>
           <View style={styles.infoRow}>
