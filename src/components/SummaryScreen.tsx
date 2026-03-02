@@ -175,7 +175,7 @@ export const SummaryScreen: React.FC = () => {
       const link = document.createElement('a')
       link.href = url
       const safeProtocolNumber = inspection.protocolNumber.replace(/\//g, '-')
-      link.download = `Protokol_${safeProtocolNumber}.pdf`
+      link.download = `${safeProtocolNumber}.pdf`
       link.click()
       URL.revokeObjectURL(url)
     } catch (error) {

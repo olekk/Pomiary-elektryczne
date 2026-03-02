@@ -41,7 +41,7 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
         }`}
         onClick={handleCardClick}
       >
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             {isInaccessible ? (
               <AlertTriangle size={18} className="text-orange-400" />
@@ -49,7 +49,7 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               <FileText size={18} className="text-blue-400" />
             )}
             <span
-              className={`font-mono text-sm ${
+              className={`font-mono text-sm break-all ${
                 isInaccessible ? 'text-orange-400' : 'text-blue-400'
               }`}
             >

@@ -1479,7 +1479,7 @@ if (errorMessage.includes('font')) {
                  │
                  ▼
          ┌───────────────┐
-         │ Download      │  ← Protokol_XXX.pdf
+         │ Download      │  ← Prot-XXX.pdf
          │ (lokalny plik)│
          └───────────────┘
 ```
