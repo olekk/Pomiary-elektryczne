@@ -300,7 +300,7 @@ export const SummaryScreen: React.FC = () => {
           <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
             Generuj PDF
           </Button>
-          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />}>
+          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />} disabled={hasStoredSignature}>
             Edytuj pomiary
           </Button>
           <Button variant="primary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
