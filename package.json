@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:mutation": "npx stryker run"
+    "test:mutation": "npx stryker run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:emulator": "firebase emulators:exec --only firestore 'npm run test:integration'"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",
