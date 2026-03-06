@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 import { useAuth, useOnlineStatus, usePendingSync } from '../../hooks'
@@ -23,6 +23,25 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   const { signOutUser } = useAuth()
   const isOnline = useOnlineStatus()
   const { pendingSyncCount, retryPendingSync } = usePendingSync()
+
+  // Auto-sync: trigger on mount (screen navigation) and when coming back online
+  const hasAttemptedInitialSync = useRef(false)
+  const wasOnline = useRef(isOnline)
+
+  useEffect(() => {
+    if (!isOnline) {
+      wasOnline.current = false
+      return
+    }
+
+    const cameBackOnline = !wasOnline.current
+    wasOnline.current = true
+
+    if (!hasAttemptedInitialSync.current || cameBackOnline) {
+      hasAttemptedInitialSync.current = true
+      retryPendingSync()
+    }
+  }, [isOnline, retryPendingSync])
 
   const handleLogout = async () => {
     if (confirm('Czy na pewno chcesz się wylogować?')) {
