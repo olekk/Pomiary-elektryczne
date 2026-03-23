@@ -99,38 +99,39 @@ pomiary-elektryczne/
 │   ├── manifest.json           # PWA manifest
 │   ├── sw.js                   # Service Worker
 │   ├── icon-192.png, icon-512.png  # Ikony PWA
-│   └── fonts/                  # Roboto fonts
+│   └── fonts/                  # Roboto fonts (precache dla offline PDF)
 │
 ├── src/
 │   ├── components/             # Komponenty React (Atomic Design)
 │   │   ├── atoms/              # ⚛️ Podstawowe building blocks
 │   │   │   ├── Badge.tsx       # Kolorowa etykieta
-│   │   │   ├── Button.tsx      # Przycisk (z wariantami)
+│   │   │   ├── Button.tsx      # Przycisk (z wariantami: primary, secondary, warning)
 │   │   │   ├── Card.tsx        # Kontener z cieniem
 │   │   │   ├── Input.tsx       # Pole tekstowe
-│   │   │   ├── Select.tsx      # Lista rozwijana
+│   │   │   ├── Select.tsx      # Lista rozwijana (używany m.in. do UnitType)
 │   │   │   └── index.ts        # Re-export
 │   │   │
 │   │   ├── molecules/          # 🧬 Proste kombinacje atomów
 │   │   │   ├── FormField.tsx   # Label + Input + Error
-│   │   │   ├── InspectionCard.tsx  # Karta pomiaru
+│   │   │   ├── InspectionCard.tsx  # Karta pomiaru (z obsługą INACCESSIBLE)
 │   │   │   ├── MeasurementListItem.tsx  # Element listy punktów
 │   │   │   ├── StatsCard.tsx   # Karta statystyki
 │   │   │   ├── StatusBadge.tsx # Badge online/offline + sync
 │   │   │   └── index.ts        # Re-export
 │   │   │
 │   │   ├── organisms/          # 🦠 Złożone sekcje biznesowe
-│   │   │   ├── CreateInspectionModal.tsx  # Modal tworzenia pomiaru
-│   │   │   ├── DashboardHeader.tsx  # Nagłówek z wylogowaniem
+│   │   │   ├── CreateInspectionModal.tsx  # Modal tworzenia pomiaru (z UnitType selector)
 │   │   │   ├── DashboardStats.tsx   # Sekcja statystyk
 │   │   │   ├── InspectionsList.tsx  # Lista pomiarów
 │   │   │   ├── MeasurementSettings.tsx  # Panel ustawień pomiaru
+│   │   │   ├── NotesSection.tsx     # 🆕 Rozwijana sekcja uwag do protokołu
 │   │   │   ├── SignaturePanel.tsx   # Panel podpisu
 │   │   │   └── index.ts        # Re-export
 │   │   │
 │   │   ├── layout/             # Layout components
 │   │   │   └── MainLayout.tsx  # Header + footer + navigation
 │   │   │
+│   │   ├── DebugConsole.tsx    # 🆕 vConsole loader (aktywny przy ?debug=1)
 │   │   ├── ProjectsScreen.tsx  # 📄 Ekran główny (lista projektów)
 │   │   ├── ProjectDetailsScreen.tsx  # 📄 Szczegóły projektu
 │   │   ├── BuildingDetailsScreen.tsx # 📄 Szczegóły budynku
@@ -151,19 +152,37 @@ pomiary-elektryczne/
 │   │   └── index.ts           # Barrel export
 │   │
 │   ├── services/               # 🔥 Integracje zewnętrzne
-│   │   ├── firebaseService.ts  # Write operations (Firestore)
+│   │   ├── __tests__/          # 🧪 Testy integracyjne (Firebase Emulator)
+│   │   │   ├── firebaseService.integration.test.ts
+│   │   │   └── testSetup.integration.ts
+│   │   ├── firebaseService.ts  # Write + Read operations (Firestore)
 │   │   └── index.ts            # Re-export
 │   │
 │   ├── utils/                  # 🛠️ Pure functions
+│   │   ├── __tests__/          # 🧪 Testy jednostkowe (Vitest)
+│   │   │   ├── addressHelper.test.ts
+│   │   │   ├── apartmentUtils.test.ts
+│   │   │   ├── dateUtils.test.ts
+│   │   │   ├── idGenerator.test.ts
+│   │   │   ├── measurementCalculations.test.ts
+│   │   │   ├── protocolGenerator.test.ts
+│   │   │   ├── validators.test.ts
+│   │   │   └── zsDopTable.test.ts
+│   │   ├── addressHelper.ts    # 🆕 Formatowanie adresu z Building
+│   │   ├── apartmentUtils.ts   # 🆕 Inteligentna inkrementacja nr mieszkania
+│   │   ├── cn.ts               # 🆕 clsx + tailwind-merge utility
+│   │   ├── dateUtils.ts        # 🆕 Konwersja dat (ensureDate)
 │   │   ├── idGenerator.ts      # Generowanie ID
-│   │   ├── measurementCalculations.ts  # Zs_dop, wyniki
+│   │   ├── logger.ts           # 🆕 Logger wrapper (wspiera vConsole)
+│   │   ├── measurementCalculations.ts  # Zs_dop, createMeasurement, wyniki
+│   │   ├── protocolGenerator.ts  # 🆕 Generator numeru protokołu
 │   │   ├── validators.ts       # Walidacja danych
-│   │   └── index.ts            # Re-export
+│   │   └── index.ts            # Barrel re-export
 │   │
 │   ├── types/                  # 📝 TypeScript types
-│   │   └── index.ts            # Typy i stałe
+│   │   └── index.ts            # Typy, stałe, ZS_DOP_TABLE
 │   │
-│   ├── App.tsx                 # 🔐 Routing + AuthProvider
+│   ├── App.tsx                 # 🔐 Routing + AuthProvider + DebugConsole
 │   ├── main.tsx                # Entry point
 │   ├── firebase.ts             # Konfiguracja Firebase (Auth + Firestore)
 │   └── index.css               # Style globalne
@@ -179,6 +198,9 @@ pomiary-elektryczne/
 │
 ├── index.html                  # HTML template
 ├── vite.config.ts              # Konfiguracja Vite + PWA
+├── vitest.config.ts            # 🆕 Konfiguracja Vitest (unit tests)
+├── vitest.integration.config.ts  # 🆕 Konfiguracja Vitest (integration + Emulator)
+├── stryker.config.json         # 🆕 Konfiguracja Stryker (mutation testing)
 ├── tailwind.config.js          # Konfiguracja Tailwind
 ├── postcss.config.js           # Konfiguracja PostCSS
 ├── tsconfig.json               # Konfiguracja TypeScript
@@ -265,10 +287,14 @@ const { user, signOutUser } = useAuth()
   <AppContent />      // Wewnętrzny komponent z logiką routingu
 </AuthProvider>
 
-// AppContent:
-const { user, isLoading } = useAuth()
-if (isLoading) return <LoadingScreen />
-if (!user) return <LoginScreen />
+// AppRoutes:
+const { user, isAuthChecking } = useAuth()
+if (isAuthChecking) return <LoadingSpinner />
+
+// Offline cold-start fix: cachedAuthUid zapobiega flashowi LoginScreen
+const hasCachedUid = !!localStorage.getItem('cachedAuthUid')
+if (!user && !hasCachedUid) return <LoginScreen />
+
 return <BrowserRouter>{/* Routes */}</BrowserRouter>
 ```
 
@@ -552,8 +578,8 @@ const addMeasurement = (zsValue, protectionType, amperage, kFactor) => {
 
 **Routing:**
 
-- `/measurement` → Nowy pomiar
-- Kliknięcie "Zapisz" → `/summary/:inspectionId`
+- `/building/:buildingId/measurement` → Nowy pomiar
+- Kliknięcie "Zapisz" → `/building/:buildingId/summary/:inspectionId`
 
 ---
 
@@ -585,7 +611,7 @@ const url = URL.createObjectURL(blob);
 
 **Routing:**
 
-- `/summary/:inspectionId` → Podsumowanie
+- `/building/:buildingId/summary/:inspectionId` → Podsumowanie
 - "Zapisz i Dodaj Kolejny" → `/building/:buildingId`
 - "Powrót" → `/building/:buildingId`
 
@@ -637,13 +663,20 @@ Od lutego 2026 aplikacja **nie używa Zustand** ani żadnego globalnego store'a.
 
 ```typescript
 function useCollection<T>(
-  query: Query | null,
+  q: Query | null,
   mapper: (doc: QueryDocumentSnapshot) => T,
-  label?: string
-): { data: T[]; isLoading: boolean; error: FirestoreError | null }
+  key: string,        // stabilny string identyfikujący query (np. projectId)
+  label?: string       // opcjonalny label do debug logów
+): { data: T[]; isLoading: boolean; isInitialized: boolean; error: Error | null }
 ```
 
-Używany przez: `ProjectsScreen`, `ProjectDetailsScreen`, `BuildingDetailsScreen`
+**Kluczowe cechy:**
+- `key` jako jedyny dependency w `useEffect` — subskrypcja restartuje się tylko gdy zmieni się logiczny query
+- `useRef` dla query i mapper — unika zbędnych re-subskrypcji
+- Safety timeout (5s) — jeśli `onSnapshot` nie odpowie (iOS Safari bug), wymusza `isLoading=false`
+- `includeMetadataChanges: true` — pozwala rozróżnić dane z cache vs serwera
+
+Używany przez: `ProjectsScreen`, `ProjectDetailsScreen`, `BuildingDetailsScreen`, `usePendingSync`
 
 ### useDocument — Single Document Listener
 
@@ -706,9 +739,13 @@ projects (collection)
 buildings (collection)
 ├── {buildingId} (document)
 │   ├── projectId: string         // WYMAGANE
-│   ├── name: string
-│   ├── address: string
-│   └── createdAt: Timestamp
+│   ├── name?: string             // Stare dane (deprecated, kompatybilność wsteczna)
+│   ├── street: string            // np. "Słoneczna 15"
+│   ├── zipCode: string           // np. "40-000"
+│   ├── city: string              // np. "Katowice"
+│   ├── userId: string            // UID twórcy
+│   ├── createdAt: Timestamp
+│   └── updatedAt: Timestamp
 
 inspections (collection)
 ├── {inspectionId} (document)
@@ -725,19 +762,22 @@ inspections (collection)
 │   ├── synced: boolean
 │   ├── ownerSignature: string (base64 podpisu klienta)
 │   ├── status: 'COMPLETED' | 'INACCESSIBLE'  // domyślnie 'COMPLETED'
-│   ├── protocolNumber: string
+│   ├── unitType: 'mieszkanie' | 'lokal' | 'klatka'  // domyślnie 'mieszkanie'
+│   ├── protocolNumber: string    // Format: PROT/RRRR/MM/DD/ULICA/NR
+│   ├── createdAt: Timestamp
 │   └── measurements: array
 │       └── [
 │           {
 │             id: string,
 │             pointNumber: number,
+│             room: Room,          // 'Łazienka' | 'Kuchnia' | string
 │             protectionType: 'WNP' | 'BI',
-│             amperage: 16 | 20 | 25,
-│             kFactor: number,
+│             amperage: 10 | 16 | 20 | 25,
 │             zsValue: number | null,
 │             zsDop: number,
-│             result: 'TAK' | 'NIE' | 'B.UZ',
-│             noGrounding: boolean
+│             result: 'TAK' | 'NIE',
+│             noGrounding?: 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null,
+│             socketType: 'Gniazdo 230V' | 'Gniazdo IP44'
 │           }
 │         ]
 
@@ -756,11 +796,20 @@ Każdy `Inspection` **MUSI** mieć `projectId` i `buildingId`. Typ TypeScript wy
 ```typescript
 export interface Inspection {
   id?: string
-  projectId: string  // WYMAGANE
-  buildingId: string // WYMAGANE
-  notes?: string
+  projectId: string    // WYMAGANE
+  buildingId: string   // WYMAGANE
   address: string
-  // ... reszta pól
+  apartmentNumber: string
+  ownerName?: string
+  date: Date
+  technicianName: string
+  notes?: string
+  measurements: Measurement[]
+  ownerSignature?: string
+  protocolNumber: string
+  synced?: boolean
+  status?: InspectionStatus   // 'COMPLETED' | 'INACCESSIBLE'
+  unitType?: UnitType          // 'mieszkanie' | 'lokal' | 'klatka'
 }
 ```
 
@@ -942,29 +991,50 @@ Wszystkie zasoby aplikacji (JS, CSS, HTML, fonty, ikony) są precache'owane podc
 
 ## 🧪 Testing Strategy
 
-### Unit Tests (przykład - nie zaimplementowane)
+### Infrastruktura testowa
 
-```typescript
-// hooks/useCollection.test.ts
-describe('useCollection', () => {
-  it('should return data from Firestore snapshot', () => {
-    // ...
-  })
-})
+Aplikacja używa **Vitest** z dwoma konfiguracjami:
+
+| Typ testów | Config | Środowisko | Scope |
+|---|---|---|---|
+| Unit tests | `vitest.config.ts` | node | `src/**/*.test.ts` |
+| Integration tests | `vitest.integration.config.ts` | node + Firebase Emulator | `src/**/*.integration.test.ts` |
+| Mutation tests | `stryker.config.json` | Stryker + Vitest | `src/utils/**` |
+
+### Unit Tests (zaimplementowane — 8 plików)
+
+Testy pure functions w katalogu `src/utils/__tests__/`:
+
+```
+✅ addressHelper.test.ts        — getFullAddress, normalizeAddressForProtocol
+✅ apartmentUtils.test.ts       — incrementApartmentNumber
+✅ dateUtils.test.ts            — ensureDate
+✅ idGenerator.test.ts          — generateInspectionId
+✅ measurementCalculations.test.ts — calculateZsDop, determineMeasurementResult, createMeasurement
+✅ protocolGenerator.test.ts    — generateProtocolNumber
+✅ validators.test.ts           — validateInspectionForm, validateMeasurementValue
+✅ zsDopTable.test.ts           — weryfikacja tabeli ZS_DOP_TABLE
 ```
 
-### E2E Tests (przykład - nie zaimplementowane)
+**Coverage threshold:** 90% statements (wymuszony w `vitest.config.ts`)
 
-```typescript
-// cypress/e2e/measurement.cy.ts
-describe('Measurement Flow', () => {
-  it('should create new measurement', () => {
-    cy.visit('/')
-    cy.get('[data-testid="new-measurement-btn"]').click()
-    cy.get('[data-testid="address-input"]').type('ul. Testowa 1')
-    // ...
-  })
-})
+### Integration Tests (Firebase Emulator)
+
+Testy w `src/services/__tests__/`:
+
+```
+✅ firebaseService.integration.test.ts — save/read round-trip, update bez duplikacji,
+                                          kaskadowe usuwanie, walidacja wymaganych pól
+```
+
+**Wymagania:** Firebase Emulator na `127.0.0.1:8080`, timeout 30s
+
+### Komendy
+
+```bash
+npm test                    # Unit tests
+npm run test:integration    # Integration tests (wymaga Emulatora)
+npm run stryker             # Mutation testing
 ```
 
 ## 🚀 Performance Optimizations
@@ -1056,28 +1126,39 @@ hooks/
 
 ```
 services/
-└── firebaseService.ts  → TYLKO Write Operations (Create, Update, Delete)
-                         → Izolacja od UI
+├── __tests__/
+│   ├── firebaseService.integration.test.ts  → Firebase Emulator tests
+│   └── testSetup.integration.ts             → Emulator connection setup
+├── firebaseService.ts  → Write + Read Operations (Firestore)
+└── index.ts            → Re-export
 ```
 
-**firebaseService.ts** zawiera tylko:
+**firebaseService.ts** zawiera:
 - ✅ `saveProjectToFirestore()` - zapisywanie projektów
-- ✅ `saveBuildingToFirestore()` - zapisywanie budynków
-- ✅ `saveInspectionToFirestore()` - zapisywanie inspekcji
-- ✅ `deleteProjectFromFirestore()` - usuwanie projektów (kaskadowe)
-- ✅ `deleteBuildingFromFirestore()` - usuwanie budynków (kaskadowe)
+- ✅ `saveInspectionToFirestore()` - zapisywanie inspekcji (z `unitType`, `createdAt`)
+- ✅ `deleteProjectFromFirestore()` - usuwanie projektów (kaskadowe: budynki + inspekcje, atomic batch)
+- ✅ `deleteBuildingFromFirestore()` - usuwanie budynków (kaskadowe: inspekcje, atomic batch)
 - ✅ `deleteInspectionFromFirestore()` - usuwanie inspekcji
 - ✅ `markInspectionAsSynced()` - oznaczanie jako zsynchronizowane
 - ✅ `retrySyncInspection()` - retry synchronizacji
 - ✅ `saveUserSettingsToFirestore()` - zapis ustawień technika
+- ✅ `getUserSettingsFromFirestore()` - odczyt ustawień technika
 
 ### Utils Layer
 
 ```
 utils/
-├── idGenerator.ts              → Pure functions
-├── measurementCalculations.ts  → Pure functions (Zs_dop, wyniki)
-└── validators.ts               → Pure functions (walidacja)
+├── __tests__/                   → 8 plików testów (Vitest)
+├── addressHelper.ts             → getFullAddress(), normalizeAddressForProtocol()
+├── apartmentUtils.ts            → incrementApartmentNumber()
+├── cn.ts                        → clsx + tailwind-merge
+├── dateUtils.ts                 → ensureDate()
+├── idGenerator.ts               → generateInspectionId()
+├── logger.ts                    → console wrapper (wspiera vConsole)
+├── measurementCalculations.ts   → calculateZsDop, createMeasurement, renumberMeasurements
+├── protocolGenerator.ts         → generateProtocolNumber()
+├── validators.ts                → validateInspectionForm, validateMeasurementValue
+└── index.ts                     → Barrel re-export
 ```
 
 ---
@@ -1130,7 +1211,7 @@ npm run dev
 **Autor:** Senior React Developer  
 **Architektura:** React + TypeScript + Firebase Auth + Firestore + PWA  
 **Wzorce:** Atomic Design, Custom Hooks (Firestore Listeners), Offline-First, Auth Guard  
-**Ostatnia aktualizacja:** 2026-02-14 (Usunięcie Zustand — architektura Firestore-Only z custom hooks)
+**Ostatnia aktualizacja:** 2026-03-23 (Aktualizacja dokumentacji — UnitType, rozszerzony model danych, testing, nowe utilities)
 
 ---
 
@@ -1520,5 +1601,187 @@ Zustand store powodował problemy z "ghost data" i stale cache na page reload. A
 
 - Usunięto `zustand` z `vendor-ui` chunk w `vite.config.ts`
 - Bundle zmniejszony o ~5KB (zustand minified)
+
+---
+
+## 🆕 Rozszerzony Model Danych (2026-02-20 – 2026-03-02)
+
+### Building — rozbicie adresu na komponenty
+
+Model `Building` zyskał osobne pola adresowe zamiast jednego `name`:
+
+```typescript
+export interface Building {
+  id: string
+  projectId: string
+  name?: string      // deprecated, kompatybilność wsteczna
+  street: string     // np. "Słoneczna 15"
+  zipCode: string    // np. "40-000"
+  city: string       // np. "Katowice"
+  userId: string     // UID twórcy
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+`addressHelper.ts` → `getFullAddress(building)` składa adres z komponentów lub używa fallback na `name`.
+
+### Measurement — room, socketType, rozszerzony noGrounding
+
+```typescript
+export interface Measurement {
+  id: string
+  pointNumber: number
+  room: Room                   // 'Łazienka' | 'Kuchnia' | string
+  protectionType: ProtectionType
+  amperage: Amperage           // 10 | 16 | 20 | 25 (dodano 10A)
+  zsValue: number | null
+  zsDop: number
+  result: 'TAK' | 'NIE'       // uproszczone (usunięto 'B.UZ')
+  noGrounding?: NoGroundingType // 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
+  socketType: SocketType       // 'Gniazdo 230V' | 'Gniazdo IP44'
+}
+```
+
+### UnitType — typ lokalu (2026-03-02)
+
+Dodano `UnitType` (`mieszkanie` | `lokal` | `klatka`) do `CreateInspectionModal`:
+
+- **mieszkanie** — domyślny, wymaga numeru mieszkania
+- **lokal** — zmienia label na "Numer lokalu"
+- **klatka** — auto-generowany ID (`klatka`, `klatka 2`, ...), brak pola numeru
+
+Walidacja unikalności numerów (case-insensitive) z komunikatem błędu.
+
+### Protocol Number — ustrukturyzowany format
+
+`protocolGenerator.ts` generuje numery w formacie: `PROT/RRRR/MM/DD/ULICA/NR`
+
+Przykład: `PROT/2026/02/12/LESNA_5/42`
+
+### Apartment Number — smart increment
+
+`apartmentUtils.ts` → `incrementApartmentNumber()` — inteligentna inkrementacja:
+- `"1"` → `"2"`, `"42"` → `"43"`, `"1A"` → `"2A"`, `"10B"` → `"11B"`
+
+---
+
+## 🆕 Nowe Utilities (2026-02-20 – 2026-03-02)
+
+### addressHelper.ts
+- `getFullAddress(building)` — formatuje adres z komponentów Building
+- `normalizeAddressForProtocol(address)` — normalizacja (usuwa "ul.", polskie znaki, znaki specjalne)
+
+### apartmentUtils.ts
+- `incrementApartmentNumber(nr)` — smart increment numeru mieszkania
+
+### protocolGenerator.ts
+- `generateProtocolNumber(date, apt, street)` — strukturalny numer protokołu
+
+### cn.ts
+- `cn(...inputs)` — `clsx` + `tailwind-merge` utility do warunkowego łączenie klas CSS
+
+### dateUtils.ts
+- `ensureDate(value)` — konwersja z `Date | string | number | Timestamp` do `Date`
+
+### logger.ts
+- `logger.log/warn/error()` — wrapper na `console.*`, zawsze loguje (wspiera vConsole na mobile)
+
+---
+
+## 🆕 Testing Infrastructure (2026-03-02)
+
+### Vitest — Unit Tests
+
+8 plików testów w `src/utils/__tests__/` pokrywających wszystkie pure functions.
+
+**Konfiguracja:**
+- Environment: `node`
+- Coverage: `src/utils/**`, threshold: 90% statements
+- Exclude: `*.integration.test.ts`
+
+### Firebase Emulator — Integration Tests
+
+Testy w `src/services/__tests__/firebaseService.integration.test.ts`:
+- Save/read round-trip
+- Update bez duplikacji dokumentów
+- Kaskadowe usuwanie (projekt → budynki → inspekcje)
+- Walidacja wymaganych pól (`projectId`, `buildingId`)
+
+**Konfiguracja:**
+- Emulator: `127.0.0.1:8080`
+- Timeout: 30s
+- Setup/teardown w `testSetup.integration.ts`
+
+### Stryker — Mutation Testing
+
+Konfiguracja w `stryker.config.json` dla `src/utils/**` z Vitest runner.
+
+---
+
+## 🆕 Debug Console & Logger (2026-02-25)
+
+### DebugConsole.tsx — vConsole na mobile
+
+Komponent montowany w `App.tsx`, aktywowany przez query param `?debug=1`:
+- Ładuje `vconsole` dynamicznie (lazy import)
+- Wyświetla floating overlay z logami, siecią, info o urządzeniu
+- Dark theme, automatyczny cleanup przy unmount
+
+### logger.ts — centralny logger
+
+Wrapper na `console.*` metody. Wszystkie poziomy zawsze logują, żeby vConsole mógł je przechwycić.
+
+Używany przez: `useCollection`, `usePendingSync`, `firebaseService`, i inne.
+
+---
+
+## 🆕 useCollection — Ulepszenia (2026-03)
+
+### Nowy parametr `key`
+
+Subskrypcja restartuje się **tylko** gdy zmieni się `key` (np. `projectId`), nie przy każdym renderze. Dane `query` i `mapper` trzymane w `useRef` — zapobiega zbędnym re-subskrypcjom.
+
+### Safety timeout (iOS Safari fix)
+
+Jeśli `onSnapshot` nie odpowie w ciągu 5 sekund (znany bug iOS Safari), hook wymusza `isLoading=false` aby UI nie zawiesiło się.
+
+### isInitialized flag
+
+Nowy stan `isInitialized` — pozwala rozróżnić "jeszcze nie załadowano" od "załadowano pusty wynik".
+
+### includeMetadataChanges
+
+Opcja `includeMetadataChanges: true` w `onSnapshot` — pozwala rozróżnić dane z cache (`fromCache: true`) od danych z serwera.
+
+---
+
+## 🆕 Offline Cold-Start Fix (2026-03)
+
+### Problem
+
+Przy offline cold-start (odświeżenie strony bez internetu), `onAuthStateChanged` zwraca `null` bo Firebase Auth potrzebuje sieci do weryfikacji tokenu. Powodowało to flash LoginScreen mimo ważnej sesji.
+
+### Rozwiązanie — cachedAuthUid
+
+```typescript
+// App.tsx
+const hasCachedUid = !!localStorage.getItem('cachedAuthUid')
+if (!user && !hasCachedUid) return <LoginScreen />
+```
+
+UID jest cache'owany w `localStorage` przy każdym udanym logowaniu. Przy cold-start offline, aplikacja wyświetla główny interfejs zamiast LoginScreen, czekając aż `onAuthStateChanged` potwierdzi sesję z cache.
+
+---
+
+## 🆕 Auto-Sync Triggers (2026-03-06)
+
+### Automatyczna synchronizacja niesynchronizowanych pomiarów
+
+Dodano triggery automatycznej synchronizacji `synced: false` inspekcji:
+- Przy otwarciu aplikacji (mount)
+- Przy wejściu na nowy ekran
+
+`usePendingSync()` — hook bez argumentu `uid`, query globalny `where('synced', '==', false)`, z `retryPendingSync()` callback.
 
 ---
