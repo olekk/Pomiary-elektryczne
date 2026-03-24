@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
-import { MeasurementSettings, NotesSection } from './organisms'
+import { MeasurementSettings, NotesSection, KlatkaInspectionForm } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
-import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building } from '../types'
+import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building, KlatkaData } from '../types'
 import { getFullAddress, validateMeasurementValue, generateInspectionId, generateMeasurementId, createMeasurement, renumberMeasurements, ensureDate } from '../utils'
 import { useDocument, useAuth, useUserSettings } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
@@ -84,6 +84,11 @@ export const MeasurementScreen: React.FC = () => {
   }, [])
   const [notes, setNotes] = useState(currentInspection?.notes || '')
 
+  const isKlatka = currentInspection?.unitType === 'klatka'
+  const [klatkaData, setKlatkaData] = useState<KlatkaData>(
+    currentInspection?.klatkaData || { przylacze: 'napowietrzne', pwpStatus: 'jest' }
+  )
+
   const handleNotesChange = useCallback((value: string) => {
     setNotes(value)
     updateInspection(prev => prev ? { ...prev, notes: value } : null)
@@ -128,10 +133,18 @@ export const MeasurementScreen: React.FC = () => {
   }
 
   const handleSave = () => {
-    if (!currentInspection || currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
+    if (!currentInspection) return
+    if (!isKlatka && currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
     const savedId = currentInspection.id || generateInspectionId()
-    const inspectionToSave: Inspection = { ...currentInspection, id: savedId, notes, date: ensureDate(currentInspection.date), synced: false }
+    const inspectionToSave: Inspection = {
+      ...currentInspection,
+      id: savedId,
+      notes,
+      date: ensureDate(currentInspection.date),
+      synced: false,
+      ...(isKlatka ? { klatkaData } : {}),
+    }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
     saveInspectionToFirestore(inspectionToSave, savedId)
@@ -156,24 +169,32 @@ export const MeasurementScreen: React.FC = () => {
         <div className="bg-slate-900 border-b border-slate-800 p-4">
           <div className="text-sm text-slate-400 mb-1">Budynek: <span className="text-slate-200 font-medium">{buildingName}</span></div>
           <h2 className="text-lg font-semibold text-slate-100">{currentInspection.address} / {currentInspection.unitType === 'lokal' ? 'Lokal ' : ''}{currentInspection.apartmentNumber}</h2>
-          <p className="text-sm text-slate-400 mt-1">Pomiary: {currentInspection.measurements.length}</p>
+          {!isKlatka && <p className="text-sm text-slate-400 mt-1">Pomiary: {currentInspection.measurements.length}</p>}
         </div>
-        <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
-          <NotesSection notes={notes} onNotesChange={handleNotesChange} />
-          <MeasurementSettings room={nextRoom} protectionType={nextProtectionType} amperage={nextAmperage} socketType={nextSocketType} onRoomChange={handleRoomChange} onProtectionTypeChange={setNextProtectionType} onAmperageChange={setNextAmperage} onSocketTypeChange={setNextSocketType} />
-        </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {currentInspection.measurements.length === 0 ? (
-            <div className="text-center text-slate-400 mt-8"><p>Brak pomiarów. Wprowadź pierwszy pomiar poniżej.</p></div>
-          ) : (
-            <div className="space-y-2">
-              {currentInspection.measurements.map(m => <MeasurementListItem key={m.id} measurement={m} onDelete={handleRemoveMeasurement} />)}
+        {isKlatka ? (
+          <div className="flex-1 overflow-y-auto p-4">
+            <KlatkaInspectionForm value={klatkaData} onChange={setKlatkaData} />
+          </div>
+        ) : (
+          <>
+            <div className="p-4 bg-slate-900 border-b border-slate-800 space-y-3">
+              <NotesSection notes={notes} onNotesChange={handleNotesChange} />
+              <MeasurementSettings room={nextRoom} protectionType={nextProtectionType} amperage={nextAmperage} socketType={nextSocketType} onRoomChange={handleRoomChange} onProtectionTypeChange={setNextProtectionType} onAmperageChange={setNextAmperage} onSocketTypeChange={setNextSocketType} />
             </div>
-          )}
-        </div>
-        <div className="p-4">
-          <NumericKeypad value={inputValue} onValueChange={setInputValue} onEnter={handleEnterMeasurement} onNoGrounding={handleNoGrounding} />
-        </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {currentInspection.measurements.length === 0 ? (
+                <div className="text-center text-slate-400 mt-8"><p>Brak pomiarów. Wprowadź pierwszy pomiar poniżej.</p></div>
+              ) : (
+                <div className="space-y-2">
+                  {currentInspection.measurements.map(m => <MeasurementListItem key={m.id} measurement={m} onDelete={handleRemoveMeasurement} />)}
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <NumericKeypad value={inputValue} onValueChange={setInputValue} onEnter={handleEnterMeasurement} onNoGrounding={handleNoGrounding} />
+            </div>
+          </>
+        )}
         <Card className="m-4 shadow-lg" padding={false}>
           <Button variant="primary" size="lg" fullWidth onClick={handleSave} icon={<Save size={24} />}>Zapisz</Button>
         </Card>

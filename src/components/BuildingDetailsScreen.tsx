@@ -51,6 +51,7 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     synced: data.synced ?? true,
     status: data.status || 'COMPLETED',
     unitType: data.unitType || 'mieszkanie',
+    klatkaData: data.klatkaData || undefined,
   }
 }
 

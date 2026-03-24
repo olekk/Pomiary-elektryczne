@@ -5,6 +5,16 @@ export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
 export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 
+export type PrzylaczType = 'napowietrzne' | 'kabelowe'
+export type PwpStatus = 'jest' | 'brak'
+
+export interface KlatkaData {
+  przylacze: PrzylaczType
+  typKabla?: string       // only when przylacze === 'kabelowe'
+  przekroj?: string       // only when przylacze === 'kabelowe'
+  pwpStatus: PwpStatus
+}
+
 export interface Measurement {
   id: string
   pointNumber: number
@@ -57,6 +67,7 @@ export interface Inspection {
   synced?: boolean
   status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = niedostępne
   unitType?: UnitType // 'mieszkanie' domyślnie
+  klatkaData?: KlatkaData // data for 'klatka' unit type inspections
 }
 
 export interface UserSettings {

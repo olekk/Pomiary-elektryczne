@@ -136,7 +136,7 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
   }
 
   const handleSubmit = () => {
-    if (!validateFields()) return
+    if (!validateFields(unitType !== 'klatka')) return
 
     if (isResumeMode && onResumeInspection) {
       onResumeInspection(
@@ -224,13 +224,15 @@ export const CreateInspectionModal: React.FC<CreateInspectionModalProps> = ({
             )}
           </div>
 
-          <Input
-            label="Imię i nazwisko Właściciela/Najemcy"
-            type="text"
-            value={ownerName}
-            onChange={(e) => setOwnerName(e.target.value)}
-            placeholder="np. Jan Kowalski"
-          />
+          {unitType !== 'klatka' && (
+            <Input
+              label="Imię i nazwisko Właściciela/Najemcy"
+              type="text"
+              value={ownerName}
+              onChange={(e) => setOwnerName(e.target.value)}
+              placeholder="np. Jan Kowalski"
+            />
+          )}
         </div>
 
         <div className="flex flex-col gap-3 mt-6">

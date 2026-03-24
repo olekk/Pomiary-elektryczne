@@ -34,6 +34,7 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
     synced: d.synced ?? true,
     status: d.status || 'COMPLETED',
     unitType: d.unitType || 'mieszkanie',
+    klatkaData: d.klatkaData || undefined,
   }
 }
 
@@ -231,28 +232,60 @@ export const SummaryScreen: React.FC = () => {
       </div>
 
       <div className="p-4">
-        <Card className="mb-4">
-          <h2 className="font-bold text-lg text-slate-100 mb-3">Podsumowanie</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">{passed}</div>
-              <div className="text-xs text-slate-400">Pozytywne</div>
+        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
+          <Card className="mb-4">
+            <h2 className="font-bold text-lg text-slate-100 mb-3">Dane klatki schodowej</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">1. Przyłącze</span>
+                <span className="text-slate-100 font-medium capitalize">{inspection.klatkaData.przylacze}</span>
+              </div>
+              {inspection.klatkaData.przylacze === 'kabelowe' && (
+                <>
+                  <div className="flex justify-between items-center ml-4">
+                    <span className="text-slate-400">1.1 Typ kabla</span>
+                    <span className="text-slate-100 font-medium">{inspection.klatkaData.typKabla || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center ml-4">
+                    <span className="text-slate-400">1.2 Przekrój</span>
+                    <span className="text-slate-100 font-medium">{inspection.klatkaData.przekroj || '-'}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">2. Wyłącznik pożarowy (PWP)</span>
+                <span className={`font-bold ${inspection.klatkaData.pwpStatus === 'jest' ? 'text-green-400' : 'text-red-400'}`}>
+                  {inspection.klatkaData.pwpStatus === 'jest' ? 'Jest' : 'Brak'}
+                </span>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-400">{failed}</div>
-              <div className="text-xs text-slate-400">Negatywne</div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        ) : (
+          <>
+            <Card className="mb-4">
+              <h2 className="font-bold text-lg text-slate-100 mb-3">Podsumowanie</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-400">{passed}</div>
+                  <div className="text-xs text-slate-400">Pozytywne</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-400">{failed}</div>
+                  <div className="text-xs text-slate-400">Negatywne</div>
+                </div>
+              </div>
+            </Card>
 
-        <Card className="mb-4">
-          <h3 className="font-bold text-slate-100 mb-3">Wszystkie punkty pomiarowe</h3>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {inspection.measurements.map((m) => (
-              <CompactMeasurementListItem key={m.id} measurement={m} />
-            ))}
-          </div>
-        </Card>
+            <Card className="mb-4">
+              <h3 className="font-bold text-slate-100 mb-3">Wszystkie punkty pomiarowe</h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {inspection.measurements.map((m) => (
+                  <CompactMeasurementListItem key={m.id} measurement={m} />
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
 
         <Card className="mb-4">
           <label htmlFor="inspection-notes" className="block text-sm font-medium text-slate-100 mb-2">

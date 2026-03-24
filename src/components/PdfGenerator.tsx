@@ -343,6 +343,41 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
         <Text style={styles.subtitle}>
           Badanie ochrony przed porażeniem przez samoczynne wyłącznie
         </Text>
+
+        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
+          <View style={styles.table}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.colLp]}>Lp.</Text>
+              <Text style={[styles.colSubject]}>Przedmiot oględzin</Text>
+              <Text style={[styles.colRating]}>Wynik</Text>
+            </View>
+            <View style={styles.tableRow}>
+              <Text style={[styles.colLp]}>1</Text>
+              <Text style={[styles.colSubject]}>Przyłącze</Text>
+              <Text style={[styles.colRating]}>{inspection.klatkaData.przylacze === 'napowietrzne' ? 'Napowietrzne' : 'Kabelowe'}</Text>
+            </View>
+            {inspection.klatkaData.przylacze === 'kabelowe' && (
+              <>
+                <View style={styles.tableRowAlt}>
+                  <Text style={[styles.colLp]}>1.1</Text>
+                  <Text style={[styles.colSubject]}>Typ kabla</Text>
+                  <Text style={[styles.colRating]}>{inspection.klatkaData.typKabla || '-'}</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={[styles.colLp]}>1.2</Text>
+                  <Text style={[styles.colSubject]}>Przekrój</Text>
+                  <Text style={[styles.colRating]}>{inspection.klatkaData.przekroj || '-'}</Text>
+                </View>
+              </>
+            )}
+            <View style={styles.tableRowAlt}>
+              <Text style={[styles.colLp]}>2</Text>
+              <Text style={[styles.colSubject]}>Wyłącznik pożarowy prądu (PWP)</Text>
+              <Text style={[styles.colRating]}>{inspection.klatkaData.pwpStatus === 'jest' ? 'JEST' : 'BRAK'}</Text>
+            </View>
+          </View>
+        ) : (
+          <>
         {/* Measurements Table */}
         <View style={styles.table}>
           {/* Table Header */}
@@ -386,6 +421,8 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text> 
           <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
         </View>
+          </>
+        )}
         {/* --- SEKCJA OGLĘDZINY --- */}
         <View style={styles.inspectionContainer}>
           <Text style={styles.sectionTitle}>
