@@ -5,6 +5,27 @@ export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
 export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 
+// ── Company types ──
+
+export type CompanyRole = 'owner' | 'admin' | 'technician'
+
+export interface Company {
+  id: string // stable companyId (slug + suffix), used as doc path
+  name: string // human-editable display name
+  slug: string // URL-safe slug from initial name
+  createdAt: Date
+  ownerId: string // UID of the original creator
+}
+
+export interface CompanyMember {
+  userId: string
+  role: CompanyRole
+  active: boolean
+  joinedAt: Date
+}
+
+// ── Measurement types ──
+
 export interface Measurement {
   id: string
   pointNumber: number
@@ -23,6 +44,7 @@ export interface Project {
   name: string
   createdAt: Date
   status: 'active' | 'archived'
+  createdBy?: string // UID twórcy
 }
 
 export interface Building {
@@ -35,6 +57,7 @@ export interface Building {
   createdAt: Date
   updatedAt: Date
   userId: string
+  createdBy?: string // UID twórcy
 }
 
 export type InspectionStatus = 'COMPLETED' | 'INACCESSIBLE'
@@ -43,6 +66,9 @@ export interface Inspection {
   id?: string
   projectId: string // WYMAGANE - każdy pomiar musi należeć do projektu
   buildingId: string // WYMAGANE - każdy pomiar musi należeć do budynku
+  companyId?: string // ID firmy (redundant z path, ale przydatne do exportu/offline)
+  createdBy?: string // UID twórcy
+  assignedTo?: string // UID przypisanego technika (opcjonalne, na przyszłość)
   address: string
   apartmentNumber: string
   ownerName?: string // Imię i nazwisko właściciela/najemcy
@@ -63,6 +89,7 @@ export interface UserSettings {
   displayName: string
   licenseNumber: string
   signatureBase64: string
+  companyId?: string // ID firmy do której należy użytkownik
 }
 
 // Tabela dopuszczalnych impedancji (uproszczona)

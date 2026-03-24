@@ -10,42 +10,109 @@ import {
   where,
   getDocs,
   getDoc,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, Project, UserSettings } from '../types'
 import { logger } from '../utils/logger'
 import { ensureDate } from '../utils'
+import { generateCompanyId, generateSlug } from '../utils/companyId'
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Company management
+// ══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Save a project to Firestore
+ * Create a new company with a member record for the owner.
+ * Returns the stable companyId.
+ */
+export const createCompany = async (
+  name: string,
+  ownerId: string
+): Promise<string> => {
+  const companyId = generateCompanyId(name)
+  const slug = generateSlug(name)
+
+  const batch = writeBatch(db)
+
+  // Company document
+  const companyRef = doc(db, 'companies', companyId)
+  batch.set(companyRef, {
+    name,
+    slug,
+    createdAt: serverTimestamp(),
+    ownerId,
+  })
+
+  // Owner member document
+  const memberRef = doc(db, 'companies', companyId, 'members', ownerId)
+  batch.set(memberRef, {
+    userId: ownerId,
+    role: 'owner',
+    active: true,
+    joinedAt: serverTimestamp(),
+  })
+
+  // Update user's companyId
+  const userRef = doc(db, 'users', ownerId)
+  batch.update(userRef, { companyId })
+
+  await batch.commit()
+  logger.log(`✅ Company "${name}" created with ID: ${companyId}`)
+  return companyId
+}
+
+/**
+ * Update company name (owner/admin only — enforced by Firestore rules).
+ */
+export const updateCompanyName = async (
+  companyId: string,
+  newName: string
+): Promise<void> => {
+  const companyRef = doc(db, 'companies', companyId)
+  await updateDoc(companyRef, { name: newName })
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Projects (company-scoped)
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Save a project to Firestore under a company.
  */
 export const saveProjectToFirestore = async (
+  companyId: string,
   project: Project
 ): Promise<void> => {
   const dataToSave = {
     name: project.name,
     status: project.status,
     createdAt: Timestamp.fromDate(ensureDate(project.createdAt)),
+    createdBy: project.createdBy || '',
   }
 
-  const docRef = doc(db, 'projects', project.id)
+  const docRef = doc(db, 'companies', companyId, 'projects', project.id)
   await setDoc(docRef, dataToSave, { merge: true })
 }
 
 /**
- * Delete a project from Firestore with cascading delete
- * Removes the project AND all related buildings AND all related inspections in a single atomic operation
+ * Delete a project from Firestore with cascading delete.
+ * Removes the project AND all related buildings AND all related inspections atomically.
+ * Owner/admin only.
  */
-export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
+export const deleteProjectFromFirestore = async (
+  companyId: string,
+  id: string
+): Promise<void> => {
   const batch = writeBatch(db)
 
   // 1. Add project deletion to batch
-  const projectRef = doc(db, 'projects', id)
+  const projectRef = doc(db, 'companies', companyId, 'projects', id)
   batch.delete(projectRef)
 
   // 2. Query and delete all related buildings
   const buildingsQuery = query(
-    collection(db, 'buildings'),
+    collection(db, 'companies', companyId, 'buildings'),
     where('projectId', '==', id)
   )
   const buildingsSnapshot = await getDocs(buildingsQuery)
@@ -58,9 +125,9 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
     batch.delete(docSnapshot.ref)
   })
 
-  // 3. Query and delete all related inspections (faster than searching by buildingId)
+  // 3. Query and delete all related inspections
   const inspectionsQuery = query(
-    collection(db, 'inspections'),
+    collection(db, 'companies', companyId, 'inspections'),
     where('projectId', '==', id)
   )
   const inspectionsSnapshot = await getDocs(inspectionsQuery)
@@ -81,22 +148,28 @@ export const deleteProjectFromFirestore = async (id: string): Promise<void> => {
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// Buildings (company-scoped)
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Delete a building from Firestore with cascading delete
- * Removes the building AND all related inspections in a single atomic operation
+ * Delete a building from Firestore with cascading delete.
+ * Removes the building AND all related inspections atomically.
+ * Owner/admin only.
  */
 export const deleteBuildingFromFirestore = async (
+  companyId: string,
   id: string
 ): Promise<void> => {
   const batch = writeBatch(db)
 
   // 1. Add building deletion to batch
-  const buildingRef = doc(db, 'buildings', id)
+  const buildingRef = doc(db, 'companies', companyId, 'buildings', id)
   batch.delete(buildingRef)
 
   // 2. Query and delete all related inspections
   const inspectionsQuery = query(
-    collection(db, 'inspections'),
+    collection(db, 'companies', companyId, 'inspections'),
     where('buildingId', '==', id)
   )
   const inspectionsSnapshot = await getDocs(inspectionsQuery)
@@ -117,10 +190,15 @@ export const deleteBuildingFromFirestore = async (
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// Inspections (company-scoped)
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Save an inspection to Firestore
+ * Save an inspection to Firestore under a company.
  */
 export const saveInspectionToFirestore = async (
+  companyId: string,
   inspection: Inspection,
   inspectionId: string
 ): Promise<void> => {
@@ -134,6 +212,9 @@ export const saveInspectionToFirestore = async (
   const dataToSave = {
     projectId: inspection.projectId,
     buildingId: inspection.buildingId,
+    companyId,
+    createdBy: inspection.createdBy || '',
+    assignedTo: inspection.assignedTo || '',
     address: inspection.address || '',
     apartmentNumber: inspection.apartmentNumber || '',
     ownerName: inspection.ownerName || '',
@@ -151,38 +232,43 @@ export const saveInspectionToFirestore = async (
     createdAt: Timestamp.now(),
   }
 
-  const docRef = doc(db, 'inspections', inspectionId)
+  const docRef = doc(db, 'companies', companyId, 'inspections', inspectionId)
   await setDoc(docRef, dataToSave, { merge: true })
 }
 
 /**
- * Delete an inspection from Firestore
+ * Delete an inspection from Firestore.
  */
 export const deleteInspectionFromFirestore = async (
+  companyId: string,
   id: string
 ): Promise<void> => {
-  await deleteDoc(doc(db, 'inspections', id))
+  await deleteDoc(doc(db, 'companies', companyId, 'inspections', id))
 }
 
 /**
- * Mark inspection as synced in Firestore
+ * Mark inspection as synced in Firestore.
  */
-export const markInspectionAsSynced = async (id: string): Promise<void> => {
-  const docRef = doc(db, 'inspections', id)
+export const markInspectionAsSynced = async (
+  companyId: string,
+  id: string
+): Promise<void> => {
+  const docRef = doc(db, 'companies', companyId, 'inspections', id)
   await updateDoc(docRef, { synced: true })
 }
 
 /**
- * Retry syncing a pending inspection
+ * Retry syncing a pending inspection.
  */
 export const retrySyncInspection = async (
+  companyId: string,
   inspection: Inspection
 ): Promise<boolean> => {
   if (!inspection.id) return false
 
   try {
-    await saveInspectionToFirestore(inspection, inspection.id)
-    await markInspectionAsSynced(inspection.id)
+    await saveInspectionToFirestore(companyId, inspection, inspection.id)
+    await markInspectionAsSynced(companyId, inspection.id)
     logger.log(`✅ Retry successful for inspection ${inspection.id}`)
     return true
   } catch (error) {
@@ -191,8 +277,12 @@ export const retrySyncInspection = async (
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// User settings (global /users/{uid} — NOT company-scoped)
+// ══════════════════════════════════════════════════════════════════════════════
+
 /**
- * Save user settings to Firestore (users/{uid})
+ * Save user settings to Firestore (users/{uid}).
  */
 export const saveUserSettingsToFirestore = async (
   userId: string,
@@ -213,7 +303,7 @@ export const saveUserSettingsToFirestore = async (
 }
 
 /**
- * Load user settings from Firestore (users/{uid})
+ * Load user settings from Firestore (users/{uid}).
  */
 export const getUserSettingsFromFirestore = async (
   userId: string
@@ -234,5 +324,7 @@ export const getUserSettingsFromFirestore = async (
       typeof data.licenseNumber === 'string' ? data.licenseNumber : '',
     signatureBase64:
       typeof data.signatureBase64 === 'string' ? data.signatureBase64 : '',
+    companyId:
+      typeof data.companyId === 'string' ? data.companyId : undefined,
   }
 }

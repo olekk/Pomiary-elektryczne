@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { MainLayout } from './layout/MainLayout'
 import { Button, Card, Input } from './atoms'
 import { SignaturePanel } from './organisms'
-import { Save } from 'lucide-react'
-import { useAuth, useUserSettings } from '../hooks'
+import { Save, Building2 } from 'lucide-react'
+import { useAuth, useUserSettings, useCompany } from '../hooks'
+import { updateCompanyName } from '../services'
+import { logger } from '../utils/logger'
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuth()
+  const { companyId, companyName, role } = useCompany()
   const {
     technicianName: nameFromHook,
     technicianLicenseNumber: licenseFromHook,
@@ -18,10 +21,15 @@ export const SettingsScreen: React.FC = () => {
   const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState(licenseFromHook)
   const [currentSignature, setCurrentSignature] = useState(sigFromHook)
 
+  // Company settings (owner only)
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin'
+  const [editableCompanyName, setEditableCompanyName] = useState(companyName)
+
   // Sync local state when data loads from Firestore/localStorage
   useEffect(() => { setTechnicianName(nameFromHook) }, [nameFromHook])
   useEffect(() => { setTechnicianLicenseNumber(licenseFromHook) }, [licenseFromHook])
   useEffect(() => { setCurrentSignature(sigFromHook) }, [sigFromHook])
+  useEffect(() => { setEditableCompanyName(companyName) }, [companyName])
 
   const handleSaveSignature = (signature: string) => {
     setCurrentSignature(signature)
@@ -55,9 +63,63 @@ export const SettingsScreen: React.FC = () => {
     alert('Ustawienia zapisane!')
   }
 
+  const handleSaveCompanyName = async () => {
+    if (!companyId || !editableCompanyName.trim()) {
+      alert('Wprowadź nazwę firmy')
+      return
+    }
+
+    try {
+      await updateCompanyName(companyId, editableCompanyName.trim())
+      logger.log(`✅ Company name updated to: ${editableCompanyName.trim()}`)
+      alert('Nazwa firmy zaktualizowana!')
+    } catch (error) {
+      console.error('❌ Error updating company name:', error)
+      alert('Błąd podczas zapisywania nazwy firmy')
+    }
+  }
+
   return (
     <MainLayout title="Ustawienia" showBackBtn={true}>
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {/* Company Settings — owner/admin only */}
+        {isOwnerOrAdmin && companyId && (
+          <Card>
+            <div className="flex items-center gap-2 mb-4">
+              <Building2 size={20} className="text-blue-400" />
+              <h2 className="text-lg font-bold text-slate-100">
+                Ustawienia Firmy
+              </h2>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">
+              Zmiana nazwy firmy nie zmieni identyfikatora firmy (ID: {companyId}).
+            </p>
+
+            <div className="space-y-4">
+              <Input
+                label="Nazwa firmy"
+                type="text"
+                value={editableCompanyName}
+                onChange={(e) => setEditableCompanyName(e.target.value)}
+                placeholder="np. HC INSTAL"
+              />
+            </div>
+
+            <div className="mt-4">
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onClick={handleSaveCompanyName}
+                icon={<Save size={20} />}
+              >
+                Zapisz nazwę firmy
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Technician Profile */}
         <Card>
           <h2 className="text-lg font-bold text-slate-100 mb-4">
             Profil Technika

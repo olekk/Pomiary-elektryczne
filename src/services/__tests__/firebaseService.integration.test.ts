@@ -4,6 +4,9 @@
  * Runs against a real Firebase Emulator — no mocks.
  * Start emulator first: `firebase emulators:start --only firestore`
  * Then run:              `npm run test:integration`
+ *
+ * NOTE: All service functions now require a companyId as the first parameter.
+ * Tests create data under /companies/{TEST_COMPANY_ID}/... paths.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest'
 import {
@@ -26,6 +29,12 @@ import {
   makeInspection,
   makeUserSettings,
 } from './testSetup.integration'
+
+// ── Test company ID ──
+const TEST_COMPANY_ID = 'test-company-abc123'
+
+// Helper: path builder for company-scoped collections
+const companyPath = (sub: string) => `companies/${TEST_COMPANY_ID}/${sub}`
 
 // ── Mock the firebase module so production code uses our emulator db ──
 let testDb: Firestore
@@ -77,9 +86,9 @@ describe('saveProjectToFirestore', () => {
   it('saves a project and reads it back (round-trip)', async () => {
     const project = makeProject({ id: 'proj-rt-1', name: 'Round Trip' })
 
-    await saveProjectToFirestore(project)
+    await saveProjectToFirestore(TEST_COMPANY_ID, project)
 
-    const snap = await getDoc(doc(testDb, 'projects', 'proj-rt-1'))
+    const snap = await getDoc(doc(testDb, companyPath('projects'), 'proj-rt-1'))
     expect(snap.exists()).toBe(true)
 
     const data = snap.data()!
@@ -90,18 +99,18 @@ describe('saveProjectToFirestore', () => {
 
   it('update does not create a duplicate document', async () => {
     const project = makeProject({ id: 'proj-dup-1', name: 'Original' })
-    await saveProjectToFirestore(project)
+    await saveProjectToFirestore(TEST_COMPANY_ID, project)
 
     // Update the same project
-    await saveProjectToFirestore({ ...project, name: 'Updated' })
+    await saveProjectToFirestore(TEST_COMPANY_ID, { ...project, name: 'Updated' })
 
     // Only one document should exist
-    const snap = await getDoc(doc(testDb, 'projects', 'proj-dup-1'))
+    const snap = await getDoc(doc(testDb, companyPath('projects'), 'proj-dup-1'))
     expect(snap.exists()).toBe(true)
     expect(snap.data()!.name).toBe('Updated')
 
     // Verify no extra docs in the collection with this ID area
-    const allProjects = await getDocs(collection(testDb, 'projects'))
+    const allProjects = await getDocs(collection(testDb, companyPath('projects')))
     expect(allProjects.size).toBe(1)
   })
 })
@@ -114,14 +123,15 @@ describe('saveInspectionToFirestore', () => {
     const inspection = makeInspection()
     const inspId = 'insp-rt-1'
 
-    await saveInspectionToFirestore(inspection, inspId)
+    await saveInspectionToFirestore(TEST_COMPANY_ID, inspection, inspId)
 
-    const snap = await getDoc(doc(testDb, 'inspections', inspId))
+    const snap = await getDoc(doc(testDb, companyPath('inspections'), inspId))
     expect(snap.exists()).toBe(true)
 
     const data = snap.data()!
     expect(data.projectId).toBe('test-project-1')
     expect(data.buildingId).toBe('test-building-1')
+    expect(data.companyId).toBe(TEST_COMPANY_ID)
     expect(data.address).toBe('ul. Testowa 1')
     expect(data.apartmentNumber).toBe('1A')
     expect(data.ownerName).toBe('Jan Testowy')
@@ -141,36 +151,37 @@ describe('saveInspectionToFirestore', () => {
     const inspection = makeInspection()
     const inspId = 'insp-dup-1'
 
-    await saveInspectionToFirestore(inspection, inspId)
+    await saveInspectionToFirestore(TEST_COMPANY_ID, inspection, inspId)
     await saveInspectionToFirestore(
+      TEST_COMPANY_ID,
       { ...inspection, notes: 'Updated notes' },
       inspId
     )
 
-    const snap = await getDoc(doc(testDb, 'inspections', inspId))
+    const snap = await getDoc(doc(testDb, companyPath('inspections'), inspId))
     expect(snap.data()!.notes).toBe('Updated notes')
 
-    const all = await getDocs(collection(testDb, 'inspections'))
+    const all = await getDocs(collection(testDb, companyPath('inspections')))
     expect(all.size).toBe(1)
   })
 
   it('markInspectionAsSynced sets synced to true', async () => {
     const inspId = 'insp-sync-1'
-    await saveInspectionToFirestore(makeInspection(), inspId)
+    await saveInspectionToFirestore(TEST_COMPANY_ID, makeInspection(), inspId)
 
-    await markInspectionAsSynced(inspId)
+    await markInspectionAsSynced(TEST_COMPANY_ID, inspId)
 
-    const snap = await getDoc(doc(testDb, 'inspections', inspId))
+    const snap = await getDoc(doc(testDb, companyPath('inspections'), inspId))
     expect(snap.data()!.synced).toBe(true)
   })
 
   it('deleteInspectionFromFirestore removes the document', async () => {
     const inspId = 'insp-del-1'
-    await saveInspectionToFirestore(makeInspection(), inspId)
+    await saveInspectionToFirestore(TEST_COMPANY_ID, makeInspection(), inspId)
 
-    await deleteInspectionFromFirestore(inspId)
+    await deleteInspectionFromFirestore(TEST_COMPANY_ID, inspId)
 
-    const snap = await getDoc(doc(testDb, 'inspections', inspId))
+    const snap = await getDoc(doc(testDb, companyPath('inspections'), inspId))
     expect(snap.exists()).toBe(false)
   })
 })
@@ -183,15 +194,16 @@ describe('deleteProjectFromFirestore (cascading)', () => {
 
   async function seedProjectTree() {
     // Project
-    await setDoc(doc(testDb, 'projects', PROJECT_ID), {
+    await setDoc(doc(testDb, companyPath('projects'), PROJECT_ID), {
       name: 'Cascade Test',
       status: 'active',
       createdAt: Timestamp.now(),
+      createdBy: 'test-user',
     })
 
     // 2 buildings belonging to the project
     for (const bId of ['bld-c1', 'bld-c2']) {
-      await setDoc(doc(testDb, 'buildings', bId), {
+      await setDoc(doc(testDb, companyPath('buildings'), bId), {
         projectId: PROJECT_ID,
         street: 'ul. Cascade',
         zipCode: '00-000',
@@ -199,14 +211,17 @@ describe('deleteProjectFromFirestore (cascading)', () => {
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         userId: 'test-user',
+        createdBy: 'test-user',
       })
     }
 
     // 3 inspections belonging to the project
     for (const iId of ['insp-c1', 'insp-c2', 'insp-c3']) {
-      await setDoc(doc(testDb, 'inspections', iId), {
+      await setDoc(doc(testDb, companyPath('inspections'), iId), {
         projectId: PROJECT_ID,
         buildingId: 'bld-c1',
+        companyId: TEST_COMPANY_ID,
+        createdBy: 'test-user',
         address: 'ul. Cascade 1',
         apartmentNumber: '1',
         date: Timestamp.now(),
@@ -224,15 +239,15 @@ describe('deleteProjectFromFirestore (cascading)', () => {
   it('removes project, all buildings, and all inspections', async () => {
     await seedProjectTree()
 
-    await deleteProjectFromFirestore(PROJECT_ID)
+    await deleteProjectFromFirestore(TEST_COMPANY_ID, PROJECT_ID)
 
     // Project gone
-    const projSnap = await getDoc(doc(testDb, 'projects', PROJECT_ID))
+    const projSnap = await getDoc(doc(testDb, companyPath('projects'), PROJECT_ID))
     expect(projSnap.exists()).toBe(false)
 
     // All buildings gone
     const bldQuery = query(
-      collection(testDb, 'buildings'),
+      collection(testDb, companyPath('buildings')),
       where('projectId', '==', PROJECT_ID)
     )
     const bldSnap = await getDocs(bldQuery)
@@ -240,7 +255,7 @@ describe('deleteProjectFromFirestore (cascading)', () => {
 
     // All inspections gone
     const inspQuery = query(
-      collection(testDb, 'inspections'),
+      collection(testDb, companyPath('inspections')),
       where('projectId', '==', PROJECT_ID)
     )
     const inspSnap = await getDocs(inspQuery)
@@ -255,7 +270,7 @@ describe('deleteBuildingFromFirestore (cascading)', () => {
   const BUILDING_ID = 'bld-cascade-1'
 
   async function seedBuildingTree() {
-    await setDoc(doc(testDb, 'buildings', BUILDING_ID), {
+    await setDoc(doc(testDb, companyPath('buildings'), BUILDING_ID), {
       projectId: 'some-project',
       street: 'ul. Building Cascade',
       zipCode: '00-000',
@@ -263,12 +278,15 @@ describe('deleteBuildingFromFirestore (cascading)', () => {
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
       userId: 'test-user',
+      createdBy: 'test-user',
     })
 
     for (const iId of ['insp-bc1', 'insp-bc2']) {
-      await setDoc(doc(testDb, 'inspections', iId), {
+      await setDoc(doc(testDb, companyPath('inspections'), iId), {
         projectId: 'some-project',
         buildingId: BUILDING_ID,
+        companyId: TEST_COMPANY_ID,
+        createdBy: 'test-user',
         address: 'ul. Building Cascade 1',
         apartmentNumber: '1',
         date: Timestamp.now(),
@@ -286,13 +304,13 @@ describe('deleteBuildingFromFirestore (cascading)', () => {
   it('removes building and all its inspections', async () => {
     await seedBuildingTree()
 
-    await deleteBuildingFromFirestore(BUILDING_ID)
+    await deleteBuildingFromFirestore(TEST_COMPANY_ID, BUILDING_ID)
 
-    const bldSnap = await getDoc(doc(testDb, 'buildings', BUILDING_ID))
+    const bldSnap = await getDoc(doc(testDb, companyPath('buildings'), BUILDING_ID))
     expect(bldSnap.exists()).toBe(false)
 
     const inspQuery = query(
-      collection(testDb, 'inspections'),
+      collection(testDb, companyPath('inspections')),
       where('buildingId', '==', BUILDING_ID)
     )
     const inspSnap = await getDocs(inspQuery)
@@ -303,9 +321,11 @@ describe('deleteBuildingFromFirestore (cascading)', () => {
     await seedBuildingTree()
 
     // Add an inspection for a DIFFERENT building
-    await setDoc(doc(testDb, 'inspections', 'insp-other'), {
+    await setDoc(doc(testDb, companyPath('inspections'), 'insp-other'), {
       projectId: 'some-project',
       buildingId: 'other-building-id',
+      companyId: TEST_COMPANY_ID,
+      createdBy: 'test-user',
       address: 'ul. Other',
       apartmentNumber: '2',
       date: Timestamp.now(),
@@ -318,16 +338,16 @@ describe('deleteBuildingFromFirestore (cascading)', () => {
       createdAt: Timestamp.now(),
     })
 
-    await deleteBuildingFromFirestore(BUILDING_ID)
+    await deleteBuildingFromFirestore(TEST_COMPANY_ID, BUILDING_ID)
 
     // Other building's inspection should survive
-    const otherSnap = await getDoc(doc(testDb, 'inspections', 'insp-other'))
+    const otherSnap = await getDoc(doc(testDb, companyPath('inspections'), 'insp-other'))
     expect(otherSnap.exists()).toBe(true)
   })
 })
 
 // ═════════════════════════════════════════════════════════════════════
-// 5. User Settings
+// 5. User Settings (global — NOT company-scoped)
 // ═════════════════════════════════════════════════════════════════════
 describe('UserSettings (save & load)', () => {
   it('saves and loads user settings (round-trip)', async () => {
@@ -371,12 +391,13 @@ describe('Required fields enforcement', () => {
       buildingId: 'req-bld-1',
     })
 
-    await saveInspectionToFirestore(inspection, 'insp-req-1')
+    await saveInspectionToFirestore(TEST_COMPANY_ID, inspection, 'insp-req-1')
 
-    const snap = await getDoc(doc(testDb, 'inspections', 'insp-req-1'))
+    const snap = await getDoc(doc(testDb, companyPath('inspections'), 'insp-req-1'))
     const data = snap.data()!
     expect(data.projectId).toBe('req-proj-1')
     expect(data.buildingId).toBe('req-bld-1')
+    expect(data.companyId).toBe(TEST_COMPANY_ID)
     // These must never be empty / undefined
     expect(data.projectId).toBeTruthy()
     expect(data.buildingId).toBeTruthy()
@@ -384,16 +405,18 @@ describe('Required fields enforcement', () => {
 
   it('projectId and buildingId are queryable (used by cascading deletes)', async () => {
     await saveInspectionToFirestore(
+      TEST_COMPANY_ID,
       makeInspection({ projectId: 'qp-1', buildingId: 'qb-1' }),
       'insp-q1'
     )
     await saveInspectionToFirestore(
+      TEST_COMPANY_ID,
       makeInspection({ projectId: 'qp-2', buildingId: 'qb-2' }),
       'insp-q2'
     )
 
     const q1 = query(
-      collection(testDb, 'inspections'),
+      collection(testDb, companyPath('inspections')),
       where('projectId', '==', 'qp-1')
     )
     const snap1 = await getDocs(q1)
@@ -401,7 +424,7 @@ describe('Required fields enforcement', () => {
     expect(snap1.docs[0].id).toBe('insp-q1')
 
     const q2 = query(
-      collection(testDb, 'inspections'),
+      collection(testDb, companyPath('inspections')),
       where('buildingId', '==', 'qb-2')
     )
     const snap2 = await getDocs(q2)

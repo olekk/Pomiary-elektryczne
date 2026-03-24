@@ -6,8 +6,40 @@ import { MeasurementScreen } from './components/MeasurementScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { SettingsScreen } from './components/SettingsScreen'
 import { LoginScreen } from './components/LoginScreen'
-import { AuthProvider, useAuth } from './hooks'
+import { AuthProvider, useAuth, CompanyProvider, useCompany } from './hooks'
 import { DebugConsole } from './components/DebugConsole'
+
+function CompanyGate({ children }: { children: React.ReactNode }) {
+  const { companyId, isCompanyLoading } = useCompany()
+
+  if (isCompanyLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-400">Ładowanie firmy...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">🏢</div>
+          <h1 className="text-xl font-bold text-slate-100 mb-2">Brak przypisanej firmy</h1>
+          <p className="text-slate-400 mb-4">
+            Twoje konto nie jest przypisane do żadnej firmy.
+            Skontaktuj się z administratorem, aby uzyskać dostęp.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return <>{children}</>
+}
 
 function AppRoutes() {
   const { user, isAuthChecking } = useAuth()
@@ -34,18 +66,22 @@ function AppRoutes() {
     return <LoginScreen />
   }
 
-  // Jeśli użytkownik JEST zalogowany -> Aplikacja
+  // Jeśli użytkownik JEST zalogowany -> CompanyProvider + App
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<ProjectsScreen />} />
-        <Route path="/project/:id" element={<ProjectDetailsScreen />} />
-        <Route path="/building/:id" element={<BuildingDetailsScreen />} />
-        <Route path="/building/:buildingId/measurement" element={<MeasurementScreen />} />
-        <Route path="/building/:buildingId/summary/:inspectionId" element={<SummaryScreen />} />
-        <Route path="/settings" element={<SettingsScreen />} />
-      </Routes>
-    </BrowserRouter>
+    <CompanyProvider>
+      <CompanyGate>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<ProjectsScreen />} />
+            <Route path="/project/:id" element={<ProjectDetailsScreen />} />
+            <Route path="/building/:id" element={<BuildingDetailsScreen />} />
+            <Route path="/building/:buildingId/measurement" element={<MeasurementScreen />} />
+            <Route path="/building/:buildingId/summary/:inspectionId" element={<SummaryScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+          </Routes>
+        </BrowserRouter>
+      </CompanyGate>
+    </CompanyProvider>
   )
 }
 

@@ -1,0 +1,152 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ═══════════════════════════════════════════════════════
+    // Helper functions
+    // ═══════════════════════════════════════════════════════
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getMember(companyId) {
+      return get(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid));
+    }
+
+    function isMember(companyId) {
+      return isAuth() && exists(/databases/$(database)/documents/companies/$(companyId)/members/$(request.auth.uid))
+             && getMember(companyId).data.active == true;
+    }
+
+    function getRole(companyId) {
+      return getMember(companyId).data.role;
+    }
+
+    function isAdminOrOwner(companyId) {
+      return isMember(companyId) && getRole(companyId) in ['owner', 'admin'];
+    }
+
+    function isTechnician(companyId) {
+      return isMember(companyId) && getRole(companyId) == 'technician';
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // /users/{uid} — Global user profile
+    // ═══════════════════════════════════════════════════════
+
+    match /users/{uid} {
+      // Users can only read/write their own profile
+      allow read: if isAuth() && isOwner(uid);
+      allow write: if isAuth() && isOwner(uid);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // /companies/{companyId} — Company document
+    // ═══════════════════════════════════════════════════════
+
+    match /companies/{companyId} {
+      // Any active member can read the company document
+      allow read: if isMember(companyId);
+
+      // Only owner/admin can update company settings (name, etc.)
+      allow update: if isAdminOrOwner(companyId);
+
+      // Company creation/deletion is admin-only (migration script / manual)
+      allow create, delete: if false;
+
+      // ─── /companies/{companyId}/members/{memberId} ───
+
+      match /members/{memberId} {
+        // Any active member can read the members list
+        allow read: if isMember(companyId);
+
+        // Only owner/admin can manage members
+        allow write: if isAdminOrOwner(companyId);
+      }
+
+      // ─── /companies/{companyId}/projects/{projectId} ───
+
+      match /projects/{projectId} {
+        // Any active member can read projects
+        allow read: if isMember(companyId);
+
+        // Only owner/admin can create projects
+        // Must set createdBy to own UID
+        allow create: if isAdminOrOwner(companyId)
+                      && request.resource.data.createdBy == request.auth.uid;
+
+        // Only owner/admin can update projects
+        allow update: if isAdminOrOwner(companyId);
+
+        // Only owner/admin can delete projects (cascade delete in app)
+        allow delete: if isAdminOrOwner(companyId);
+      }
+
+      // ─── /companies/{companyId}/buildings/{buildingId} ───
+
+      match /buildings/{buildingId} {
+        // Any active member can read buildings
+        allow read: if isMember(companyId);
+
+        // Any active member can create buildings (technician too)
+        // Must set createdBy to own UID
+        allow create: if isMember(companyId)
+                      && request.resource.data.createdBy == request.auth.uid;
+
+        // Only owner/admin can update buildings
+        allow update: if isAdminOrOwner(companyId);
+
+        // Only owner/admin can delete buildings (cascade delete in app)
+        allow delete: if isAdminOrOwner(companyId);
+      }
+
+      // ─── /companies/{companyId}/inspections/{inspectionId} ───
+
+      match /inspections/{inspectionId} {
+        // Any active member can read all company inspections
+        allow read: if isMember(companyId);
+
+        // CREATE: any active member can create inspections
+        // Must set:
+        //   - createdBy = own UID (cannot forge ownership)
+        //   - companyId = matches the path (cannot create in wrong company)
+        allow create: if isMember(companyId)
+                      && request.resource.data.createdBy == request.auth.uid
+                      && request.resource.data.companyId == companyId;
+
+        // UPDATE:
+        //   - owner/admin can update any inspection
+        //   - technician can update only inspections they created
+        //     AND cannot change immutable identity fields
+        allow update: if isAdminOrOwner(companyId)
+                      || (isTechnician(companyId)
+                          && resource.data.createdBy == request.auth.uid
+                          // Immutable fields — technician cannot change these
+                          && request.resource.data.createdBy == resource.data.createdBy
+                          && request.resource.data.companyId == resource.data.companyId
+                          && request.resource.data.projectId == resource.data.projectId
+                          && request.resource.data.buildingId == resource.data.buildingId);
+
+        // DELETE:
+        //   - owner/admin can delete any inspection
+        //   - technician can delete only inspections they created
+        allow delete: if isAdminOrOwner(companyId)
+                      || (isTechnician(companyId)
+                          && resource.data.createdBy == request.auth.uid);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Default: deny everything else
+    // ═══════════════════════════════════════════════════════
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useCollection } from './useCollection'
+import { useCompany } from './useCompany'
 import { retrySyncInspection } from '../services'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
@@ -16,6 +17,9 @@ const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) 
     id: doc.id,
     projectId: data.projectId,
     buildingId: data.buildingId,
+    companyId: data.companyId || '',
+    createdBy: data.createdBy || '',
+    assignedTo: data.assignedTo || '',
     address: data.address,
     apartmentNumber: data.apartmentNumber,
     ownerName: data.ownerName || '',
@@ -35,31 +39,36 @@ const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) 
 
 /**
  * Hook that tracks pending (unsynced) inspections and provides retry logic.
- * Replaces offlineSlice.retryPendingSync and pendingSyncCount.
+ * Uses company-scoped inspection collection.
  */
 export function usePendingSync() {
+  const { companyId } = useCompany()
+
   const q = useMemo(
     () =>
-      query(
-        collection(db, 'inspections'),
-        where('synced', '==', false)
-      ),
-    []
+      companyId
+        ? query(
+            collection(db, 'companies', companyId, 'inspections'),
+            where('synced', '==', false)
+          )
+        : null,
+    [companyId]
   )
 
-  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, 'pending-sync', 'PendingSync')
+  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, `pending-sync-${companyId || 'none'}`, 'PendingSync')
 
   const pendingSyncCount = pendingInspections.length
 
   const retryPendingSync = useCallback(async () => {
+    if (!companyId) return
     logger.log(
       `🔄 Retrying sync for ${pendingInspections.length} pending inspections...`
     )
     for (const inspection of pendingInspections) {
       if (!inspection.id) continue
-      await retrySyncInspection(inspection)
+      await retrySyncInspection(companyId, inspection)
     }
-  }, [pendingInspections])
+  }, [companyId, pendingInspections])
 
   return { pendingSyncCount, retryPendingSync }
 }

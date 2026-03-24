@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Trash2 } from 'lucide-react'
-import { useCollection } from '../hooks'
+import { useCollection, useAuth, useCompany } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
 import { collection, query, orderBy, type QueryDocumentSnapshot } from 'firebase/firestore'
@@ -17,32 +17,41 @@ const projectMapper = (doc: QueryDocumentSnapshot): Project => {
     name: data.name,
     status: data.status || 'active',
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+    createdBy: data.createdBy || '',
   }
 }
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { companyId, role } = useCompany()
 
   const projectsQuery = useMemo(
-    () => query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
-    []
+    () =>
+      companyId
+        ? query(collection(db, 'companies', companyId, 'projects'), orderBy('createdAt', 'desc'))
+        : null,
+    [companyId]
   )
 
   const { data: projects, isLoading: isLoadingProjects } = useCollection<Project>(
     projectsQuery,
     projectMapper,
-    'all-projects',
+    `projects-${companyId || 'none'}`,
     'Projects'
   )
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
 
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin'
+
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
       alert('Wprowadź nazwę projektu')
       return
     }
+    if (!companyId || !user?.uid) return
 
     const projectId = `proj_${Date.now()}`
     const newProject: Project = {
@@ -50,10 +59,11 @@ export const ProjectsScreen: React.FC = () => {
       name: newProjectName.trim(),
       createdAt: new Date(),
       status: 'active',
+      createdBy: user.uid,
     }
 
     // Fire-and-forget: Save to Firestore
-    saveProjectToFirestore(newProject)
+    saveProjectToFirestore(companyId, newProject)
       .then(() => {
         logger.log(`✅ Project ${projectId} saved successfully`)
       })
@@ -66,12 +76,13 @@ export const ProjectsScreen: React.FC = () => {
   }
 
   const handleDeleteProject = (id: string, name: string) => {
+    if (!companyId) return
     if (
       confirm(
         `Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      deleteProjectFromFirestore(id)
+      deleteProjectFromFirestore(companyId, id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting project:', error)
         })
@@ -115,16 +126,18 @@ export const ProjectsScreen: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteProject(project.id, project.name)
-                    }}
-                    className="p-2 hover:bg-red-900 rounded-lg transition-colors"
-                    title="Usuń projekt"
-                  >
-                    <Trash2 size={18} className="text-red-400" />
-                  </button>
+                  {isOwnerOrAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteProject(project.id, project.name)
+                      }}
+                      className="p-2 hover:bg-red-900 rounded-lg transition-colors"
+                      title="Usuń projekt"
+                    >
+                      <Trash2 size={18} className="text-red-400" />
+                    </button>
+                  )}
                 </div>
 
                 <Button
@@ -139,14 +152,16 @@ export const ProjectsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowNewModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
-        style={{ width: '64px', height: '64px' }}
-      >
-        <Plus size={32} />
-      </button>
+      {/* Floating Action Button — only owner/admin can create projects */}
+      {isOwnerOrAdmin && (
+        <button
+          onClick={() => setShowNewModal(true)}
+          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
+          style={{ width: '64px', height: '64px' }}
+        >
+          <Plus size={32} />
+        </button>
+      )}
 
       {/* Modal - Nowy Projekt */}
       {showNewModal && (

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Home, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
-import { useAuth, useCollection } from '../hooks'
+import { useAuth, useCollection, useCompany } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button } from './atoms'
 import { getFullAddress } from '../utils'
@@ -31,6 +31,7 @@ const buildingMapper = (doc: QueryDocumentSnapshot): Building => {
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
     userId: data.userId || '',
+    createdBy: data.createdBy || '',
   }
 }
 
@@ -40,6 +41,8 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     id: doc.id,
     projectId: data.projectId,
     buildingId: data.buildingId,
+    companyId: data.companyId || '',
+    createdBy: data.createdBy || '',
     address: data.address,
     apartmentNumber: data.apartmentNumber,
     ownerName: data.ownerName || '',
@@ -61,50 +64,56 @@ export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
   const { id: projectId } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { companyId, role } = useCompany()
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newStreet, setNewStreet] = useState('')
   const [newZipCode, setNewZipCode] = useState('')
   const [newCity, setNewCity] = useState('')
 
-  // Query for buildings in this project
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin'
+
+  // Query for buildings in this project (company-scoped)
   const buildingsQuery = useMemo(
     () =>
-      projectId
+      projectId && companyId
         ? query(
-            collection(db, 'buildings'),
+            collection(db, 'companies', companyId, 'buildings'),
             where('projectId', '==', projectId),
             orderBy('createdAt', 'desc')
           )
         : null,
-    [projectId]
+    [projectId, companyId]
   )
 
   // Query for all inspections in this project (for per-building stats)
   const projectInspectionsQuery = useMemo(
     () =>
-      projectId
+      projectId && companyId
         ? query(
-            collection(db, 'inspections'),
+            collection(db, 'companies', companyId, 'inspections'),
             where('projectId', '==', projectId),
             orderBy('createdAt', 'desc')
           )
         : null,
-    [projectId]
+    [projectId, companyId]
   )
 
   // Query for all projects (to find current project name)
   const projectsQuery = useMemo(
-    () => query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
-    []
+    () =>
+      companyId
+        ? query(collection(db, 'companies', companyId, 'projects'), orderBy('createdAt', 'desc'))
+        : null,
+    [companyId]
   )
 
   const { data: buildings, isLoading: isLoadingBuildings } =
-    useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${projectId || 'none'}`, 'Buildings')
+    useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${companyId}-${projectId || 'none'}`, 'Buildings')
   const { data: projectInspections } =
-    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${projectId || 'none'}`, 'ProjectInspections')
+    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${companyId}-${projectId || 'none'}`, 'ProjectInspections')
   const { data: projects, isLoading: isLoadingProjects } =
-    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'all-projects', 'Projects')
+    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), `projects-${companyId || 'none'}`, 'Projects')
 
   // Oblicz statystyki inspekcji per budynek
   const buildingStats = useMemo(() => {
@@ -139,13 +148,19 @@ export const ProjectDetailsScreen: React.FC = () => {
       return
     }
 
+    if (!companyId) {
+      alert('Błąd: Brak ID firmy')
+      return
+    }
+
     // Save directly to Firestore — onSnapshot will update the list
-    addDoc(collection(db, 'buildings'), {
+    addDoc(collection(db, 'companies', companyId, 'buildings'), {
       projectId,
       street: newStreet.trim(),
       zipCode: newZipCode.trim(),
       city: newCity.trim(),
       userId: user.uid,
+      createdBy: user.uid,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -163,12 +178,13 @@ export const ProjectDetailsScreen: React.FC = () => {
   }
 
   const handleDeleteBuilding = (id: string, address: string) => {
+    if (!companyId) return
     if (
       confirm(
         `Czy na pewno chcesz usunąć budynek "${address}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      deleteBuildingFromFirestore(id)
+      deleteBuildingFromFirestore(companyId, id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting building:', error)
         })
@@ -222,16 +238,18 @@ export const ProjectDetailsScreen: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteBuilding(building.id, getFullAddress(building))
-                    }}
-                    className="p-2 hover:bg-red-900 rounded-lg transition-colors"
-                    title="Usuń budynek"
-                  >
-                    <Trash2 size={18} className="text-red-400" />
-                  </button>
+                  {isOwnerOrAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteBuilding(building.id, getFullAddress(building))
+                      }}
+                      className="p-2 hover:bg-red-900 rounded-lg transition-colors"
+                      title="Usuń budynek"
+                    >
+                      <Trash2 size={18} className="text-red-400" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Statystyki inspekcji */}
@@ -267,7 +285,7 @@ export const ProjectDetailsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Action Button */}
+      {/* Floating Action Button — any member can create buildings */}
       <button
         onClick={() => setShowNewModal(true)}
         className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"

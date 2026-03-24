@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
-import { useCollection, useDocument, useUserSettings, useAuth } from '../hooks'
+import { useCollection, useDocument, useUserSettings, useAuth, useCompany } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import {
   DashboardStats,
@@ -37,6 +37,8 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     id: doc.id,
     projectId: data.projectId,
     buildingId: data.buildingId,
+    companyId: data.companyId || '',
+    createdBy: data.createdBy || '',
     address: data.address,
     apartmentNumber: data.apartmentNumber,
     ownerName: data.ownerName || '',
@@ -67,6 +69,7 @@ const buildingMapper = (snap: DocumentSnapshot): Building | null => {
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
     userId: data.userId || '',
+    createdBy: data.createdBy || '',
   }
 }
 
@@ -75,31 +78,34 @@ export const BuildingDetailsScreen: React.FC = () => {
   const location = useLocation()
   const { id: buildingId } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { companyId, role } = useCompany()
   const { technicianName, technicianSignature } = useUserSettings(user?.uid)
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null)
 
-  // Subscribe to inspections for this building
+  const isOwnerOrAdmin = role === 'owner' || role === 'admin'
+
+  // Subscribe to inspections for this building (company-scoped)
   const inspectionsQuery = useMemo(
     () =>
-      buildingId
+      buildingId && companyId
         ? query(
-            collection(db, 'inspections'),
+            collection(db, 'companies', companyId, 'inspections'),
             where('buildingId', '==', buildingId),
             orderBy('createdAt', 'desc')
           )
         : null,
-    [buildingId]
+    [buildingId, companyId]
   )
 
   const { data: inspections, isLoading: isLoadingInspections } =
-    useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
+    useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${companyId}-${buildingId || 'none'}`, 'Inspections')
 
-  // Subscribe to building document
+  // Subscribe to building document (company-scoped)
   const buildingDocRef = useMemo(
-    () => (buildingId ? doc(db, 'buildings', buildingId) : null),
-    [buildingId]
+    () => (buildingId && companyId ? doc(db, 'companies', companyId, 'buildings', buildingId) : null),
+    [buildingId, companyId]
   )
 
   const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(
@@ -155,7 +161,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     street?: string,
     unitType?: UnitType
   ) => {
-    if (!buildingId || !currentBuilding || !validateTechnician()) return
+    if (!buildingId || !currentBuilding || !validateTechnician() || !companyId || !user?.uid) return
 
     const { technicianName: tName, technicianSignature: tSig } = { technicianName, technicianSignature }
 
@@ -167,6 +173,8 @@ export const BuildingDetailsScreen: React.FC = () => {
     const newInspection: Inspection = {
       projectId: currentBuilding.projectId,
       buildingId,
+      companyId,
+      createdBy: user.uid,
       address,
       apartmentNumber,
       ownerName,
@@ -195,7 +203,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     street?: string,
     unitType?: UnitType
   ) => {
-    if (!buildingId || !currentBuilding || !validateTechnician()) return
+    if (!buildingId || !currentBuilding || !validateTechnician() || !companyId || !user?.uid) return
 
     const date = new Date()
     const buildingStreet = street || address
@@ -206,6 +214,8 @@ export const BuildingDetailsScreen: React.FC = () => {
       id: savedId,
       projectId: currentBuilding.projectId,
       buildingId,
+      companyId,
+      createdBy: user.uid,
       address,
       apartmentNumber,
       ownerName,
@@ -222,9 +232,9 @@ export const BuildingDetailsScreen: React.FC = () => {
     }
 
     // Save directly to Firestore — onSnapshot will update the list
-    saveInspectionToFirestore(inaccessibleInspection, savedId)
+    saveInspectionToFirestore(companyId, inaccessibleInspection, savedId)
       .then(async () => {
-        await markInspectionAsSynced(savedId)
+        await markInspectionAsSynced(companyId, savedId)
         logger.log(`✅ Inaccessible inspection ${savedId} synced`)
       })
       .catch((error) => {
@@ -273,9 +283,17 @@ export const BuildingDetailsScreen: React.FC = () => {
     })
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, inspection?: Inspection) => {
+    if (!companyId) return
+
+    // Technician can only delete own inspections
+    if (!isOwnerOrAdmin && inspection?.createdBy !== user?.uid) {
+      alert('Nie masz uprawnień do usunięcia tego pomiaru')
+      return
+    }
+
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
-      deleteInspectionFromFirestore(id)
+      deleteInspectionFromFirestore(companyId, id)
         .catch((error: unknown) => {
           console.error('❌ Error deleting inspection:', error)
         })
@@ -327,7 +345,10 @@ export const BuildingDetailsScreen: React.FC = () => {
         <InspectionsList
           inspections={inspections}
           isLoading={isLoadingInspections}
-          onDelete={handleDelete}
+          onDelete={(id) => {
+            const insp = inspections.find(i => i.id === id)
+            handleDelete(id, insp)
+          }}
           onClick={handleInspectionClick}
         />
       </div>

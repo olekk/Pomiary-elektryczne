@@ -7,7 +7,7 @@ import { Button, Card } from './atoms'
 import { countMeasurementsByResult, ensureDate } from '../utils'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
-import { useDocument } from '../hooks'
+import { useDocument, useCompany } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
@@ -20,6 +20,8 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
     id: snap.id,
     projectId: d.projectId,
     buildingId: d.buildingId,
+    companyId: d.companyId || '',
+    createdBy: d.createdBy || '',
     address: d.address,
     apartmentNumber: d.apartmentNumber,
     ownerName: d.ownerName || '',
@@ -41,6 +43,7 @@ export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { buildingId, inspectionId } = useParams<{ buildingId: string; inspectionId: string }>()
+  const { companyId } = useCompany()
 
   const locationState = location.state as
     | { inspection: Inspection; buildingId: string }
@@ -49,10 +52,10 @@ export const SummaryScreen: React.FC = () => {
   // buildingId comes from URL first, then from location state, then from inspection data
   const resolvedBuildingId = buildingId || locationState?.buildingId
 
-  // Live Firestore subscription for reload case
+  // Live Firestore subscription for reload case (company-scoped)
   const inspectionDocRef = useMemo(
-    () => inspectionId ? doc(db, 'inspections', inspectionId) : null,
-    [inspectionId]
+    () => inspectionId && companyId ? doc(db, 'companies', companyId, 'inspections', inspectionId) : null,
+    [inspectionId, companyId]
   )
   const { data: firestoreInspection } = useDocument<Inspection>(
     inspectionDocRef, inspectionMapper, 'Inspection'
@@ -113,7 +116,7 @@ export const SummaryScreen: React.FC = () => {
   }, [notes])
 
   const saveInspection = (sig?: string) => {
-    if (!inspection) return null
+    if (!inspection || !companyId) return null
     const savedId = inspection.id || generateInspectionId()
     const toSave: Inspection = {
       ...inspection,
@@ -125,8 +128,8 @@ export const SummaryScreen: React.FC = () => {
     }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
-    saveInspectionToFirestore(toSave, savedId)
-      .then(() => markInspectionAsSynced(savedId))
+    saveInspectionToFirestore(companyId, toSave, savedId)
+      .then(() => markInspectionAsSynced(companyId, savedId))
       .then(() => logger.log(`✅ Inspection ${savedId} synced`))
       .catch((err) => logger.error(`❌ Sync failed:`, err))
 

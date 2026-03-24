@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
-import { useAuth, useOnlineStatus, usePendingSync } from '../../hooks'
+import { useAuth, useOnlineStatus, usePendingSync, useCompany } from '../../hooks'
 import { StatusBadge } from '../molecules'
 import { logger } from '../../utils/logger'
 
@@ -21,6 +21,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   onBackClick,
 }) => {
   const { signOutUser } = useAuth()
+  const { companyName } = useCompany()
   const isOnline = useOnlineStatus()
   const { pendingSyncCount, retryPendingSync } = usePendingSync()
 
@@ -71,7 +72,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               <div>
                 <h1 className="text-xl font-bold text-slate-100">{title}</h1>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Pomiary Elektryczne
+                  {companyName || 'Pomiary Elektryczne'}
                 </p>
               </div>
             )}
@@ -113,7 +114,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
       {/* Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 px-4 py-3">
         <div className="text-center text-xs text-slate-500">
-          <p>Pomiary Elektryczne v1.0.0</p>
+          <p>{companyName || 'Pomiary Elektryczne'} v1.0.0</p>
           <p className="mt-1">Build: {__BUILD_DATE__}</p>
         </div>
       </footer>

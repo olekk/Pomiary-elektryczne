@@ -8,7 +8,7 @@ import { Button, Card } from './atoms'
 import { MainLayout } from './layout/MainLayout'
 import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building } from '../types'
 import { getFullAddress, validateMeasurementValue, generateInspectionId, generateMeasurementId, createMeasurement, renumberMeasurements, ensureDate } from '../utils'
-import { useDocument, useAuth, useUserSettings } from '../hooks'
+import { useDocument, useAuth, useUserSettings, useCompany } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
@@ -41,7 +41,7 @@ function clearDraftFromSession(buildingId: string) {
 const buildingMapper = (snap: DocumentSnapshot): Building | null => {
   if (!snap.exists()) return null
   const d = snap.data()!
-  return { id: snap.id, projectId: d.projectId, name: d.name, street: d.street || d.name || '', zipCode: d.zipCode || '', city: d.city || '', createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(), updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate() : new Date(), userId: d.userId || '' }
+  return { id: snap.id, projectId: d.projectId, name: d.name, street: d.street || d.name || '', zipCode: d.zipCode || '', city: d.city || '', createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(), updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate() : new Date(), userId: d.userId || '', createdBy: d.createdBy || '' }
 }
 
 export const MeasurementScreen: React.FC = () => {
@@ -49,6 +49,7 @@ export const MeasurementScreen: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>()
   const location = useLocation()
   const { user } = useAuth()
+  const { companyId } = useCompany()
   const { technicianLicenseNumber } = useUserSettings(user?.uid)
   const locationState = location.state as { inspection: Inspection } | null
 
@@ -102,7 +103,11 @@ export const MeasurementScreen: React.FC = () => {
     }
   }, [currentInspection, navigate, buildingId])
 
-  const buildingDocRef = useMemo(() => buildingId ? doc(db, 'buildings', buildingId) : null, [buildingId])
+  // Company-scoped building doc ref
+  const buildingDocRef = useMemo(
+    () => buildingId && companyId ? doc(db, 'companies', companyId, 'buildings', buildingId) : null,
+    [buildingId, companyId]
+  )
   const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
 
   const handleEnterMeasurement = () => {
@@ -130,12 +135,13 @@ export const MeasurementScreen: React.FC = () => {
   const handleSave = () => {
     if (!currentInspection || currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
+    if (!companyId) { alert('Błąd: Brak ID firmy'); return }
     const savedId = currentInspection.id || generateInspectionId()
     const inspectionToSave: Inspection = { ...currentInspection, id: savedId, notes, date: ensureDate(currentInspection.date), synced: false }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
-    saveInspectionToFirestore(inspectionToSave, savedId)
-      .then(() => markInspectionAsSynced(savedId))
+    saveInspectionToFirestore(companyId, inspectionToSave, savedId)
+      .then(() => markInspectionAsSynced(companyId, savedId))
       .then(() => logger.log(`✅ Inspection ${savedId} synced`))
       .catch((err) => logger.error(`❌ Sync failed for ${savedId}:`, err))
 
