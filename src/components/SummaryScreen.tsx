@@ -235,29 +235,59 @@ export const SummaryScreen: React.FC = () => {
         {inspection.unitType === 'klatka' && inspection.klatkaData ? (
           <Card className="mb-4">
             <h2 className="font-bold text-lg text-slate-100 mb-3">Dane klatki schodowej</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">1. Przyłącze</span>
-                <span className="text-slate-100 font-medium capitalize">{inspection.klatkaData.przylacze}</span>
-              </div>
-              {inspection.klatkaData.przylacze === 'kabelowe' && (
-                <>
-                  <div className="flex justify-between items-center ml-4">
-                    <span className="text-slate-400">1.1 Typ kabla</span>
-                    <span className="text-slate-100 font-medium">{inspection.klatkaData.typKabla || '-'}</span>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {(() => {
+                const d = inspection.klatkaData!
+                const row = (label: string, val: string, color?: string) => (
+                  <div className="flex justify-between items-center border-b border-slate-700 pb-1" key={label}>
+                    <span className="text-slate-400 text-sm">{label}</span>
+                    <span className={`font-medium text-sm ${color || 'text-slate-100'}`}>{val}</span>
                   </div>
-                  <div className="flex justify-between items-center ml-4">
-                    <span className="text-slate-400">1.2 Przekrój</span>
-                    <span className="text-slate-100 font-medium">{inspection.klatkaData.przekroj || '-'}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">2. Wyłącznik pożarowy (PWP)</span>
-                <span className={`font-bold ${inspection.klatkaData.pwpStatus === 'jest' ? 'text-green-400' : 'text-red-400'}`}>
-                  {inspection.klatkaData.pwpStatus === 'jest' ? 'Jest' : 'Brak'}
-                </span>
-              </div>
+                )
+                const green = 'text-green-400'
+                const red = 'text-red-400'
+                return (
+                  <>
+                    {row('1. Przyłącze', d.przylacze === 'napowietrzne' ? 'Napowietrzne' : 'Kabelowe')}
+                    {d.przylacze === 'kabelowe' && row('  1.1 Typ kabla / przekrój', `${d.typKabla || '—'} / ${d.przekrojPrzylacza || '—'} mm²`)}
+                    {row('2. PWP', d.pwpStatus === 'jest' ? 'Jest' : 'Brak', d.pwpStatus === 'jest' ? green : red)}
+                    {d.pwpStatus === 'jest' && row('  2.1 Lokalizacja', d.pwpLokalizacja || '—')}
+                    {row('3. Zabezpieczenie główne', `${d.zabezpieczenieTyp || 'Bi-WTs'} / ${d.zabezpieczenieWartosc || '—'} A`)}
+                    {row('4. GLZ', `${d.glzTyp || '—'} / ${d.glzPrzekroj || '—'} mm²`)}
+                    {row('  4.1 WLZ (Piony)', `${d.wlzTyp || '—'} / ${d.wlzPrzekroj || '—'} mm²`)}
+                    {row('  4.2 Stan izolacji', (d.stanIzolacji || 'dobry') === 'dobry' ? 'Dobry' : 'Zły', (d.stanIzolacji || 'dobry') === 'dobry' ? green : red)}
+                    {row('  4.3 Przewód PE', (d.przewodPE || 'jest') === 'jest' ? 'Jest' : 'Brak', (d.przewodPE || 'jest') === 'jest' ? green : red)}
+                    {(d.przewodPE ?? 'jest') === 'jest' && row('    4.3.1 Typ / przekrój', `${d.przewodPETyp || '—'} / ${d.przewodPEPrzekroj || '—'} mm²`)}
+                    {row('5. Rozdzielnie', '')}
+                    {row('  5.1 Obudowa', (d.rodzajObudowy || 'metalowa') === 'metalowa' ? 'Metalowa' : 'Drewniana')}
+                    {row('  5.2 Uziemione drzwiczki', (d.uziemioneDrzwiczki || 'tak') === 'tak' ? 'Tak' : 'Nie')}
+                    {row('6. Tablice licznikowe', (d.tabliceLokalizacja || 'klatka') === 'klatka' ? 'Klatka schodowa' : 'W mieszkaniach')}
+                    {row('  6.1 Ilość lokali', d.iloscLokali || '—')}
+                    {row('7. Ochronnik przepięć', (d.ochronnikTyp || 'brak') === 'jest' ? 'Jest' : 'Brak')}
+                    {row('8. Urz. p/kradzieży prądu', (d.urzadzeniePKradziezy || 'brak') === 'jest' ? 'Jest' : 'Brak')}
+                    {row('9. Tablica ADM', d.tablicaAdmLokalizacja || '—')}
+                    {row('  9.1 Wyłączniki', (d.wylaczniki || 'nadmiarowo-pradowy') === 'topikowe' ? 'Topikowe' : 'Nadmiarowo-prądowy')}
+                    {row('10. Oświetlenie', '')}
+                    {row('  10.1 Klatka', `${d.klatkaVoltage || '230V'}, ${d.klatkaPrzewod || '—'}`)}
+                    {row('  10.2 Strych', (d.strychMontaz || 'natynkowo') === 'natynkowo' ? 'Natynkowo' : 'Podtynkowo')}
+                    {row('  10.3 Piwnica', (d.piwnicaMontaz || 'natynkowo') === 'natynkowo' ? 'Natynkowo' : 'Podtynkowo')}
+                    {row('11. Badania i pomiary', '')}
+                    {row('  11.1 Rezystancja WLZ', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? 'W normie' : 'Niezgodne', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? green : red)}
+                    {row('  11.2 Napięcia', `L1:${d.napiecieL1 || '—'}V L2:${d.napiecieL2 || '—'}V L3:${d.napiecieL3 || '—'}V`)}
+                    {row('  11.3 Łączniki', (d.probyLacznikow || 'sprawne') === 'sprawne' ? 'Sprawne' : 'Niesprawne', (d.probyLacznikow || 'sprawne') === 'sprawne' ? green : red)}
+                    {row('12. Piorunochron', (d.piorunochron || 'brak') === 'jest' ? 'Jest' : 'Brak')}
+                    {d.piorunochron === 'jest' && (
+                      <>
+                        {row('  12.1.1 Stan', (d.piorunochronStan || 'dobry') === 'dobry' ? 'Dobry' : 'Zły', (d.piorunochronStan || 'dobry') === 'dobry' ? green : red)}
+                        {row('  12.2 Uwagi', d.piorunochronUwagi || '—')}
+                        {row('  12.3 Wynik', (d.piorunochronWynik || 'pozytywny') === 'pozytywny' ? 'Pozytywny' : 'Negatywny', (d.piorunochronWynik || 'pozytywny') === 'pozytywny' ? green : red)}
+                      </>
+                    )}
+                    {row('13. Ocena', (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? 'NADAJE SIĘ' : 'NIE NADAJE SIĘ', (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? green : red)}
+                    {row('14. Termin usterek', d.terminUsterek || '—')}
+                  </>
+                )
+              })()}
             </div>
           </Card>
         ) : (

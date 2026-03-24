@@ -7,12 +7,77 @@ export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 
 export type PrzylaczType = 'napowietrzne' | 'kabelowe'
 export type PwpStatus = 'jest' | 'brak'
+export type JestBrak = 'jest' | 'brak'
+export type TakNie = 'tak' | 'nie'
+export type DobryZly = 'dobry' | 'zły'
 
 export interface KlatkaData {
+  // 1. Przyłącze
   przylacze: PrzylaczType
-  typKabla?: string       // only when przylacze === 'kabelowe'
-  przekroj?: string       // only when przylacze === 'kabelowe'
+  typKabla?: string
+  przekrojPrzylacza?: string
+
+  // 2. PWP
   pwpStatus: PwpStatus
+  pwpLokalizacja?: string
+
+  // 3. Zabezpieczenie główne
+  zabezpieczenieTyp?: 'Bi-WTs' | 'WTN'
+  zabezpieczenieWartosc?: string
+
+  // 4. GLZ / WLZ
+  glzTyp?: string
+  glzPrzekroj?: string
+  wlzTyp?: string
+  wlzPrzekroj?: string
+  stanIzolacji?: DobryZly
+  przewodPE?: JestBrak
+  przewodPETyp?: string
+  przewodPEPrzekroj?: string
+
+  // 5. Rozdzielnie
+  rodzajObudowy?: 'metalowa' | 'drewniana'
+  uziemioneDrzwiczki?: TakNie
+
+  // 6. Tablice licznikowe
+  tabliceLokalizacja?: 'klatka' | 'mieszkania'
+  iloscLokali?: string
+
+  // 7. Ochronnik przepięć
+  ochronnikTyp?: JestBrak
+
+  // 8. Urządzenie p/kradzieży prądu
+  urzadzeniePKradziezy?: JestBrak
+
+  // 9. Tablica administracyjna
+  tablicaAdmLokalizacja?: string
+  wylaczniki?: 'topikowe' | 'nadmiarowo-pradowy'
+
+  // 10. Oświetlenie
+  klatkaVoltage?: '230V' | '24V'
+  klatkaPrzewod?: string
+  klatkaAutomat?: 'automat-schodowy' | 'czujnik-ruchu'
+  strychMontaz?: 'natynkowo' | 'podtynkowo'
+  piwnicaMontaz?: 'natynkowo' | 'podtynkowo'
+
+  // 11. Badania i pomiary
+  rezystancjaWLZ?: 'w-normie' | 'niezgodne'
+  napiecieL1?: string
+  napiecieL2?: string
+  napiecieL3?: string
+  probyLacznikow?: 'sprawne' | 'niesprawne'
+
+  // 12. Instalacja piorunochronna
+  piorunochron?: JestBrak
+  piorunochronStan?: DobryZly
+  piorunochronUwagi?: string
+  piorunochronWynik?: 'pozytywny' | 'negatywny'
+
+  // 13. Ocena
+  ocenaInstalacji?: 'nadaje' | 'nie-nadaje'
+
+  // 14. Termin usunięcia usterek
+  terminUsterek?: string
 }
 
 export interface Measurement {

@@ -344,39 +344,85 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           Badanie ochrony przed porażeniem przez samoczynne wyłącznie
         </Text>
 
-        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
-          <View style={styles.table}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.colLp]}>Lp.</Text>
-              <Text style={[styles.colSubject]}>Przedmiot oględzin</Text>
-              <Text style={[styles.colRating]}>Wynik</Text>
+        {inspection.unitType === 'klatka' && inspection.klatkaData ? (() => {
+          const d = inspection.klatkaData
+          const pdfDate = new Date(inspection.date)
+          const month = String(pdfDate.getMonth() + 1).padStart(2, '0')
+          const year = pdfDate.getFullYear()
+          const day = String(pdfDate.getDate()).padStart(2, '0')
+
+          const kRow = (num: string, label: string, value: string, indent: number = 0) => (
+            <View style={{ flexDirection: 'row', borderBottom: '1pt solid #999', borderLeft: '1pt solid #999', borderRight: '1pt solid #999', paddingVertical: 4, paddingHorizontal: 6, paddingLeft: 6 + indent * 18 }} key={num}>
+              <Text style={{ width: '8%', fontWeight: 'bold', fontSize: 8 }}>{num}</Text>
+              <Text style={{ width: '62%', fontSize: 8 }}>{label}</Text>
+              <Text style={{ width: '30%', fontSize: 8, fontWeight: 'bold', textAlign: 'right' }}>{value}</Text>
             </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.colLp]}>1</Text>
-              <Text style={[styles.colSubject]}>Przyłącze</Text>
-              <Text style={[styles.colRating]}>{inspection.klatkaData.przylacze === 'napowietrzne' ? 'Napowietrzne' : 'Kabelowe'}</Text>
+          )
+
+          return (
+            <View style={{ marginTop: 10 }}>
+              <Text style={{ fontSize: 11, textAlign: 'center', marginBottom: 6, fontWeight: 'bold' }}>
+                Protokół (5-letni) zbiorczy z dnia {day}/{month} {year}
+              </Text>
+              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 4 }}>
+                Oględziny instalacji elektrycznej i urządzeń w części wspólnej budynku,
+              </Text>
+              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 10 }}>
+                ocena stanu technicznego instalacji elektrycznej.
+              </Text>
+              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 14 }}>
+                przy ulicy {inspection.address}
+              </Text>
+
+              {/* Header */}
+              <View style={{ flexDirection: 'row', backgroundColor: '#333', color: '#fff', padding: 5, fontWeight: 'bold', fontSize: 8, borderTop: '1pt solid #999', borderLeft: '1pt solid #999', borderRight: '1pt solid #999' }}>
+                <Text style={{ width: '8%', color: '#fff', fontWeight: 'bold', fontSize: 8 }}>Lp.</Text>
+                <Text style={{ width: '62%', color: '#fff', fontWeight: 'bold', fontSize: 8 }}>Przedmiot oględzin</Text>
+                <Text style={{ width: '30%', color: '#fff', fontWeight: 'bold', fontSize: 8, textAlign: 'right' }}>Wynik / Dane</Text>
+              </View>
+
+              {kRow('1.', 'Przyłącze', d.przylacze === 'napowietrzne' ? 'NAPOWIETRZNE' : 'KABELOWE')}
+              {d.przylacze === 'kabelowe' && kRow('1.1', 'Typ kabla / przekrój', `${d.typKabla || '—'} / ${d.przekrojPrzylacza || '—'} mm²`, 1)}
+              {kRow('2.', 'Wyłącznik pożarowy prądu (PWP)', d.pwpStatus === 'jest' ? 'JEST' : 'BRAK')}
+              {d.pwpStatus === 'jest' && kRow('2.1', 'Lokalizacja', d.pwpLokalizacja || '—', 1)}
+              {kRow('3.', `Zabezpieczenie główne budynku, TYP ${d.zabezpieczenieTyp || 'Bi-WTs'}`, `${d.zabezpieczenieWartosc || '—'} A`)}
+              {kRow('4.', 'GLZ główne zasilanie budynku', `${d.glzTyp || '—'} / ${d.glzPrzekroj || '—'} mm²`)}
+              {kRow('4.1', 'WLZ (Piony)', `${d.wlzTyp || '—'} / ${d.wlzPrzekroj || '—'} mm²`, 1)}
+              {kRow('4.2', 'Stan izolacji', (d.stanIzolacji || 'dobry') === 'dobry' ? 'DOBRY' : 'ZŁY', 1)}
+              {kRow('4.3', 'Przewód ochronny PE', (d.przewodPE || 'jest') === 'jest' ? 'JEST' : 'BRAK', 1)}
+              {(d.przewodPE ?? 'jest') === 'jest' && kRow('4.3.1', 'Typ / przekrój', `${d.przewodPETyp || '—'} / ${d.przewodPEPrzekroj || '—'} mm²`, 2)}
+              {kRow('5.', 'Rozdzielnie / Tablice', '')}
+              {kRow('5.1', 'Rodzaj obudowy', (d.rodzajObudowy || 'metalowa') === 'metalowa' ? 'METALOWA' : 'DREWNIANA', 1)}
+              {kRow('5.2', 'Uziemione drzwiczki', (d.uziemioneDrzwiczki || 'tak') === 'tak' ? 'TAK' : 'NIE', 1)}
+              {kRow('6.', 'Tablice licznikowe', (d.tabliceLokalizacja || 'klatka') === 'klatka' ? 'klatka schodowa' : 'w mieszkaniach')}
+              {kRow('6.1', 'Ilość lokali mieszkalnych', d.iloscLokali || '—', 1)}
+              {kRow('7.', 'Ochronnik przepięć', (d.ochronnikTyp || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
+              {kRow('8.', 'Urządzenie p/kradzieży prądu', (d.urzadzeniePKradziezy || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
+              {kRow('9.', 'Tablica administracyjna, lokalizacja', d.tablicaAdmLokalizacja || '—')}
+              {kRow('9.1', 'Wyłączniki instalacyjne w rozdzielni ADM', (d.wylaczniki || 'nadmiarowo-pradowy') === 'topikowe' ? 'topikowe' : 'wyłącznik nadmiarowo-prądowy', 1)}
+              {kRow('10.', 'Oświetlenie', '')}
+              {kRow('10.1', `Klatki schodowej, napięcie ${d.klatkaVoltage || '230V'}, przewód`, d.klatkaPrzewod || '—', 1)}
+              {kRow('10.1.1', 'Sterowanie', (d.klatkaAutomat || 'automat-schodowy') === 'automat-schodowy' ? 'automat schodowy' : 'lampy na czujnik ruchu', 2)}
+              {kRow('10.2', 'Strychu', (d.strychMontaz || 'natynkowo') === 'natynkowo' ? 'natynkowo' : 'podtynkowo', 1)}
+              {kRow('10.3', 'Piwnicy', (d.piwnicaMontaz || 'natynkowo') === 'natynkowo' ? 'natynkowo' : 'podtynkowo', 1)}
+              {kRow('11.', 'Badania i pomiary instalacji', '')}
+              {kRow('11.1', 'Pomiar rezystancji izolacji WLZ', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? 'W NORMIE' : 'NIEZGODNE Z NORMĄ', 1)}
+              {kRow('11.2', 'Pomiar napięć w przyłączu', `L1: ${d.napiecieL1 || '—'}V  L2: ${d.napiecieL2 || '—'}V  L3: ${d.napiecieL3 || '—'}V`, 1)}
+              {kRow('11.3', 'Próby działania łączników światła', (d.probyLacznikow || 'sprawne') === 'sprawne' ? 'SPRAWNE' : 'NIESPRAWNE', 1)}
+              {kRow('12.', 'Instalacja piorunochronna', (d.piorunochron || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
+              {d.piorunochron === 'jest' && (
+                <>
+                  {kRow('12.1', 'Połączenia, osprzęt, zabezpieczenia od korozji oraz uziemienia zwodu', 'są sprawne', 1)}
+                  {kRow('12.1.1', 'Stan', (d.piorunochronStan || 'dobry') === 'dobry' ? 'DOBRY' : 'ZŁY', 2)}
+                  {kRow('12.2', 'Uwagi', d.piorunochronUwagi || '—', 1)}
+                  {kRow('12.3', 'Wynik pomiarów', (d.piorunochronWynik || 'pozytywny') === 'pozytywny' ? 'POZYTYWNY' : 'NEGATYWNY', 1)}
+                </>
+              )}
+              {kRow('13.', 'Ocena: instalacja elektryczna', (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? 'NADAJE SIĘ do dalszej eksploatacji' : 'NIE NADAJE SIĘ do dalszej eksploatacji')}
+              {kRow('14.', 'Termin usunięcia usterek', d.terminUsterek || '—')}
             </View>
-            {inspection.klatkaData.przylacze === 'kabelowe' && (
-              <>
-                <View style={styles.tableRowAlt}>
-                  <Text style={[styles.colLp]}>1.1</Text>
-                  <Text style={[styles.colSubject]}>Typ kabla</Text>
-                  <Text style={[styles.colRating]}>{inspection.klatkaData.typKabla || '-'}</Text>
-                </View>
-                <View style={styles.tableRow}>
-                  <Text style={[styles.colLp]}>1.2</Text>
-                  <Text style={[styles.colSubject]}>Przekrój</Text>
-                  <Text style={[styles.colRating]}>{inspection.klatkaData.przekroj || '-'}</Text>
-                </View>
-              </>
-            )}
-            <View style={styles.tableRowAlt}>
-              <Text style={[styles.colLp]}>2</Text>
-              <Text style={[styles.colSubject]}>Wyłącznik pożarowy prądu (PWP)</Text>
-              <Text style={[styles.colRating]}>{inspection.klatkaData.pwpStatus === 'jest' ? 'JEST' : 'BRAK'}</Text>
-            </View>
-          </View>
-        ) : (
+          )
+        })() : (
           <>
         {/* Measurements Table */}
         <View style={styles.table}>
