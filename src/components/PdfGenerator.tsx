@@ -322,10 +322,10 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               {hasProblems
                 ? '-'
                 : (() => {
-                    const nextDate = new Date(inspection.date)
-                    nextDate.setFullYear(nextDate.getFullYear() + 5)
-                    return nextDate.toLocaleDateString('pl-PL')
-                  })()}
+                  const nextDate = new Date(inspection.date)
+                  nextDate.setFullYear(nextDate.getFullYear() + 5)
+                  return nextDate.toLocaleDateString('pl-PL')
+                })()}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -408,7 +408,6 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               {kRow('11.', 'Badania i pomiary instalacji', '')}
               {kRow('11.1', 'Pomiar rezystancji izolacji WLZ', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? 'W NORMIE' : 'NIEZGODNE Z NORMĄ', 1)}
               {kRow('11.2', 'Pomiar napięć w przyłączu', `L1: ${d.napiecieL1 || '—'}V  L2: ${d.napiecieL2 || '—'}V  L3: ${d.napiecieL3 || '—'}V`, 1)}
-              {kRow('11.3', 'Próby działania łączników światła', (d.probyLacznikow || 'sprawne') === 'sprawne' ? 'SPRAWNE' : 'NIESPRAWNE', 1)}
               {kRow('12.', 'Instalacja piorunochronna', (d.piorunochron || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
               {d.piorunochron === 'jest' && (
                 <>
@@ -424,49 +423,49 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           )
         })() : (
           <>
-        {/* Measurements Table */}
-        <View style={styles.table}>
-          {/* Table Header */}
-          <View style={styles.tableHeader}>
-            <Text style={styles.col1}>Lp.</Text>
-            <Text style={styles.col2}>Pomieszczenie</Text>
-            <Text style={styles.colSocket}>{"Punkt\npomiarowy"}</Text>
-            <Text style={styles.col3}>Typ zabezpieczenia</Text>
-            <Text style={styles.col4}>
-              Wartość prądu In urządzenia wyłączającego [A]
-            </Text>
-            <Text style={styles.col5}>{"Dopuszczalna\nimpedancja\nZs dop[Ω]"}</Text>
-            <Text style={styles.col6}>{"Zmierzona\nimpedancja\nZs[Ω]"}</Text>
-            <Text style={styles.col7}>Ocena</Text>
-          </View>
-
-          {/* Table Rows */}
-          {inspection.measurements.map((m, idx) => {
-            let rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
-
-            if (m.result === 'TAK') rowStyle = styles.tableRowPass
-            else if (m.result === 'NIE') rowStyle = styles.tableRowFail
-
-            return (
-              <View style={rowStyle} key={m.id}>
-                <Text style={styles.col1}>{m.pointNumber}</Text>
-                <Text style={styles.col2}>{m.room}</Text>
-                <Text style={styles.colSocket}>{m.socketType || 'Gniazdo 230V'}</Text>
-                <Text style={styles.col3}>{m.protectionType}</Text>
-                <Text style={styles.col4}>{m.amperage}A</Text>
-                <Text style={styles.col5}>{m.zsDop.toFixed(2)}</Text>
-                <Text style={styles.col6}>
-                  {m.zsValue !== null ? m.zsValue.toFixed(2) : '-'}
+            {/* Measurements Table */}
+            <View style={styles.table}>
+              {/* Table Header */}
+              <View style={styles.tableHeader}>
+                <Text style={styles.col1}>Lp.</Text>
+                <Text style={styles.col2}>Pomieszczenie</Text>
+                <Text style={styles.colSocket}>{"Punkt\npomiarowy"}</Text>
+                <Text style={styles.col3}>Typ zabezpieczenia</Text>
+                <Text style={styles.col4}>
+                  Wartość prądu In urządzenia wyłączającego [A]
                 </Text>
-                <Text style={styles.col7}>{m.result}</Text>
+                <Text style={styles.col5}>{"Dopuszczalna\nimpedancja\nZs dop[Ω]"}</Text>
+                <Text style={styles.col6}>{"Zmierzona\nimpedancja\nZs[Ω]"}</Text>
+                <Text style={styles.col7}>Ocena</Text>
               </View>
-            )
-          })}
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text> 
-          <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
-        </View>
+
+              {/* Table Rows */}
+              {inspection.measurements.map((m, idx) => {
+                let rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
+
+                if (m.result === 'TAK') rowStyle = styles.tableRowPass
+                else if (m.result === 'NIE') rowStyle = styles.tableRowFail
+
+                return (
+                  <View style={rowStyle} key={m.id}>
+                    <Text style={styles.col1}>{m.pointNumber}</Text>
+                    <Text style={styles.col2}>{m.room}</Text>
+                    <Text style={styles.colSocket}>{m.socketType || 'Gniazdo 230V'}</Text>
+                    <Text style={styles.col3}>{m.protectionType}</Text>
+                    <Text style={styles.col4}>{m.amperage}A</Text>
+                    <Text style={styles.col5}>{m.zsDop.toFixed(2)}</Text>
+                    <Text style={styles.col6}>
+                      {m.zsValue !== null ? m.zsValue.toFixed(2) : '-'}
+                    </Text>
+                    <Text style={styles.col7}>{m.result}</Text>
+                  </View>
+                )
+              })}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text>
+              <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
+            </View>
           </>
         )}
         {/* --- SEKCJA OGLĘDZINY --- */}

@@ -274,7 +274,6 @@ export const SummaryScreen: React.FC = () => {
                     {row('11. Badania i pomiary', '')}
                     {row('  11.1 Rezystancja WLZ', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? 'W normie' : 'Niezgodne', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? green : red)}
                     {row('  11.2 Napięcia', `L1:${d.napiecieL1 || '—'}V L2:${d.napiecieL2 || '—'}V L3:${d.napiecieL3 || '—'}V`)}
-                    {row('  11.3 Łączniki', (d.probyLacznikow || 'sprawne') === 'sprawne' ? 'Sprawne' : 'Niesprawne', (d.probyLacznikow || 'sprawne') === 'sprawne' ? green : red)}
                     {row('12. Piorunochron', (d.piorunochron || 'brak') === 'jest' ? 'Jest' : 'Brak')}
                     {d.piorunochron === 'jest' && (
                       <>

@@ -22,7 +22,7 @@ export interface KlatkaData {
   pwpLokalizacja?: string
 
   // 3. Zabezpieczenie główne
-  zabezpieczenieTyp?: 'Bi-WTs' | 'WTN'
+  zabezpieczenieTyp?: string
   zabezpieczenieWartosc?: string
 
   // 4. GLZ / WLZ
@@ -65,7 +65,6 @@ export interface KlatkaData {
   napiecieL1?: string
   napiecieL2?: string
   napiecieL3?: string
-  probyLacznikow?: 'sprawne' | 'niesprawne'
 
   // 12. Instalacja piorunochronna
   piorunochron?: JestBrak
