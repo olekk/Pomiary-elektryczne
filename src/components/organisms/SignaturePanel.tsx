@@ -13,10 +13,13 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
 }) => {
   const signatureRef = useRef<SignatureCanvas>(null)
   const [hasSignature, setHasSignature] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
 
-  // Wczytaj istniejący podpis przy inicjalizacji
+  const hasStoredSignature = Boolean(initialSignature && initialSignature.trim().length > 0)
+
+  // Wczytaj istniejący podpis gdy canvas się pojawi (po rozwinięciu)
   useEffect(() => {
-    if (initialSignature && signatureRef.current) {
+    if (isExpanded && initialSignature && signatureRef.current) {
       try {
         signatureRef.current.fromDataURL(initialSignature)
         setHasSignature(true)
@@ -24,6 +27,11 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
         console.error('Error loading signature:', error)
       }
     }
+  }, [initialSignature, isExpanded])
+
+  // Reset expanded state when the inspection changes (new initialSignature reference)
+  useEffect(() => {
+    setIsExpanded(false)
   }, [initialSignature])
 
   const handleClear = () => {
@@ -37,7 +45,7 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
 
       // onSave już aktualizuje store natychmiast i synchronizuje w tle
       const result = onSave(dataURL)
-      
+
       // Jeśli onSave zwraca Promise, obsługujemy błędy w tle
       if (result instanceof Promise) {
         result.catch((error) => {
@@ -45,36 +53,66 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
           // Podpis już zapisany lokalnie, sync nastąpi później
         })
       }
-      
+
       setHasSignature(true)
+      setIsExpanded(false)
     }
   }
 
+  // Collapsed state: show preview or "sign" button
+  if (!isExpanded) {
+    return (
+      <Card className="mb-4">
+        <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
+        {hasStoredSignature ? (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-slate-700 bg-slate-950 p-2">
+              <img src={initialSignature} alt="Podgląd podpisu właściciela" className="w-full h-32 object-contain rounded bg-white" />
+            </div>
+            <Button variant="secondary" fullWidth onClick={() => setIsExpanded(true)}>
+              Zmień / Edytuj podpis
+            </Button>
+          </div>
+        ) : (
+          <Button variant="primary" fullWidth onClick={() => setIsExpanded(true)}>
+            Złóż podpis
+          </Button>
+        )}
+      </Card>
+    )
+  }
+
+  // Expanded state: show signature canvas
   return (
-    <Card>
-      <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
-      <div className="border-2 border-slate-700 rounded-lg overflow-hidden shadow-lg">
-        <SignatureCanvas
-          ref={signatureRef}
-          canvasProps={{
-            className: 'w-full h-48 bg-white cursor-crosshair',
-          }}
-          onEnd={() => setHasSignature(true)}
-        />
-      </div>
-      <div className="flex gap-2 mt-3">
-        <Button variant="secondary" fullWidth onClick={handleClear}>
-          Wyczyść
-        </Button>
-        <Button
-          variant="primary"
-          fullWidth
-          onClick={handleSave}
-          disabled={!hasSignature}
-        >
-          Zapisz podpis
-        </Button>
-      </div>
-    </Card>
+    <div className="space-y-3 mb-4">
+      <Card>
+        <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
+        <div className="border-2 border-slate-700 rounded-lg overflow-hidden shadow-lg">
+          <SignatureCanvas
+            ref={signatureRef}
+            canvasProps={{
+              className: 'w-full h-48 bg-white cursor-crosshair',
+            }}
+            onEnd={() => setHasSignature(true)}
+          />
+        </div>
+        <div className="flex gap-2 mt-3">
+          <Button variant="secondary" fullWidth onClick={handleClear}>
+            Wyczyść
+          </Button>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleSave}
+            disabled={!hasSignature}
+          >
+            Zapisz podpis
+          </Button>
+        </div>
+      </Card>
+      <Button variant="secondary" fullWidth onClick={() => setIsExpanded(false)}>
+        Anuluj i zwiń panel
+      </Button>
+    </div>
   )
 }

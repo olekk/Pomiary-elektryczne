@@ -76,15 +76,10 @@ export const SummaryScreen: React.FC = () => {
   const effectiveBuildingId = resolvedBuildingId || inspection?.buildingId
 
   const [notes, setNotes] = useState(inspection?.notes || '')
-  const [isSignatureVisible, setSignatureVisible] = useState(false)
 
   useEffect(() => {
     setNotes(inspection?.notes || '')
   }, [inspection?.id, inspection?.notes])
-
-  useEffect(() => {
-    setSignatureVisible(false)
-  }, [inspection?.id])
 
   const hasUserEditedNotes = useRef(false)
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -140,7 +135,6 @@ export const SummaryScreen: React.FC = () => {
     setLocalInspection({ ...inspection, notes, ownerSignature })
     // Save to Firestore (fire-and-forget)
     saveInspection(ownerSignature)
-    setSignatureVisible(false)
   }
 
   const handleReturnToBuilding = () => {
@@ -215,7 +209,6 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const { passed, failed } = countMeasurementsByResult(inspection.measurements)
-  const hasStoredSignature = Boolean(inspection.ownerSignature && inspection.ownerSignature.trim().length > 0)
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -330,40 +323,15 @@ export const SummaryScreen: React.FC = () => {
           />
         </Card>
 
-        {inspection.unitType !== 'klatka' && !isSignatureVisible && (
-          <Card className="mb-4">
-            <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
-            {hasStoredSignature ? (
-              <div className="space-y-3">
-                <div className="rounded-lg border border-slate-700 bg-slate-950 p-2">
-                  <img src={inspection.ownerSignature} alt="Podgląd podpisu właściciela" className="w-full h-32 object-contain rounded bg-white" />
-                </div>
-                <Button variant="secondary" fullWidth onClick={() => setSignatureVisible(true)}>
-                  Zmień / Edytuj podpis
-                </Button>
-              </div>
-            ) : (
-              <Button variant="primary" fullWidth onClick={() => setSignatureVisible(true)}>
-                Złóż podpis
-              </Button>
-            )}
-          </Card>
-        )}
-
-        {inspection.unitType !== 'klatka' && isSignatureVisible && (
-          <div className="space-y-3 mb-4">
-            <SignaturePanel onSave={handleSaveSignature} initialSignature={inspection.ownerSignature} />
-            <Button variant="secondary" fullWidth onClick={() => setSignatureVisible(false)}>
-              Anuluj i zwiń panel
-            </Button>
-          </div>
+        {inspection.unitType !== 'klatka' && (
+          <SignaturePanel onSave={handleSaveSignature} initialSignature={inspection.ownerSignature} />
         )}
 
         <div className="space-y-3 mt-4">
           <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
             Generuj PDF
           </Button>
-          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />} disabled={hasStoredSignature}>
+          <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />} disabled={Boolean(inspection.ownerSignature && inspection.ownerSignature.trim().length > 0)}>
             Edytuj pomiary
           </Button>
           <Button variant="primary" size="lg" fullWidth onClick={handleAddNext} icon={<Plus size={24} />}>
