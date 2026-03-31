@@ -149,6 +149,7 @@ export const saveInspectionToFirestore = async (
     status: inspection.status || 'COMPLETED',
     unitType: inspection.unitType || 'mieszkanie',
     createdAt: Timestamp.now(),
+    ...(inspection.klatkaData ? { klatkaData: inspection.klatkaData } : {}),
   }
 
   const docRef = doc(db, 'inspections', inspectionId)

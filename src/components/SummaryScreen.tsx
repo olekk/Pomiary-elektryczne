@@ -330,7 +330,7 @@ export const SummaryScreen: React.FC = () => {
           />
         </Card>
 
-        {!isSignatureVisible && (
+        {inspection.unitType !== 'klatka' && !isSignatureVisible && (
           <Card className="mb-4">
             <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
             {hasStoredSignature ? (
@@ -350,7 +350,7 @@ export const SummaryScreen: React.FC = () => {
           </Card>
         )}
 
-        {isSignatureVisible && (
+        {inspection.unitType !== 'klatka' && isSignatureVisible && (
           <div className="space-y-3 mb-4">
             <SignaturePanel onSave={handleSaveSignature} initialSignature={inspection.ownerSignature} />
             <Button variant="secondary" fullWidth onClick={() => setSignatureVisible(false)}>

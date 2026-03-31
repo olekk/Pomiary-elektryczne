@@ -271,9 +271,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const hasManual = manualNotes.length > 0
   const hasAnyRemarks = hasAuto || hasManual
 
-  const hasProblems = inspection.measurements.some(
-    (m) => m.result === 'NIE'
-  )
+  const hasProblems = inspection.unitType !== 'klatka'
+    ? inspection.measurements.some((m) => m.result === 'NIE')
+    : inspection.klatkaData?.ocenaInstalacji !== 'nadaje'
 
   return (
     <Document>
@@ -306,10 +306,10 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </Text>
             <Text style={styles.value}>{inspection.apartmentNumber}</Text>
           </View>
-          <View style={styles.infoRow}>
+          {inspection.unitType !== 'klatka' && <View style={styles.infoRow}>
             <Text style={styles.label}>Najemca / Właściciel:</Text>
             <Text style={styles.value}>{inspection.ownerName}</Text>
-          </View>
+          </View>}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Data pomiaru:</Text>
             <Text style={styles.value}>
@@ -332,24 +332,20 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.label}>Przyczyna pomiaru:</Text>
             <Text style={styles.value}>badanie okresowe</Text>
           </View>
-          <View style={styles.infoRow}>
+          {inspection.unitType !== 'klatka' && <View style={styles.infoRow}>
             <Text style={styles.label}>Tabela wyników pomiarów</Text>
             <Text style={styles.value}>
               impedancji pętli zwarcia obwodu elektrycznego
             </Text>
-          </View>
+          </View>}
         </View>
 
-        <Text style={styles.subtitle}>
+        {inspection.unitType !== 'klatka' && <Text style={styles.subtitle}>
           Badanie ochrony przed porażeniem przez samoczynne wyłącznie
-        </Text>
+        </Text>}
 
         {inspection.unitType === 'klatka' && inspection.klatkaData ? (() => {
           const d = inspection.klatkaData
-          const pdfDate = new Date(inspection.date)
-          const month = String(pdfDate.getMonth() + 1).padStart(2, '0')
-          const year = pdfDate.getFullYear()
-          const day = String(pdfDate.getDate()).padStart(2, '0')
 
           const kRow = (num: string, label: string, value: string, indent: number = 0) => (
             <View style={{ flexDirection: 'row', borderBottom: '1pt solid #999', borderLeft: '1pt solid #999', borderRight: '1pt solid #999', paddingVertical: 4, paddingHorizontal: 6, paddingLeft: 6 + indent * 18 }} key={num}>
@@ -361,17 +357,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
           return (
             <View style={{ marginTop: 10 }}>
-              <Text style={{ fontSize: 11, textAlign: 'center', marginBottom: 6, fontWeight: 'bold' }}>
-                Protokół (5-letni) zbiorczy z dnia {day}/{month} {year}
-              </Text>
               <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 4 }}>
                 Oględziny instalacji elektrycznej i urządzeń w części wspólnej budynku,
               </Text>
               <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 10 }}>
                 ocena stanu technicznego instalacji elektrycznej.
-              </Text>
-              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 14 }}>
-                przy ulicy {inspection.address}
               </Text>
 
               {/* Header */}
@@ -552,7 +542,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           )}
         </View>
         <View style={styles.inspectionContainer}>
-          <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>
+          {inspection.unitType !== 'klatka' && <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>}
 
           <Text style={styles.paragraph}>
             Miernik: Typ: MPI 540 | Producent: Sonel | Nr seryjny: KO4539
@@ -585,24 +575,24 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </View>
           )}
         </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.conclusionsTitle}>
-            Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
-          </Text>
-          <Text>
-            Składając poniższy podpis (w tym w formie elektronicznej na urządzeniu mobilnym), potwierdzam odbiór protokołu, zapoznanie się z jego treścią oraz uwagami. Administratorem danych osobowych jest HC INSTAL Henryk Cieśla. Dane przetwarzane są w celu wykonania usługi, w celach księgowych oraz archiwizacyjnych.
-          </Text>
-        </View>
-        <View style={styles.ownerSignature}>
-          <Text>Podpis najemcy (właściciela):</Text>
-          <Text>{inspection.ownerName}</Text>
-          {ownerSignature ? (
-            <Image src={ownerSignature} style={styles.signature} />
-          ) : (
-            <Text style={{ marginTop: 8, color: '#777' }}>Brak podpisu</Text>
-          )}
-        </View>
+        {inspection.unitType !== 'klatka' && (<>
+          <View style={styles.footer}>
+            <Text style={styles.conclusionsTitle}>
+              Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
+            </Text>
+            <Text>
+              Składając poniższy podpis (w tym w formie elektronicznej na urządzeniu mobilnym), potwierdzam odbiór protokołu, zapoznanie się z jego treścią oraz uwagami. Administratorem danych osobowych jest HC INSTAL Henryk Cieśla. Dane przetwarzane są w celu wykonania usługi, w celach księgowych oraz archiwizacyjnych.
+            </Text>
+          </View>
+          <View style={styles.ownerSignature}>
+            <Text>Podpis najemcy (właściciela):</Text>
+            <Text>{inspection.ownerName}</Text>
+            {ownerSignature ? (
+              <Image src={ownerSignature} style={styles.signature} />
+            ) : (
+              <Text style={{ marginTop: 8, color: '#777' }}>Brak podpisu</Text>
+            )}
+          </View></>)}
         <View style={styles.companyDetails}>
           <Text>
             HC INSTAL Henryk Cieśla | 44-153 Trachy | ul. Zamojska 2 | NIP
