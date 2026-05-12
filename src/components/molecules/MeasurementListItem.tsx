@@ -2,6 +2,7 @@ import React from 'react'
 import { Trash2 } from 'lucide-react'
 import type { Measurement } from '../../types'
 import { cn } from '../../utils'
+import { ActionMenu } from '../atoms'
 
 interface MeasurementListItemProps {
   measurement: Measurement
@@ -58,12 +59,20 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
         </div>
       </div>
       {showDelete && onDelete && (
-        <button
-          onClick={() => onDelete(m.id)}
-          className="ml-2 p-2 text-red-400 hover:bg-red-900 active:bg-red-800 rounded cursor-pointer transition-colors"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="ml-2">
+          <ActionMenu
+            ariaLabel="Opcje pomiaru"
+            iconSize={20}
+            items={[
+              {
+                label: 'Usuń',
+                icon: <Trash2 size={16} className="text-red-400" />,
+                onClick: () => onDelete(m.id),
+                className: 'text-red-400 hover:bg-red-900/40',
+              },
+            ]}
+          />
+        </div>
       )}
     </div>
   )

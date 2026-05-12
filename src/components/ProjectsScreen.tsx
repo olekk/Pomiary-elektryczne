@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, FolderOpen, Trash2 } from 'lucide-react'
 import { useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
-import { Button } from './atoms'
+import { Button, ActionMenu } from './atoms'
 import { collection, query, orderBy, type QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveProjectToFirestore, deleteProjectFromFirestore } from '../services'
@@ -115,16 +115,17 @@ export const ProjectsScreen: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteProject(project.id, project.name)
-                    }}
-                    className="p-2 hover:bg-red-900 rounded-lg transition-colors"
-                    title="Usuń projekt"
-                  >
-                    <Trash2 size={18} className="text-red-400" />
-                  </button>
+                  <ActionMenu
+                    ariaLabel="Opcje projektu"
+                    items={[
+                      {
+                        label: 'Usuń',
+                        icon: <Trash2 size={16} className="text-red-400" />,
+                        onClick: () => handleDeleteProject(project.id, project.name),
+                        className: 'text-red-400 hover:bg-red-900/40',
+                      },
+                    ]}
+                  />
                 </div>
 
                 <Button

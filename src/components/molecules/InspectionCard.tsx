@@ -6,7 +6,7 @@ import {
   FileText,
   AlertTriangle,
 } from 'lucide-react'
-import { Card, Badge } from '../atoms'
+import { Card, Badge, ActionMenu } from '../atoms'
 import type { Inspection } from '../../types'
 
 interface InspectionCardProps {
@@ -28,10 +28,7 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
     }
   }
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onDelete(inspection.id!)
-  }
+
 
   return (
     <Card>
@@ -99,12 +96,20 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
             )}
           </div>
         </div>
-        <button
-          onClick={handleDeleteClick}
-          className="ml-2 p-2 text-red-400 hover:bg-red-900 active:bg-red-800 rounded cursor-pointer transition-colors"
-        >
-          <Trash2 size={20} />
-        </button>
+        <div className="ml-2" onClick={(e) => e.stopPropagation()}>
+          <ActionMenu
+            ariaLabel="Opcje inspekcji"
+            iconSize={20}
+            items={[
+              {
+                label: 'Usuń',
+                icon: <Trash2 size={16} className="text-red-400" />,
+                onClick: () => onDelete(inspection.id!),
+                className: 'text-red-400 hover:bg-red-900/40',
+              },
+            ]}
+          />
+        </div>
       </div>
     </Card>
   )

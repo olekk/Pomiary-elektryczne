@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, Home, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
-import { Button } from './atoms'
+import { Button, ActionMenu } from './atoms'
 import { getFullAddress } from '../utils'
 import {
   collection,
@@ -222,16 +222,17 @@ export const ProjectDetailsScreen: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteBuilding(building.id, getFullAddress(building))
-                    }}
-                    className="p-2 hover:bg-red-900 rounded-lg transition-colors"
-                    title="Usuń budynek"
-                  >
-                    <Trash2 size={18} className="text-red-400" />
-                  </button>
+                  <ActionMenu
+                    ariaLabel="Opcje budynku"
+                    items={[
+                      {
+                        label: 'Usuń',
+                        icon: <Trash2 size={16} className="text-red-400" />,
+                        onClick: () => handleDeleteBuilding(building.id, getFullAddress(building)),
+                        className: 'text-red-400 hover:bg-red-900/40',
+                      },
+                    ]}
+                  />
                 </div>
 
                 {/* Statystyki inspekcji */}
