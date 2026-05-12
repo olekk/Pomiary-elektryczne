@@ -97,7 +97,7 @@ export const CompactMeasurementListItem: React.FC<
   return (
     <div className={cn('p-2 rounded border-l-4', borderColor, bgColor)}>
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-slate-100">#{m.pointNumber}</span>
+        <span className="font-semibold text-slate-100">{m.room} #{m.pointNumber}</span>
         <span className="text-sm text-slate-400">
           {m.protectionType} {m.amperage}A
         </span>
