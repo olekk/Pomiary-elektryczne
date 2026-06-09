@@ -12,10 +12,7 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       injectManifest: {
-        // Include font files in SW precache — required for offline PDF generation
-        // @react-pdf/renderer fetches fonts via plain fetch(), not as font requests,
-        // so runtime caching with request.destination === 'font' won't work
-        globPatterns: ['**/*.{js,css,html,png,webmanifest,ttf}'],
+        globPatterns: ['**/*.{js,css,html,png,webmanifest}'],
       },
       manifest: {
         name: 'Pomiary Elektryczne',
@@ -57,7 +54,6 @@ export default defineConfig({
             'firebase/firestore',
           ],
           'vendor-ui': ['lucide-react', 'clsx', 'tailwind-merge'],
-          'pdf-lib': ['@react-pdf/renderer'],
         },
       },
     },

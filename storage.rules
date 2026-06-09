@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // PDFs are written by Cloud Functions (admin SDK bypasses rules).
+    // Authenticated clients can read PDFs.
+    match /pdfs/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Block everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

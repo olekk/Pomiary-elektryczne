@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus, Pencil } from 'lucide-react'
+import { Home, FileDown, CheckCircle, Plus, Pencil, Loader } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -12,6 +12,8 @@ import { doc, type DocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { generateInspectionId } from '../utils'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '../firebase'
 
 const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
   if (!snap.exists()) return null
@@ -171,40 +173,28 @@ export const SummaryScreen: React.FC = () => {
     )
   }
 
+  const [generatingPdf, setGeneratingPdf] = useState(false)
+
   const handleGeneratePDF = async () => {
-    if (!inspection) return
+    if (!inspection?.id) return
+    setGeneratingPdf(true)
     try {
-      const [{ pdf }, { PdfGenerator }] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('./PdfGenerator'),
-      ])
-      const blob = await pdf(<PdfGenerator inspection={inspection} />).toBlob()
-      const url = URL.createObjectURL(blob)
+      const generatePdf = httpsCallable(functions, 'generatePdf')
+      const result = await generatePdf({ inspectionId: inspection.id })
+      const { downloadUrl } = result.data as { downloadUrl: string }
+
+      // Trigger download
       const link = document.createElement('a')
-      link.href = url
+      link.href = downloadUrl
       const safeProtocolNumber = inspection.protocolNumber.replace(/\//g, '-')
       link.download = `${safeProtocolNumber}.pdf`
+      link.target = '_blank'
       link.click()
-      URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error generating PDF:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      if (errorMessage.includes('font') || errorMessage.includes('Font')) {
-        alert('Błąd ładowania fontów PDF. Upewnij się, że aplikacja była uruchomiona przynajmniej raz online, aby pobrać czcionki.')
-      } else if (errorMessage.includes('Failed to fetch')) {
-        alert('Błąd generowania PDF offline. Spróbuj ponownie z połączeniem internetowym.')
-      } else {
-        alert(`Błąd podczas generowania PDF: ${errorMessage}`)
-      }
+      alert(`Błąd podczas generowania PDF: ${error instanceof Error ? error.message : 'Nieznany błąd'}`)
     } finally {
-      // PDF generation saturates iOS Safari's connection pool, killing
-      // Firestore's WebChannel. Recover by terminating and re-initializing.
-      try {
-        const { recoverFirestore } = await import('../firebase')
-        await recoverFirestore()
-      } catch (err) {
-        logger.warn('⚠️ recoverFirestore after PDF failed:', err)
-      }
+      setGeneratingPdf(false)
     }
   }
 
@@ -328,8 +318,8 @@ export const SummaryScreen: React.FC = () => {
         )}
 
         <div className="space-y-3 mt-4">
-          <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
-            Generuj PDF
+          <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} disabled={generatingPdf} icon={generatingPdf ? <Loader size={24} className="animate-spin" /> : <FileDown size={24} />}>
+            {generatingPdf ? 'Generowanie PDF...' : 'Generuj PDF'}
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />} disabled={Boolean(inspection.ownerSignature && inspection.ownerSignature.trim().length > 0)}>
             Edytuj pomiary

@@ -7,34 +7,29 @@ import {
   StyleSheet,
   Image,
   Font,
+  renderToBuffer,
 } from '@react-pdf/renderer'
-import type { Inspection } from '../types'
-import { logger } from '../utils/logger'
+import * as path from 'path'
+import type { Inspection } from './types'
 
-interface PdfGeneratorProps {
-  inspection: Inspection
-}
+// Resolve asset paths relative to the compiled output directory
+const ASSETS_DIR = path.join(__dirname, 'assets')
+const FONTS_DIR = path.join(ASSETS_DIR, 'fonts')
 
-// Rejestracja fontów Roboto dla offline PDF
-// Fonty są precache'owane przez Service Worker dla trybu offline
-try {
-  Font.register({
-    family: 'Roboto',
-    fonts: [
-      {
-        src: '/fonts/Roboto-Regular.ttf', // Precache'owane przez SW
-        fontWeight: 'normal',
-      },
-      {
-        src: '/fonts/Roboto-Bold.ttf', // Precache'owane przez SW
-        fontWeight: 'bold',
-      },
-    ],
-  })
-} catch (error) {
-  logger.warn('Failed to register Roboto fonts, using default font:', error)
-  // Fallback: @react-pdf/renderer użyje domyślnego fontu systemowego
-}
+// Register Roboto fonts from local files
+Font.register({
+  family: 'Roboto',
+  fonts: [
+    {
+      src: path.join(FONTS_DIR, 'Roboto-Regular.ttf'),
+      fontWeight: 'normal',
+    },
+    {
+      src: path.join(FONTS_DIR, 'Roboto-Bold.ttf'),
+      fontWeight: 'bold',
+    },
+  ],
+})
 
 const styles = StyleSheet.create({
   page: {
@@ -192,10 +187,8 @@ const styles = StyleSheet.create({
     textAlign: 'justify',
     marginBottom: 10,
     lineHeight: 1.4,
-    fontFamily: 'Roboto', // Upewnij się, że masz czcionkę obsługującą polskie znaki
+    fontFamily: 'Roboto',
   },
-
-  // Szerokości kolumn
   colLp: { width: '10%', textAlign: 'center' },
   colSubject: { width: '70%' },
   colRating: { width: '20%', textAlign: 'center', fontWeight: 'bold' },
@@ -231,7 +224,7 @@ const styles = StyleSheet.create({
   },
 })
 
-export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
+const PdfDocument: React.FC<{ inspection: Inspection }> = ({ inspection }) => {
   const technicianName = inspection.technicianName || 'Brak danych technika'
   const technicianLicenseNumber = inspection.technicianLicenseNumber || ''
   const technicianSignature = inspection.technicianSignature || ''
@@ -275,12 +268,16 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
     ? inspection.measurements.some((m) => m.result === 'NIE')
     : inspection.klatkaData?.ocenaInstalacji !== 'nadaje'
 
+  // Local file paths for images (instead of window.location.origin)
+  const logoPath = path.join(ASSETS_DIR, 'logo.png')
+  const directionImagePath = path.join(ASSETS_DIR, 'od-lewej-do-prawej.png')
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Image src={`${window.location.origin}/logo.png`} style={{ width: '50%', marginBottom: 10 }} />
+          <Image src={logoPath} style={{ width: '50%', marginBottom: 10 }} />
           <Text style={styles.title}>PROTOKÓŁ POMIARÓW OCHRONNYCH</Text>
           <Text style={styles.subtitle}>
             Nr protokołu: {inspection.protocolNumber}
@@ -454,7 +451,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text>
-              <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
+              <Image src={directionImagePath} style={styles.directionImage} />
             </View>
           </>
         )}
@@ -604,4 +601,13 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
       </Page>
     </Document>
   )
+}
+
+/**
+ * Render an Inspection to a PDF buffer (server-side).
+ * Returns a Node.js Buffer containing the PDF bytes.
+ */
+export async function renderPdfBuffer(inspection: Inspection): Promise<Buffer> {
+  const buffer = await renderToBuffer(<PdfDocument inspection={inspection} />)
+  return Buffer.from(buffer)
 }
