@@ -17,7 +17,6 @@
     "test:emulator": "firebase emulators:exec --only firestore 'npm run test:integration'"
   },
   "dependencies": {
-    "@react-pdf/renderer": "^4.3.2",
     "@types/react-signature-canvas": "^1.0.7",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",

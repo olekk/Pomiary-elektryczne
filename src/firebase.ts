@@ -3,10 +3,9 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
-  terminate,
 } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
-import { logger } from './utils/logger'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAxBgF6W_NKGQGvCepAI7fLgGknDOeShfk',
@@ -27,33 +26,13 @@ const firestoreSettings = {
 // 1. Inicjalizacja Aplikacji
 const app = initializeApp(firebaseConfig)
 
-// 2. Inicjalizacja Firestore (mutable — recoverFirestore() may reassign)
-// eslint-disable-next-line import/no-mutable-exports
-let db = initializeFirestore(app, firestoreSettings)
+// 2. Inicjalizacja Firestore
+const db = initializeFirestore(app, firestoreSettings)
 
 // 3. Inicjalizacja Auth
 const auth = getAuth(app)
 
-/**
- * Recover from a deadlocked Firestore SDK.
- *
- * On iOS Safari, heavy fetch activity (e.g. PDF font/image loading) can
- * kill Firestore's internal WebChannel, leaving the SDK in a state where
- * onSnapshot / getDocs / getDoc all hang forever.
- *
- * Calling this function terminates the current instance and creates a
- * fresh one.  Because `db` is a module-level `let`, all future imports
- * of `db` will see the new instance.
- */
-export async function recoverFirestore(): Promise<void> {
-  logger.log('🔄 recoverFirestore: terminating old Firestore instance…')
-  try {
-    await terminate(db)
-  } catch (err) {
-    logger.warn('⚠️ recoverFirestore: terminate() threw (ignoring):', err)
-  }
-  db = initializeFirestore(app, firestoreSettings)
-  logger.log('✅ recoverFirestore: new Firestore instance ready')
-}
+// 4. Inicjalizacja Functions (europe-west1 region)
+const functions = getFunctions(app, 'europe-west1')
 
-export { app, db, auth }
+export { app, db, auth, functions }
