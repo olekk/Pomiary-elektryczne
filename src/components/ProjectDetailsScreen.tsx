@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Trash2, CheckCircle, DoorOpen } from 'lucide-react'
+import { Plus, Home, Trash2, CheckCircle, DoorOpen, Cloud, HardDrive } from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button, ActionMenu } from './atoms'
@@ -99,7 +99,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     []
   )
 
-  const { data: buildings, isLoading: isLoadingBuildings } =
+  const { data: buildings, isLoading: isLoadingBuildings, fromCache: buildingsFromCache } =
     useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${projectId || 'none'}`, 'Buildings')
   const { data: projectInspections } =
     useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${projectId || 'none'}`, 'ProjectInspections')
@@ -189,7 +189,9 @@ export const ProjectDetailsScreen: React.FC = () => {
     <MainLayout title={projectName} showBackBtn={true}>
       {/* Content */}
       <div className="p-4 min-h-full">
-        {!isLoadingBuildings && buildings.length === 0 ? (
+        {isLoadingBuildings && buildings.length === 0 ? (
+          <div className="text-center text-slate-400 py-8">Ładowanie...</div>
+        ) : !isLoadingBuildings && buildings.length === 0 ? (
           <div className="text-center py-12">
             <Home size={64} className="mx-auto text-slate-600 mb-4" />
             <h2 className="text-xl font-semibold text-slate-200 mb-2">
@@ -200,6 +202,22 @@ export const ProjectDetailsScreen: React.FC = () => {
             </p>
           </div>
         ) : (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm text-slate-400">
+                Budynki ({buildings.length})
+              </span>
+              <div
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  buildingsFromCache
+                    ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
+                    : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
+                }`}
+              >
+                {buildingsFromCache ? <HardDrive size={12} /> : <Cloud size={12} />}
+                {buildingsFromCache ? 'Dane lokalne' : 'Aktualne'}
+              </div>
+            </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {buildings.map((building) => (
               <div
@@ -264,6 +282,7 @@ export const ProjectDetailsScreen: React.FC = () => {
                 </Button>
               </div>
             ))}
+          </div>
           </div>
         )}
       </div>
