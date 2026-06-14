@@ -13,13 +13,12 @@ interface InspectionsListProps {
 
 const DataSourceChip: React.FC<{ fromCache: boolean }> = ({ fromCache }) => (
   <div
-    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-      fromCache
+    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${fromCache
         ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
         : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
-    }`}
+      }`}
   >
-    {fromCache ? <HardDrive size={12} /> : <Cloud size={12} />}
+    {fromCache ? <HardDrive size={12} className="animate-pulse" /> : <Cloud size={12} />}
     {fromCache ? 'Dane lokalne' : 'Aktualne'}
   </div>
 )
