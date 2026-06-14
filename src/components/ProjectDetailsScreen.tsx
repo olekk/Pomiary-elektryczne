@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Trash2, CheckCircle, DoorOpen, Cloud, HardDrive } from 'lucide-react'
+import { Plus, Home, Trash2, CheckCircle, DoorOpen, Cloud, HardDrive, Search, X } from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button, ActionMenu } from './atoms'
@@ -66,6 +66,8 @@ export const ProjectDetailsScreen: React.FC = () => {
   const [newStreet, setNewStreet] = useState('')
   const [newZipCode, setNewZipCode] = useState('')
   const [newCity, setNewCity] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Query for buildings in this project
   const buildingsQuery = useMemo(
@@ -122,6 +124,19 @@ export const ProjectDetailsScreen: React.FC = () => {
     }
     return stats
   }, [projectInspections])
+
+  // Filtruj budynki po adresie
+  const filteredBuildings = useMemo(() => {
+    if (!searchQuery.trim()) return buildings
+    const normalize = (s: string) =>
+      s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\u0142/g, 'l')
+    const q = normalize(searchQuery)
+    return buildings.filter((b) => normalize(getFullAddress(b)).includes(q))
+  }, [buildings, searchQuery])
 
   const handleCreateBuilding = async () => {
     if (!newStreet.trim() || !newZipCode.trim() || !newCity.trim()) {
@@ -205,7 +220,7 @@ export const ProjectDetailsScreen: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-slate-400">
-                Budynki ({buildings.length})
+                Budynki ({searchQuery.trim() ? `${filteredBuildings.length} / ${buildings.length}` : buildings.length})
               </span>
               <div
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
@@ -218,8 +233,37 @@ export const ProjectDetailsScreen: React.FC = () => {
                 {buildingsFromCache ? 'Dane lokalne' : 'Aktualne'}
               </div>
             </div>
+
+            {/* Search bar */}
+            <div className="relative mb-4">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Szukaj po adresie…"
+                className="w-full pl-10 pr-10 py-2.5 bg-slate-800 border border-slate-700 text-slate-100 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-slate-500 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); searchInputRef.current?.focus() }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  aria-label="Wyczyść wyszukiwanie"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+
+            {filteredBuildings.length === 0 && searchQuery.trim() ? (
+              <div className="text-center py-8 text-slate-400">
+                <Search size={40} className="mx-auto mb-3 text-slate-600" />
+                <p>Brak wyników dla „{searchQuery}"</p>
+              </div>
+            ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {buildings.map((building) => (
+            {filteredBuildings.map((building) => (
               <div
                 key={building.id}
                 className="bg-slate-800 rounded-lg p-6 hover:bg-slate-700 transition-colors border border-slate-700"
@@ -283,6 +327,7 @@ export const ProjectDetailsScreen: React.FC = () => {
               </div>
             ))}
           </div>
+            )}
           </div>
         )}
       </div>
