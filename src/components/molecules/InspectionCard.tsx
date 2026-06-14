@@ -5,9 +5,11 @@ import {
   Clock,
   FileText,
   AlertTriangle,
+  FileDown,
 } from 'lucide-react'
 import { Card, Badge, ActionMenu } from '../atoms'
 import type { Inspection } from '../../types'
+import { generateInspectionPdf } from '../../utils'
 
 interface InspectionCardProps {
   inspection: Inspection
@@ -28,14 +30,11 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
     }
   }
 
-
-
   return (
     <Card>
       <div
-        className={`flex items-start justify-between cursor-pointer ${
-          isInaccessible ? 'border-l-4 border-orange-500 pl-3 -ml-1' : ''
-        }`}
+        className={`flex items-start justify-between cursor-pointer ${isInaccessible ? 'border-l-4 border-orange-500 pl-3 -ml-1' : ''
+          }`}
         onClick={handleCardClick}
       >
         <div className="flex-1 min-w-0">
@@ -46,17 +45,15 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               <FileText size={18} className="text-blue-400" />
             )}
             <span
-              className={`font-mono text-sm break-all ${
-                isInaccessible ? 'text-orange-400' : 'text-blue-400'
-              }`}
+              className={`font-mono text-sm break-all ${isInaccessible ? 'text-orange-400' : 'text-blue-400'
+                }`}
             >
               {inspection.protocolNumber}
             </span>
           </div>
           <h3
-            className={`font-bold text-lg ${
-              isInaccessible ? 'text-orange-200' : 'text-slate-100'
-            }`}
+            className={`font-bold text-lg ${isInaccessible ? 'text-orange-200' : 'text-slate-100'
+              }`}
           >
             {inspection.unitType === 'lokal'
               ? 'Lokal'
@@ -102,11 +99,17 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
             iconSize={20}
             items={[
               {
-                label: 'Usuń',
-                icon: <Trash2 size={16} className="text-red-400" />,
-                onClick: () => onDelete(inspection.id!),
-                className: 'text-red-400 hover:bg-red-900/40',
+                label: 'Generuj PDF',
+                icon: <FileDown size={16} className="text-blue-400 cursor-pointer" />,
+                onClick: () => (generateInspectionPdf(inspection)),
+                className: 'text-blue-400 hover:bg-blue-900/40 cursor-pointer',
               },
+              {
+                label: 'Usuń',
+                icon: <Trash2 size={16} className="text-red-400 cursor-pointer" />,
+                onClick: () => onDelete(inspection.id!),
+                className: 'text-red-400 hover:bg-red-900/40 cursor-pointer',
+              }
             ]}
           />
         </div>
