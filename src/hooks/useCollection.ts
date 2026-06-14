@@ -11,6 +11,7 @@ interface UseCollectionResult<T> {
   data: T[]
   isLoading: boolean
   isInitialized: boolean
+  fromCache: boolean
   error: Error | null
 }
 
@@ -32,8 +33,9 @@ export function useCollection<T>(
   label?: string
 ): UseCollectionResult<T> {
   const [data, setData] = useState<T[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [fromCache, setFromCache] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   // Refs keep the latest values accessible inside the effect
@@ -50,9 +52,12 @@ export function useCollection<T>(
     if (!currentQuery) {
       setData([])
       setIsLoading(false)
+      setFromCache(false)
       logger.log(`📭 ${label || 'Collection'}: query is null, skipping subscription`)
       return
     }
+
+    setIsLoading(true)
 
     logger.log(`🔌 ${label || 'Collection'}: subscribing (key=${key})`)
 
@@ -68,13 +73,15 @@ export function useCollection<T>(
           results.push(mapperRef.current(doc))
         })
 
+        const isCached = snapshot.metadata.fromCache
         if (label) {
           logger.log(
-            `📥 ${label}: ${results.length} items (fromCache: ${snapshot.metadata.fromCache})`
+            `📥 ${label}: ${results.length} items (fromCache: ${isCached})`
           )
         }
 
         setData(results)
+        setFromCache(isCached)
         setIsLoading(false)
         setIsInitialized(true)
         setError(null)
@@ -104,5 +111,5 @@ export function useCollection<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
-  return { data, isLoading, isInitialized, error }
+  return { data, isLoading, isInitialized, fromCache, error }
 }

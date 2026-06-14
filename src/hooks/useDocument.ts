@@ -11,6 +11,7 @@ interface UseDocumentResult<T> {
   data: T | null
   isLoading: boolean
   isInitialized: boolean
+  fromCache: boolean
   error: Error | null
 }
 
@@ -25,8 +26,9 @@ export function useDocument<T>(
   label?: string
 ): UseDocumentResult<T> {
   const [data, setData] = useState<T | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [fromCache, setFromCache] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const docPath = docRef?.path ?? '__null__'
@@ -43,9 +45,12 @@ export function useDocument<T>(
     if (!currentDocRef) {
       setData(null)
       setIsLoading(false)
+      setFromCache(false)
       logger.log(`📭 ${label || 'Document'}: ref is null, skipping subscription`)
       return
     }
+
+    setIsLoading(true)
 
     logger.log(`🔌 ${label || 'Document'}: subscribing (path=${docPath})`)
 
@@ -56,12 +61,13 @@ export function useDocument<T>(
       { includeMetadataChanges: true },
       (snap) => {
         snapshotReceived = true
+        const isCached = snap.metadata.fromCache
         if (snap.exists()) {
           const result = mapperRef.current(snap)
           setData(result)
           if (label) {
             logger.log(
-              `📥 ${label}: loaded (fromCache: ${snap.metadata.fromCache})`
+              `📥 ${label}: loaded (fromCache: ${isCached})`
             )
           }
         } else {
@@ -70,6 +76,7 @@ export function useDocument<T>(
             logger.log(`📭 ${label}: not found`)
           }
         }
+        setFromCache(isCached)
         setIsLoading(false)
         setIsInitialized(true)
         setError(null)
@@ -99,5 +106,5 @@ export function useDocument<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath, label])
 
-  return { data, isLoading, isInitialized, error }
+  return { data, isLoading, isInitialized, fromCache, error }
 }

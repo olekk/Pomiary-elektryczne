@@ -94,7 +94,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     [buildingId]
   )
 
-  const { data: inspections, isLoading: isLoadingInspections } =
+  const { data: inspections, isLoading: isLoadingInspections, fromCache: inspectionsFromCache } =
     useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
 
   // Subscribe to building document
@@ -328,6 +328,7 @@ export const BuildingDetailsScreen: React.FC = () => {
         <InspectionsList
           inspections={inspections}
           isLoading={isLoadingInspections}
+          fromCache={inspectionsFromCache}
           onDelete={handleDelete}
           onClick={handleInspectionClick}
         />

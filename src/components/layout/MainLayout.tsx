@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, LogOut, Settings } from 'lucide-react'
 import { useAuth, useOnlineStatus, usePendingSync } from '../../hooks'
-import { StatusBadge } from '../molecules'
+// import { StatusBadge } from '../molecules'
 import { logger } from '../../utils/logger'
 
 interface MainLayoutProps {
@@ -80,11 +80,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
           {/* Right Side */}
           <div className="flex items-center gap-2">
             {/* Status Badge */}
-            <StatusBadge
+            {/* <StatusBadge
               isOnline={isOnline}
               pendingCount={pendingSyncCount}
               onRetrySync={retryPendingSync}
-            />
+            /> */}
 
             {/* Settings Button */}
             <Link
