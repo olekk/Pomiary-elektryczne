@@ -74,10 +74,10 @@ export const ProjectDetailsScreen: React.FC = () => {
     () =>
       projectId
         ? query(
-            collection(db, 'buildings'),
-            where('projectId', '==', projectId),
-            orderBy('createdAt', 'desc')
-          )
+          collection(db, 'buildings'),
+          where('projectId', '==', projectId),
+          orderBy('createdAt', 'desc')
+        )
         : null,
     [projectId]
   )
@@ -87,10 +87,10 @@ export const ProjectDetailsScreen: React.FC = () => {
     () =>
       projectId
         ? query(
-            collection(db, 'inspections'),
-            where('projectId', '==', projectId),
-            orderBy('createdAt', 'desc')
-          )
+          collection(db, 'inspections'),
+          where('projectId', '==', projectId),
+          orderBy('createdAt', 'desc')
+        )
         : null,
     [projectId]
   )
@@ -223,13 +223,12 @@ export const ProjectDetailsScreen: React.FC = () => {
                 Budynki ({searchQuery.trim() ? `${filteredBuildings.length} / ${buildings.length}` : buildings.length})
               </span>
               <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  buildingsFromCache
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${buildingsFromCache
                     ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
                     : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
-                }`}
+                  }`}
               >
-                {buildingsFromCache ? <HardDrive size={12} /> : <Cloud size={12} />}
+                {buildingsFromCache ? <HardDrive size={12} className="animate-pulse" /> : <Cloud size={12} />}
                 {buildingsFromCache ? 'Dane lokalne' : 'Aktualne'}
               </div>
             </div>
@@ -262,71 +261,71 @@ export const ProjectDetailsScreen: React.FC = () => {
                 <p>Brak wyników dla „{searchQuery}"</p>
               </div>
             ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredBuildings.map((building) => (
-              <div
-                key={building.id}
-                className="bg-slate-800 rounded-lg p-6 hover:bg-slate-700 transition-colors border border-slate-700"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-900 rounded-lg">
-                      <Home size={24} className="text-blue-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-100">
-                        {getFullAddress(building)}
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {new Date(building.createdAt).toLocaleDateString(
-                          'pl-PL'
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <ActionMenu
-                    ariaLabel="Opcje budynku"
-                    items={[
-                      {
-                        label: 'Usuń',
-                        icon: <Trash2 size={16} className="text-red-400" />,
-                        onClick: () => handleDeleteBuilding(building.id, getFullAddress(building)),
-                        className: 'text-red-400 hover:bg-red-900/40',
-                      },
-                    ]}
-                  />
-                </div>
-
-                {/* Statystyki inspekcji */}
-                {(buildingStats[building.id]?.completed > 0 ||
-                  buildingStats[building.id]?.inaccessible > 0) && (
-                  <div className="flex items-center gap-4 mb-4 text-sm">
-                    <div className="flex items-center gap-1.5 text-emerald-400">
-                      <CheckCircle size={16} />
-                      <span>
-                        Wykonano: {buildingStats[building.id].completed}
-                      </span>
-                    </div>
-                    {buildingStats[building.id].inaccessible > 0 && (
-                      <div className="flex items-center gap-1.5 text-orange-400">
-                        <DoorOpen size={16} />
-                        <span>
-                          Niedostępne: {buildingStats[building.id].inaccessible}
-                        </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredBuildings.map((building) => (
+                  <div
+                    key={building.id}
+                    className="bg-slate-800 rounded-lg p-6 hover:bg-slate-700 transition-colors border border-slate-700"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-blue-900 rounded-lg">
+                          <Home size={24} className="text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-slate-100">
+                            {getFullAddress(building)}
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {new Date(building.createdAt).toLocaleDateString(
+                              'pl-PL'
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <ActionMenu
+                        ariaLabel="Opcje budynku"
+                        items={[
+                          {
+                            label: 'Usuń',
+                            icon: <Trash2 size={16} className="text-red-400" />,
+                            onClick: () => handleDeleteBuilding(building.id, getFullAddress(building)),
+                            className: 'text-red-400 hover:bg-red-900/40',
+                          },
+                        ]}
+                      />
+                    </div>
 
-                <Button
-                  onClick={() => navigate(`/building/${building.id}`)}
-                  className="w-full"
-                >
-                  Otwórz budynek
-                </Button>
+                    {/* Statystyki inspekcji */}
+                    {(buildingStats[building.id]?.completed > 0 ||
+                      buildingStats[building.id]?.inaccessible > 0) && (
+                        <div className="flex items-center gap-4 mb-4 text-sm">
+                          <div className="flex items-center gap-1.5 text-emerald-400">
+                            <CheckCircle size={16} />
+                            <span>
+                              Wykonano: {buildingStats[building.id].completed}
+                            </span>
+                          </div>
+                          {buildingStats[building.id].inaccessible > 0 && (
+                            <div className="flex items-center gap-1.5 text-orange-400">
+                              <DoorOpen size={16} />
+                              <span>
+                                Niedostępne: {buildingStats[building.id].inaccessible}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    <Button
+                      onClick={() => navigate(`/building/${building.id}`)}
+                      className="w-full"
+                    >
+                      Otwórz budynek
+                    </Button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
             )}
           </div>
         )}
