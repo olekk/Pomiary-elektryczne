@@ -4,7 +4,7 @@ import { Home, FileDown, CheckCircle, Plus, Pencil } from 'lucide-react'
 import { SignaturePanel } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
-import { countMeasurementsByResult, ensureDate } from '../utils'
+import { countMeasurementsByResult, ensureDate, generateInspectionPdf } from '../utils'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
 import { useDocument } from '../hooks'
@@ -171,41 +171,9 @@ export const SummaryScreen: React.FC = () => {
     )
   }
 
-  const handleGeneratePDF = async () => {
+  const handleGeneratePDF = () => {
     if (!inspection) return
-    try {
-      const [{ pdf }, { PdfGenerator }] = await Promise.all([
-        import('@react-pdf/renderer'),
-        import('./PdfGenerator'),
-      ])
-      const blob = await pdf(<PdfGenerator inspection={inspection} />).toBlob()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      const safeProtocolNumber = inspection.protocolNumber.replace(/\//g, '-')
-      link.download = `${safeProtocolNumber}.pdf`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error generating PDF:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      if (errorMessage.includes('font') || errorMessage.includes('Font')) {
-        alert('Błąd ładowania fontów PDF. Upewnij się, że aplikacja była uruchomiona przynajmniej raz online, aby pobrać czcionki.')
-      } else if (errorMessage.includes('Failed to fetch')) {
-        alert('Błąd generowania PDF offline. Spróbuj ponownie z połączeniem internetowym.')
-      } else {
-        alert(`Błąd podczas generowania PDF: ${errorMessage}`)
-      }
-    } finally {
-      // PDF generation saturates iOS Safari's connection pool, killing
-      // Firestore's WebChannel. Recover by terminating and re-initializing.
-      try {
-        const { recoverFirestore } = await import('../firebase')
-        await recoverFirestore()
-      } catch (err) {
-        logger.warn('⚠️ recoverFirestore after PDF failed:', err)
-      }
-    }
+    generateInspectionPdf(inspection)
   }
 
   const { passed, failed } = countMeasurementsByResult(inspection.measurements)
@@ -328,7 +296,7 @@ export const SummaryScreen: React.FC = () => {
         )}
 
         <div className="space-y-3 mt-4">
-          <Button variant="danger" size="lg" fullWidth onClick={handleGeneratePDF} icon={<FileDown size={24} />}>
+          <Button variant="danger" size="lg" fullWidth onClick={() => { if (inspection) generateInspectionPdf(inspection); else alert('Brak danych do wygenerowania PDF. Spróbuj ponownie później.') }} icon={<FileDown size={24} />}>
             Generuj PDF
           </Button>
           <Button variant="secondary" size="lg" fullWidth onClick={handleBackToMeasurement} icon={<Pencil size={24} />} disabled={Boolean(inspection.ownerSignature && inspection.ownerSignature.trim().length > 0)}>
