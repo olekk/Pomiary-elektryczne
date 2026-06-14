@@ -171,11 +171,6 @@ export const SummaryScreen: React.FC = () => {
     )
   }
 
-  const handleGeneratePDF = () => {
-    if (!inspection) return
-    generateInspectionPdf(inspection)
-  }
-
   const { passed, failed } = countMeasurementsByResult(inspection.measurements)
 
   return (
