@@ -34,5 +34,5 @@ export const generateProtocolNumber = (
   // Normalizuj adres ulicy (używa helpera - usuwa "ul.", polskie znaki, etc.)
   const normalizedStreet = normalizeAddressForProtocol(buildingStreet)
 
-  return `PROT/${year}/${month}/${day}/${normalizedStreet}/${normalizedApartment}`
+  return `${normalizedStreet}/${normalizedApartment}/${year}/${month}/${day}/PROT`
 }
