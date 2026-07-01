@@ -117,6 +117,9 @@ export function makeUserSettings(
     displayName: 'Test User',
     licenseNumber: 'LIC-12345',
     signatureBase64: 'data:image/png;base64,dGVzdA==',
+    reviewerName: '',
+    reviewerLicenseNumber: '',
+    reviewerSignatureBase64: '',
     ...overrides,
   }
 }
