@@ -52,10 +52,13 @@ export const MeasurementScreen: React.FC = () => {
   const { technicianLicenseNumber, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
   const locationState = location.state as { inspection: Inspection } | null
 
-  // Priority: location.state (fresh from BuildingDetailsScreen) > sessionStorage (returning from Summary)
+  // Priority: sessionStorage draft (always up-to-date) > location.state (may be stale after browser-Back)
   const [currentInspection, setCurrentInspection] = useState<Inspection | null>(() => {
+    if (buildingId) {
+      const draft = loadDraftFromSession(buildingId)
+      if (draft) return draft
+    }
     if (locationState?.inspection) return locationState.inspection
-    if (buildingId) return loadDraftFromSession(buildingId)
     return null
   })
 
