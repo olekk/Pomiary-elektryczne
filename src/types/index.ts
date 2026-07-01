@@ -124,6 +124,9 @@ export interface Inspection {
   technicianName: string
   technicianLicenseNumber?: string // Nr uprawnień technika (snapshot z ustawień)
   technicianSignature?: string // Base64 podpisu technika (snapshot z ustawień)
+  reviewerName?: string // Imię i nazwisko sprawdzającego
+  reviewerLicenseNumber?: string // Nr uprawnień sprawdzającego
+  reviewerSignature?: string // Base64 podpisu sprawdzającego
   notes?: string
   measurements: Measurement[]
   ownerSignature?: string // Base64 podpisu właściciela/użytkownika
@@ -138,6 +141,9 @@ export interface UserSettings {
   displayName: string
   licenseNumber: string
   signatureBase64: string
+  reviewerName: string
+  reviewerLicenseNumber: string
+  reviewerSignatureBase64: string
 }
 
 // Tabela dopuszczalnych impedancji (uproszczona)

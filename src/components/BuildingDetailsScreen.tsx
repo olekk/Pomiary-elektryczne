@@ -44,6 +44,9 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     technicianName: data.technicianName || data.technician || '',
     technicianLicenseNumber: data.technicianLicenseNumber || '',
     technicianSignature: data.technicianSignature || '',
+    reviewerName: data.reviewerName || '',
+    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
+    reviewerSignature: data.reviewerSignature || '',
     measurements: data.measurements || [],
     notes: data.notes || '',
     ownerSignature: data.ownerSignature || data.signature || '',
@@ -76,7 +79,7 @@ export const BuildingDetailsScreen: React.FC = () => {
   const location = useLocation()
   const { id: buildingId } = useParams<{ id: string }>()
   const { user } = useAuth()
-  const { technicianName, technicianSignature } = useUserSettings(user?.uid)
+  const { technicianName, technicianSignature, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingInspection, setEditingInspection] = useState<Inspection | null>(null)
@@ -159,6 +162,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     if (!buildingId || !currentBuilding || !validateTechnician()) return
 
     const { technicianName: tName, technicianSignature: tSig } = { technicianName, technicianSignature }
+    const { reviewerName: rName, reviewerLicenseNumber: rLicense, reviewerSignature: rSig } = { reviewerName, reviewerLicenseNumber, reviewerSignature }
 
     const date = new Date()
     const buildingStreet = street || address
@@ -174,6 +178,9 @@ export const BuildingDetailsScreen: React.FC = () => {
       technicianName: tName,
       technicianLicenseNumber: '', // will be loaded from useUserSettings in MeasurementScreen
       technicianSignature: tSig,
+      reviewerName: rName,
+      reviewerLicenseNumber: rLicense,
+      reviewerSignature: rSig,
       date,
       protocolNumber,
       notes: '',
@@ -213,6 +220,9 @@ export const BuildingDetailsScreen: React.FC = () => {
       technicianName,
       technicianLicenseNumber: '',
       technicianSignature,
+      reviewerName,
+      reviewerLicenseNumber,
+      reviewerSignature,
       date,
       protocolNumber,
       notes: '',

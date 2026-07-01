@@ -49,7 +49,7 @@ export const MeasurementScreen: React.FC = () => {
   const { buildingId } = useParams<{ buildingId: string }>()
   const location = useLocation()
   const { user } = useAuth()
-  const { technicianLicenseNumber } = useUserSettings(user?.uid)
+  const { technicianLicenseNumber, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
   const locationState = location.state as { inspection: Inspection } | null
 
   // Priority: location.state (fresh from BuildingDetailsScreen) > sessionStorage (returning from Summary)
@@ -94,12 +94,24 @@ export const MeasurementScreen: React.FC = () => {
     updateInspection(prev => prev ? { ...prev, notes: value } : null)
   }, [updateInspection])
 
-  // Update license number when loaded
+  // Update license number and reviewer data when loaded
   useEffect(() => {
     if (technicianLicenseNumber && currentInspection && !currentInspection.technicianLicenseNumber) {
       updateInspection(prev => prev ? { ...prev, technicianLicenseNumber } : null)
     }
   }, [technicianLicenseNumber]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (currentInspection) {
+      const updates: Partial<Inspection> = {}
+      if (reviewerName && !currentInspection.reviewerName) updates.reviewerName = reviewerName
+      if (reviewerLicenseNumber && !currentInspection.reviewerLicenseNumber) updates.reviewerLicenseNumber = reviewerLicenseNumber
+      if (reviewerSignature && !currentInspection.reviewerSignature) updates.reviewerSignature = reviewerSignature
+      if (Object.keys(updates).length > 0) {
+        updateInspection(prev => prev ? { ...prev, ...updates } : null)
+      }
+    }
+  }, [reviewerName, reviewerLicenseNumber, reviewerSignature]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!currentInspection) {

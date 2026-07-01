@@ -235,7 +235,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const technicianName = inspection.technicianName || 'Brak danych technika'
   const technicianLicenseNumber = inspection.technicianLicenseNumber || ''
   const technicianSignature = inspection.technicianSignature || ''
+  const reviewerName = inspection.reviewerName || ''
+  const reviewerLicenseNumber = inspection.reviewerLicenseNumber || ''
+  const reviewerSignature = inspection.reviewerSignature || ''
   const ownerSignature = inspection.ownerSignature || ''
+  const hasReviewer = reviewerName.trim().length > 0
 
   const postInspectionRecommendations = inspection.measurements.flatMap((m) => {
     const measurementLabel = `Gniazdo nr ${m.pointNumber} (${m.room})`
@@ -565,13 +569,30 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           </Text>
         </View>
 
-        <View style={styles.footer}>
-          <Text>Pomiary wykonał: {technicianName}</Text>
-          <Text>Nr uprawnień: {technicianLicenseNumber || '-'}</Text>
-          {technicianSignature && (
-            <View>
-              <Text style={{ marginBottom: 5 }}>Podpis pomiarowca:</Text>
-              <Image src={technicianSignature} style={styles.signature} />
+        <View style={{ ...styles.footer, flexDirection: 'row', justifyContent: 'space-between' }}>
+          {/* Wykonujący pomiary */}
+          <View style={{ flex: 1 }}>
+            <Text>Wykonujący pomiary: {technicianName}</Text>
+            <Text>Nr uprawnień: {technicianLicenseNumber || '-'}</Text>
+            {technicianSignature && (
+              <View>
+                <Text style={{ marginBottom: 5 }}>Podpis pomiarowca:</Text>
+                <Image src={technicianSignature} style={styles.signature} />
+              </View>
+            )}
+          </View>
+
+          {/* Sprawdzający */}
+          {hasReviewer && (
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Text>Sprawdzający: {reviewerName}</Text>
+              <Text>Nr uprawnień: {reviewerLicenseNumber || '-'}</Text>
+              {reviewerSignature && (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={{ marginBottom: 5 }}>Podpis sprawdzającego:</Text>
+                  <Image src={reviewerSignature} style={styles.signature} />
+                </View>
+              )}
             </View>
           )}
         </View>

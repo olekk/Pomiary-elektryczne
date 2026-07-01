@@ -141,6 +141,9 @@ export const saveInspectionToFirestore = async (
     technicianName: inspection.technicianName || '',
     technicianLicenseNumber: inspection.technicianLicenseNumber || '',
     technicianSignature: inspection.technicianSignature || '',
+    reviewerName: inspection.reviewerName || '',
+    reviewerLicenseNumber: inspection.reviewerLicenseNumber || '',
+    reviewerSignature: inspection.reviewerSignature || '',
     notes: inspection.notes || '',
     measurements: sanitizedMeasurements,
     ownerSignature: inspection.ownerSignature || '',
@@ -207,6 +210,9 @@ export const saveUserSettingsToFirestore = async (
       displayName: settings.displayName.trim(),
       licenseNumber: settings.licenseNumber.trim(),
       signatureBase64: settings.signatureBase64 || '',
+      reviewerName: settings.reviewerName.trim(),
+      reviewerLicenseNumber: settings.reviewerLicenseNumber.trim(),
+      reviewerSignatureBase64: settings.reviewerSignatureBase64 || '',
       updatedAt: Timestamp.now(),
     },
     { merge: true }
@@ -235,5 +241,11 @@ export const getUserSettingsFromFirestore = async (
       typeof data.licenseNumber === 'string' ? data.licenseNumber : '',
     signatureBase64:
       typeof data.signatureBase64 === 'string' ? data.signatureBase64 : '',
+    reviewerName:
+      typeof data.reviewerName === 'string' ? data.reviewerName : '',
+    reviewerLicenseNumber:
+      typeof data.reviewerLicenseNumber === 'string' ? data.reviewerLicenseNumber : '',
+    reviewerSignatureBase64:
+      typeof data.reviewerSignatureBase64 === 'string' ? data.reviewerSignatureBase64 : '',
   }
 }

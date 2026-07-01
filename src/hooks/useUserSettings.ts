@@ -25,6 +25,14 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
         typeof parsed.signatureBase64 === 'string'
           ? parsed.signatureBase64
           : '',
+      reviewerName:
+        typeof parsed.reviewerName === 'string' ? parsed.reviewerName : '',
+      reviewerLicenseNumber:
+        typeof parsed.reviewerLicenseNumber === 'string' ? parsed.reviewerLicenseNumber : '',
+      reviewerSignatureBase64:
+        typeof parsed.reviewerSignatureBase64 === 'string'
+          ? parsed.reviewerSignatureBase64
+          : '',
     }
   } catch (error) {
     console.error('Error reading user settings from local storage:', error)
@@ -43,6 +51,9 @@ const saveUserSettingsToLocal = (
         displayName: settings.displayName.trim(),
         licenseNumber: settings.licenseNumber.trim(),
         signatureBase64: settings.signatureBase64 || '',
+        reviewerName: settings.reviewerName.trim(),
+        reviewerLicenseNumber: settings.reviewerLicenseNumber.trim(),
+        reviewerSignatureBase64: settings.reviewerSignatureBase64 || '',
       })
     )
   } catch (error) {
@@ -54,6 +65,9 @@ interface UseUserSettingsResult {
   technicianName: string
   technicianLicenseNumber: string
   technicianSignature: string
+  reviewerName: string
+  reviewerLicenseNumber: string
+  reviewerSignature: string
   isLoading: boolean
   save: (settings: UserSettings) => Promise<void>
 }
@@ -66,6 +80,9 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
   const [technicianName, setTechnicianName] = useState('')
   const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState('')
   const [technicianSignature, setTechnicianSignature] = useState('')
+  const [reviewerName, setReviewerName] = useState('')
+  const [reviewerLicenseNumber, setReviewerLicenseNumber] = useState('')
+  const [reviewerSignature, setReviewerSignature] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -73,6 +90,9 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
       setTechnicianName('')
       setTechnicianLicenseNumber('')
       setTechnicianSignature('')
+      setReviewerName('')
+      setReviewerLicenseNumber('')
+      setReviewerSignature('')
       setIsLoading(false)
       return
     }
@@ -83,6 +103,9 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
       setTechnicianName(localSettings.displayName)
       setTechnicianLicenseNumber(localSettings.licenseNumber)
       setTechnicianSignature(localSettings.signatureBase64)
+      setReviewerName(localSettings.reviewerName)
+      setReviewerLicenseNumber(localSettings.reviewerLicenseNumber)
+      setReviewerSignature(localSettings.reviewerSignatureBase64)
     }
 
     // Subscribe to Firestore for live updates
@@ -95,16 +118,25 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
           const name = typeof data.displayName === 'string' ? data.displayName : ''
           const license = typeof data.licenseNumber === 'string' ? data.licenseNumber : ''
           const signature = typeof data.signatureBase64 === 'string' ? data.signatureBase64 : ''
+          const revName = typeof data.reviewerName === 'string' ? data.reviewerName : ''
+          const revLicense = typeof data.reviewerLicenseNumber === 'string' ? data.reviewerLicenseNumber : ''
+          const revSignature = typeof data.reviewerSignatureBase64 === 'string' ? data.reviewerSignatureBase64 : ''
 
           setTechnicianName(name)
           setTechnicianLicenseNumber(license)
           setTechnicianSignature(signature)
+          setReviewerName(revName)
+          setReviewerLicenseNumber(revLicense)
+          setReviewerSignature(revSignature)
 
           // Refresh local backup
           saveUserSettingsToLocal(userId, {
             displayName: name,
             licenseNumber: license,
             signatureBase64: signature,
+            reviewerName: revName,
+            reviewerLicenseNumber: revLicense,
+            reviewerSignatureBase64: revSignature,
           })
         }
         setIsLoading(false)
@@ -127,6 +159,9 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
       setTechnicianName(settings.displayName.trim())
       setTechnicianLicenseNumber(settings.licenseNumber.trim())
       setTechnicianSignature(settings.signatureBase64 || '')
+      setReviewerName(settings.reviewerName.trim())
+      setReviewerLicenseNumber(settings.reviewerLicenseNumber.trim())
+      setReviewerSignature(settings.reviewerSignatureBase64 || '')
 
       // Save locally
       saveUserSettingsToLocal(userId, settings)
@@ -143,5 +178,5 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
     [userId]
   )
 
-  return { technicianName, technicianLicenseNumber, technicianSignature, isLoading, save }
+  return { technicianName, technicianLicenseNumber, technicianSignature, reviewerName, reviewerLicenseNumber, reviewerSignature, isLoading, save }
 }

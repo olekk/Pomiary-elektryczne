@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, LogOut, Settings } from 'lucide-react'
+import { ArrowLeft, LogOut, UserRoundCog } from 'lucide-react'
 import { useAuth, useOnlineStatus, usePendingSync } from '../../hooks'
 // import { StatusBadge } from '../molecules'
 import { logger } from '../../utils/logger'
@@ -92,7 +92,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
               title="Ustawienia"
             >
-              <Settings size={20} className="text-slate-100" />
+              <UserRoundCog size={20} className="text-slate-100" />
             </Link>
 
             {/* Logout Button */}
