@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useNavigate, useParams, useLocation, useNavigationType } from 'react-router-dom'
 import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import { MeasurementSettings, NotesSection, KlatkaInspectionForm } from './organisms'
@@ -48,17 +48,20 @@ export const MeasurementScreen: React.FC = () => {
   const navigate = useNavigate()
   const { buildingId } = useParams<{ buildingId: string }>()
   const location = useLocation()
+  const navigationType = useNavigationType()
   const { user } = useAuth()
   const { technicianLicenseNumber, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
   const locationState = location.state as { inspection: Inspection } | null
 
-  // Priority: sessionStorage draft (always up-to-date) > location.state (may be stale after browser-Back)
+  // POP = browser Back/Forward → prefer sessionStorage draft (up-to-date)
+  // PUSH/REPLACE = programmatic navigation → prefer location.state (fresh data)
   const [currentInspection, setCurrentInspection] = useState<Inspection | null>(() => {
-    if (buildingId) {
+    if (navigationType === 'POP' && buildingId) {
       const draft = loadDraftFromSession(buildingId)
       if (draft) return draft
     }
     if (locationState?.inspection) return locationState.inspection
+    if (buildingId) return loadDraftFromSession(buildingId)
     return null
   })
 
@@ -166,6 +169,9 @@ export const MeasurementScreen: React.FC = () => {
       .then(() => markInspectionAsSynced(savedId))
       .then(() => logger.log(`✅ Inspection ${savedId} synced`))
       .catch((err) => logger.error(`❌ Sync failed for ${savedId}:`, err))
+
+    // Keep draft in sync (includes the generated id) so browser-Back restores the latest state
+    saveDraftToSession(buildingId, inspectionToSave)
 
     // Navigate immediately — don't wait for server ACK
     navigate(`/building/${buildingId}/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
