@@ -4,12 +4,12 @@ import { Save } from 'lucide-react'
 import { NumericKeypad } from './NumericKeypad'
 import { MeasurementSettings, NotesSection, KlatkaInspectionForm } from './organisms'
 import { MeasurementListItem } from './molecules'
-import { Button, Card } from './atoms'
+import { Button, Card, Input, Select } from './atoms'
 import { MainLayout } from './layout/MainLayout'
-import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building, KlatkaData } from '../types'
-import { getFullAddress, validateMeasurementValue, generateInspectionId, generateMeasurementId, createMeasurement, renumberMeasurements, ensureDate } from '../utils'
-import { useDocument, useAuth, useUserSettings } from '../hooks'
-import { doc, type DocumentSnapshot } from 'firebase/firestore'
+import type { ProtectionType, Amperage, Room, SocketType, Inspection, Building, KlatkaData, UnitType } from '../types'
+import { getFullAddress, validateMeasurementValue, generateInspectionId, generateMeasurementId, createMeasurement, renumberMeasurements, ensureDate, generateProtocolNumber } from '../utils'
+import { useCollection, useDocument, useAuth, useUserSettings } from '../hooks'
+import { collection, doc, query, where, orderBy, type DocumentSnapshot, type QueryDocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { logger } from '../utils/logger'
@@ -42,6 +42,33 @@ const buildingMapper = (snap: DocumentSnapshot): Building | null => {
   if (!snap.exists()) return null
   const d = snap.data()!
   return { id: snap.id, projectId: d.projectId, name: d.name, street: d.street || d.name || '', zipCode: d.zipCode || '', city: d.city || '', createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(), updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate() : new Date(), userId: d.userId || '' }
+}
+
+const inspectionMapper = (snap: QueryDocumentSnapshot): Inspection => {
+  const d = snap.data()
+  return {
+    id: snap.id,
+    projectId: d.projectId,
+    buildingId: d.buildingId,
+    address: d.address,
+    apartmentNumber: d.apartmentNumber,
+    ownerName: d.ownerName || '',
+    date: d.date?.toDate ? d.date.toDate() : new Date(),
+    technicianName: d.technicianName || d.technician || '',
+    technicianLicenseNumber: d.technicianLicenseNumber || '',
+    technicianSignature: d.technicianSignature || '',
+    reviewerName: d.reviewerName || '',
+    reviewerLicenseNumber: d.reviewerLicenseNumber || '',
+    reviewerSignature: d.reviewerSignature || '',
+    measurements: d.measurements || [],
+    notes: d.notes || '',
+    ownerSignature: d.ownerSignature || d.signature || '',
+    protocolNumber: d.protocolNumber,
+    synced: d.synced ?? true,
+    status: d.status || 'COMPLETED',
+    unitType: d.unitType || 'mieszkanie',
+    klatkaData: d.klatkaData || undefined,
+  }
 }
 
 export const MeasurementScreen: React.FC = () => {
@@ -128,6 +155,43 @@ export const MeasurementScreen: React.FC = () => {
   const buildingDocRef = useMemo(() => buildingId ? doc(db, 'buildings', buildingId) : null, [buildingId])
   const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
 
+  // Subscribe to sibling inspections for duplicate detection + automatic klatka numbering
+  const inspectionsQuery = useMemo(
+    () => buildingId ? query(collection(db, 'inspections'), where('buildingId', '==', buildingId), orderBy('createdAt', 'desc')) : null,
+    [buildingId]
+  )
+  const { data: existingInspections } = useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
+
+  // Resume mode = editing a unit that already exists (came in with an id, e.g. an inaccessible one)
+  const [isResumeMode] = useState(() => !!currentInspection?.id)
+
+  const setField = useCallback((patch: Partial<Inspection>) => {
+    updateInspection(prev => prev ? { ...prev, ...patch } : null)
+  }, [updateInspection])
+
+  const currentId = currentInspection?.id
+
+  // Automatic klatka number (klatka, klatka 2, …) — excludes the unit being edited
+  const autoKlatkaNumber = useMemo(() => {
+    const existingKlatki = existingInspections.filter(i => i.unitType === 'klatka' && i.id !== currentId)
+    return existingKlatki.length === 0 ? 'klatka' : `klatka ${existingKlatki.length + 1}`
+  }, [existingInspections, currentId])
+
+  // Effective number — auto for klatka, typed for the rest
+  const effectiveApartmentNumber = isKlatka ? autoKlatkaNumber : (currentInspection?.apartmentNumber || '')
+
+  const isDuplicateApartment = useMemo(() => {
+    const trimmed = effectiveApartmentNumber.trim().toLowerCase()
+    if (!trimmed) return false
+    return existingInspections.some(insp => {
+      if (currentId && insp.id === currentId) return false
+      return insp.apartmentNumber.trim().toLowerCase() === trimmed
+    })
+  }, [effectiveApartmentNumber, existingInspections, currentId])
+
+  const buildingStreet = currentBuilding?.street || currentInspection?.address || ''
+  const numberLabel = currentInspection?.unitType === 'lokal' ? 'Numer lokalu' : 'Numer mieszkania'
+
   const handleEnterMeasurement = () => {
     const validation = validateMeasurementValue(inputValue)
     if (!validation.isValid) { alert(validation.error); return }
@@ -150,16 +214,35 @@ export const MeasurementScreen: React.FC = () => {
     updateInspection(() => ({ ...currentInspection, measurements: renumbered }))
   }
 
+  // Shared validation for the identity fields edited at the top of the screen
+  const validateFields = (requireOwner: boolean): boolean => {
+    if (!currentInspection) return false
+    if (!currentInspection.address.trim()) { alert('Wypełnij adres!'); return false }
+    if (!isKlatka && !currentInspection.apartmentNumber.trim()) {
+      alert(currentInspection.unitType === 'lokal' ? 'Wypełnij numer lokalu!' : 'Wypełnij numer mieszkania!')
+      return false
+    }
+    if (requireOwner && !isKlatka && !(currentInspection.ownerName || '').trim()) { alert('Wypełnij wszystkie pola!'); return false }
+    if (isDuplicateApartment) return false
+    return true
+  }
+
   const handleSave = () => {
     if (!currentInspection) return
+    if (!validateFields(true)) return
     if (!isKlatka && currentInspection.measurements.length === 0) { alert('Dodaj przynajmniej jeden pomiar!'); return }
     if (!buildingId) { alert('Błąd: Brak ID budynku'); return }
     const savedId = currentInspection.id || generateInspectionId()
+    const date = ensureDate(currentInspection.date)
+    const apartmentNumber = effectiveApartmentNumber.trim()
     const inspectionToSave: Inspection = {
       ...currentInspection,
       id: savedId,
+      apartmentNumber,
+      protocolNumber: generateProtocolNumber(date, apartmentNumber, buildingStreet),
       notes,
-      date: ensureDate(currentInspection.date),
+      date,
+      status: 'COMPLETED',
       synced: false,
       ...(isKlatka ? { klatkaData } : {}),
     }
@@ -177,6 +260,40 @@ export const MeasurementScreen: React.FC = () => {
     navigate(`/building/${buildingId}/summary/${savedId}`, { state: { inspection: inspectionToSave, buildingId } })
   }
 
+  const handleInaccessible = () => {
+    if (!currentInspection || !buildingId) return
+    if (!validateFields(false)) return
+    const savedId = currentInspection.id || generateInspectionId()
+    const date = ensureDate(currentInspection.date)
+    const apartmentNumber = effectiveApartmentNumber.trim()
+    const inspectionToSave: Inspection = {
+      ...currentInspection,
+      id: savedId,
+      apartmentNumber,
+      protocolNumber: generateProtocolNumber(date, apartmentNumber, buildingStreet),
+      notes,
+      date,
+      measurements: [],
+      status: 'INACCESSIBLE',
+      synced: false,
+      ...(isKlatka ? { klatkaData } : {}),
+    }
+
+    // Fire-and-forget: write to Firestore cache (works offline), sync when online
+    saveInspectionToFirestore(inspectionToSave, savedId)
+      .then(() => markInspectionAsSynced(savedId))
+      .then(() => logger.log(`✅ Inaccessible inspection ${savedId} synced`))
+      .catch((err) => logger.error(`❌ Sync failed for ${savedId}:`, err))
+
+    clearDraftFromSession(buildingId)
+    navigate(`/building/${buildingId}`)
+  }
+
+  const handleCancel = () => {
+    if (buildingId) clearDraftFromSession(buildingId)
+    navigate(buildingId ? `/building/${buildingId}` : '/')
+  }
+
   if (!currentInspection) return <div className="p-4">Ładowanie...</div>
   const buildingName = currentBuilding
     ? getFullAddress(currentBuilding)
@@ -187,10 +304,70 @@ export const MeasurementScreen: React.FC = () => {
   return (
     <MainLayout title="Nowy Pomiar" showBackBtn={true} backUrl={buildingId ? `/building/${buildingId}` : '/'} onBackClick={() => { if (buildingId) clearDraftFromSession(buildingId) }}>
       <div className="flex flex-col min-h-full">
-        <div className="bg-slate-900 border-b border-slate-800 p-4">
-          <div className="text-sm text-slate-400 mb-1">Budynek: <span className="text-slate-200 font-medium">{buildingName}</span></div>
-          <h2 className="text-lg font-semibold text-slate-100">{currentInspection.address} / {currentInspection.unitType === 'lokal' ? 'Lokal ' : ''}{currentInspection.apartmentNumber}</h2>
-          {!isKlatka && <p className="text-sm text-slate-400 mt-1">Pomiary: {currentInspection.measurements.length}</p>}
+        <div className="bg-slate-900 border-b border-slate-800 p-4 space-y-3">
+          <div className="text-sm text-slate-400">Budynek: <span className="text-slate-200 font-medium">{buildingName}</span></div>
+
+          <Input
+            label="Adres"
+            type="text"
+            value={currentInspection.address}
+            onChange={(e) => setField({ address: e.target.value })}
+            placeholder="np. ul. Kwiatowa 15"
+          />
+
+          <div>
+            <div className="grid grid-cols-2 gap-3">
+              <Select
+                label="Typ lokalu"
+                value={currentInspection.unitType}
+                onChange={(e) => setField({ unitType: e.target.value as UnitType })}
+                options={[
+                  { value: 'mieszkanie', label: 'Mieszkanie' },
+                  { value: 'lokal', label: 'Lokal użytkowy' },
+                  { value: 'klatka', label: 'Klatka' },
+                ]}
+              />
+              {!isKlatka && (
+                <Input
+                  label={numberLabel}
+                  type="text"
+                  value={currentInspection.apartmentNumber}
+                  onChange={(e) => setField({ apartmentNumber: e.target.value })}
+                  placeholder="np. 42"
+                />
+              )}
+            </div>
+            {isDuplicateApartment && (
+              <p className="text-red-400 text-sm mt-1">
+                {isKlatka
+                  ? 'Klatka o tym ID już istnieje.'
+                  : currentInspection.unitType === 'lokal'
+                    ? 'Lokal o tym numerze już istnieje.'
+                    : 'Mieszkanie o tym numerze już istnieje.'}
+              </p>
+            )}
+          </div>
+
+          {!isKlatka && (
+            <Input
+              label="Imię i nazwisko Właściciela/Najemcy"
+              type="text"
+              value={currentInspection.ownerName || ''}
+              onChange={(e) => setField({ ownerName: e.target.value })}
+              placeholder="np. Jan Kowalski"
+            />
+          )}
+
+          {!isKlatka && <p className="text-sm text-slate-400">Pomiary: {currentInspection.measurements.length}</p>}
+
+          <div className="flex gap-3">
+            <Button variant="secondary" fullWidth onClick={handleCancel}>Anuluj</Button>
+            {!isResumeMode && (
+              <Button variant="warning" fullWidth onClick={handleInaccessible} disabled={isDuplicateApartment}>
+                Niedostępne
+              </Button>
+            )}
+          </div>
         </div>
         {isKlatka ? (
           <div className="flex-1 overflow-y-auto p-4">
@@ -217,7 +394,7 @@ export const MeasurementScreen: React.FC = () => {
           </>
         )}
         <Card className="m-4 shadow-lg" padding={false}>
-          <Button variant="primary" size="lg" fullWidth onClick={handleSave} icon={<Save size={24} />}>Zapisz</Button>
+          <Button variant="primary" size="lg" fullWidth onClick={handleSave} disabled={isDuplicateApartment} icon={<Save size={24} />}>Zapisz</Button>
         </Card>
       </div>
     </MainLayout>

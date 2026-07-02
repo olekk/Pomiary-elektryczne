@@ -117,6 +117,12 @@ A cluster of UX-quality changes after a multi-month gap:
 
 `3e76404` / `c6fb5ff` — fixed a stale-data bug in `MeasurementScreen`'s `sessionStorage` draft mechanism: on browser back/forward navigation (`POP`), the screen was preferring `location.state` (the navigation payload) over the more recently-edited `sessionStorage` draft, so in-progress edits could appear to revert. Fixed by branching on `useNavigationType()` — `POP` prefers the session draft, `PUSH`/`REPLACE` (a fresh "new measurement" action) prefers `location.state`. This is recent and easy to regress if touched carelessly — see `docs/ARCHITECTURE.md`'s Data Flow section for the current, correct behavior.
 
+## Era 14 — Inline inspection fields, `CreateInspectionModal` removed (2026-07-03)
+
+The pre-measurement `CreateInspectionModal` (adres / typ lokalu / numer / właściciel, plus "Rozpocznij" / "Anuluj" / "Niedostępne") was deleted and its fields moved to the top of `MeasurementScreen`, where they are edited inline against the same in-memory `Inspection` via `updateInspection` (so drafts still persist to `sessionStorage`). Rationale: the modal was a redundant gate — the user filled in the unit, tapped "Rozpocznij," then landed on a screen showing the same identity read-only; folding the fields into the screen removes a step and lets the electrician correct the address/number while measuring.
+
+Consequences: `BuildingDetailsScreen`'s FAB, the "next measurement" flow, and resuming an `INACCESSIBLE` unit now all navigate straight to `MeasurementScreen` with a skeleton (or existing) inspection in `location.state` — no dialog. "Rozpocznij" is gone (you're already on the screen); "Anuluj" and "Niedostępne" moved into the screen header, with "Niedostępne" hidden in resume mode (an existing unit has an id). `MeasurementScreen` now also subscribes to sibling inspections (`useCollection`) to keep the duplicate-number warning and automatic `klatka` numbering the modal used to own, and (re)generates the protocol number at save time since the apartment number is now editable after creation. The mark-inaccessible write moved from `BuildingDetailsScreen` into `MeasurementScreen`.
+
 ## Sources
 
 - `docs/ARCHITEKTURA.md` (now `docs/ARCHITECTURE.md`) — dated changelog-style sections through 2026-03-23, extracted into the eras above.

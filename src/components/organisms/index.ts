@@ -1,6 +1,5 @@
 export { DashboardStats } from './DashboardStats'
 export { InspectionsList } from './InspectionsList'
-export { CreateInspectionModal } from './CreateInspectionModal'
 export { MeasurementSettings } from './MeasurementSettings'
 export { NotesSection } from './NotesSection'
 export { SignaturePanel } from './SignaturePanel'

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useCollection, useDocument, useUserSettings, useAuth } from '../hooks'
@@ -6,14 +6,10 @@ import { MainLayout } from './layout/MainLayout'
 import {
   DashboardStats,
   InspectionsList,
-  CreateInspectionModal,
 } from './organisms'
 import { incrementApartmentNumber, getFullAddress } from '../utils'
-import {
-  generateInspectionId,
-  generateProtocolNumber,
-} from '../utils'
-import type { Inspection, Building, UnitType } from '../types'
+import { generateProtocolNumber } from '../utils'
+import type { Inspection, Building } from '../types'
 import {
   collection,
   query,
@@ -24,12 +20,7 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import {
-  saveInspectionToFirestore,
-  markInspectionAsSynced,
-  deleteInspectionFromFirestore,
-} from '../services'
-import { logger } from '../utils/logger'
+import { deleteInspectionFromFirestore } from '../services'
 
 const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
   const data = doc.data()
@@ -81,9 +72,6 @@ export const BuildingDetailsScreen: React.FC = () => {
   const { user } = useAuth()
   const { technicianName, technicianSignature, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
 
-  const [showNewModal, setShowNewModal] = useState(false)
-  const [editingInspection, setEditingInspection] = useState<Inspection | null>(null)
-
   // Subscribe to inspections for this building
   const inspectionsQuery = useMemo(
     () =>
@@ -119,26 +107,13 @@ export const BuildingDetailsScreen: React.FC = () => {
       : 'Nieznany budynek'
   const projectId = currentBuilding?.projectId
 
-  // Pobierz domyślne wartości
+  // Domyślny adres nowego pomiaru = pełny adres budynku
   const defaultAddress = buildingName
-  const defaultStreet = currentBuilding?.street || ''
 
-  // Sprawdź, czy przychodzi z location.state (flow "następny pomiar")
+  // Flow "następny pomiar" — SummaryScreen przekazuje numer ostatniego mieszkania
   const locationState = location.state as {
     lastApartmentNumber?: string
   } | null
-  const lastApartmentNumber = locationState?.lastApartmentNumber || ''
-  const defaultApartmentNumber = lastApartmentNumber
-    ? incrementApartmentNumber(lastApartmentNumber)
-    : ''
-
-  // Automatycznie otwórz modal jeśli przychodzi z flow "następny pomiar"
-  useEffect(() => {
-    if (locationState?.lastApartmentNumber) {
-      setShowNewModal(true)
-      window.history.replaceState({}, document.title)
-    }
-  }, [locationState?.lastApartmentNumber])
 
   const validateTechnician = (): boolean => {
     if (!technicianName.trim()) {
@@ -152,137 +127,50 @@ export const BuildingDetailsScreen: React.FC = () => {
     return true
   }
 
-  const handleCreateNew = (
-    address: string,
-    apartmentNumber: string,
-    ownerName: string,
-    street?: string,
-    unitType?: UnitType
-  ) => {
+  // Build an ephemeral inspection (not saved yet) and open MeasurementScreen, where the
+  // identity fields (adres / typ lokalu / numer / właściciel) are now edited inline.
+  const startNewInspection = (prefillApartment = '') => {
     if (!buildingId || !currentBuilding || !validateTechnician()) return
 
-    const { technicianName: tName, technicianSignature: tSig } = { technicianName, technicianSignature }
-    const { reviewerName: rName, reviewerLicenseNumber: rLicense, reviewerSignature: rSig } = { reviewerName, reviewerLicenseNumber, reviewerSignature }
-
     const date = new Date()
-    const buildingStreet = street || address
-    const protocolNumber = generateProtocolNumber(date, apartmentNumber, buildingStreet)
+    const buildingStreet = currentBuilding.street || defaultAddress
 
-    // Build inspection object locally (ephemeral, not saved yet)
     const newInspection: Inspection = {
       projectId: currentBuilding.projectId,
       buildingId,
-      address,
-      apartmentNumber,
-      ownerName,
-      technicianName: tName,
-      technicianLicenseNumber: '', // will be loaded from useUserSettings in MeasurementScreen
-      technicianSignature: tSig,
-      reviewerName: rName,
-      reviewerLicenseNumber: rLicense,
-      reviewerSignature: rSig,
-      date,
-      protocolNumber,
-      notes: '',
-      measurements: [],
-      synced: false,
-      status: 'COMPLETED',
-      unitType: unitType || 'mieszkanie',
-    }
-
-    setShowNewModal(false)
-    navigate(`/building/${buildingId}/measurement`, {
-      state: { inspection: newInspection },
-    })
-  }
-
-  const handleMarkInaccessible = (
-    address: string,
-    apartmentNumber: string,
-    ownerName: string,
-    street?: string,
-    unitType?: UnitType
-  ) => {
-    if (!buildingId || !currentBuilding || !validateTechnician()) return
-
-    const date = new Date()
-    const buildingStreet = street || address
-    const protocolNumber = generateProtocolNumber(date, apartmentNumber, buildingStreet)
-    const savedId = generateInspectionId()
-
-    const inaccessibleInspection: Inspection = {
-      id: savedId,
-      projectId: currentBuilding.projectId,
-      buildingId,
-      address,
-      apartmentNumber,
-      ownerName,
+      address: defaultAddress,
+      apartmentNumber: prefillApartment,
+      ownerName: '',
       technicianName,
-      technicianLicenseNumber: '',
+      technicianLicenseNumber: '', // will be loaded from useUserSettings in MeasurementScreen
       technicianSignature,
       reviewerName,
       reviewerLicenseNumber,
       reviewerSignature,
       date,
-      protocolNumber,
+      protocolNumber: generateProtocolNumber(date, prefillApartment, buildingStreet),
       notes: '',
       measurements: [],
       synced: false,
-      status: 'INACCESSIBLE',
-      unitType: unitType || 'mieszkanie',
-    }
-
-    // Save directly to Firestore — onSnapshot will update the list
-    saveInspectionToFirestore(inaccessibleInspection, savedId)
-      .then(async () => {
-        await markInspectionAsSynced(savedId)
-        logger.log(`✅ Inaccessible inspection ${savedId} synced`)
-      })
-      .catch((error) => {
-        logger.error(`❌ Sync failed for inaccessible inspection ${savedId}:`, error)
-      })
-
-    setShowNewModal(false)
-  }
-
-  const handleResumeInspection = (
-    inspection: Inspection,
-    address: string,
-    apartmentNumber: string,
-    ownerName: string,
-    street?: string,
-    unitType?: UnitType
-  ) => {
-    if (!buildingId) return
-
-    const shouldRegenerateProtocol = street && inspection.protocolNumber
-    let protocolNumber = inspection.protocolNumber
-
-    if (shouldRegenerateProtocol) {
-      const buildingStreet = street || address
-      protocolNumber = generateProtocolNumber(
-        inspection.date,
-        apartmentNumber,
-        buildingStreet
-      )
-    }
-
-    const resumedInspection: Inspection = {
-      ...inspection,
-      address,
-      protocolNumber,
-      apartmentNumber,
-      ownerName,
       status: 'COMPLETED',
-      unitType: unitType || inspection.unitType || 'mieszkanie',
+      unitType: 'mieszkanie',
     }
 
-    setEditingInspection(null)
-    setShowNewModal(false)
     navigate(`/building/${buildingId}/measurement`, {
-      state: { inspection: resumedInspection },
+      state: { inspection: newInspection },
     })
   }
+
+  // Flow "następny pomiar": SummaryScreen wraca tu z numerem ostatniego mieszkania —
+  // od razu otwieramy MeasurementScreen z podbitym numerem (bez modala).
+  useEffect(() => {
+    if (locationState?.lastApartmentNumber && currentBuilding) {
+      const nextApartment = incrementApartmentNumber(locationState.lastApartmentNumber)
+      window.history.replaceState({}, document.title)
+      startNewInspection(nextApartment)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationState?.lastApartmentNumber, currentBuilding])
 
   const handleDelete = (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
@@ -295,8 +183,10 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   const handleInspectionClick = (inspection: Inspection) => {
     if (inspection.status === 'INACCESSIBLE') {
-      setEditingInspection(inspection)
-      setShowNewModal(true)
+      // Resume an inaccessible unit — its fields are now edited inline on MeasurementScreen
+      navigate(`/building/${buildingId}/measurement`, {
+        state: { inspection },
+      })
     } else {
       navigate(`/building/${buildingId}/summary/${inspection.id}`, {
         state: {
@@ -305,11 +195,6 @@ export const BuildingDetailsScreen: React.FC = () => {
         },
       })
     }
-  }
-
-  const handleCloseModal = () => {
-    setShowNewModal(false)
-    setEditingInspection(null)
   }
 
   const syncedCount = inspections.filter((i) => i.synced).length
@@ -346,29 +231,12 @@ export const BuildingDetailsScreen: React.FC = () => {
 
       {/* Floating Action Button */}
       <button
-        onClick={() => {
-          setEditingInspection(null)
-          setShowNewModal(true)
-        }}
+        onClick={() => startNewInspection()}
         className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
         style={{ width: '64px', height: '64px' }}
       >
         <Plus size={32} />
       </button>
-
-      <CreateInspectionModal
-        key={editingInspection?.id || `${defaultAddress}-${defaultApartmentNumber}`}
-        isOpen={showNewModal}
-        onClose={handleCloseModal}
-        onCreate={handleCreateNew}
-        onMarkInaccessible={handleMarkInaccessible}
-        onResumeInspection={handleResumeInspection}
-        defaultAddress={defaultAddress}
-        defaultStreet={defaultStreet}
-        defaultApartmentNumber={defaultApartmentNumber}
-        editingInspection={editingInspection}
-        existingInspections={inspections}
-      />
     </MainLayout>
   )
 }

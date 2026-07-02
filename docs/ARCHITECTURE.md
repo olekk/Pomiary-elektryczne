@@ -37,7 +37,7 @@ src/
 ├── components/
 │   ├── atoms/              # Button, Input, Select, Card, Badge, ActionMenu — zero business logic
 │   ├── molecules/          # FormField, InspectionCard, MeasurementListItem, StatusBadge
-│   ├── organisms/          # CreateInspectionModal, KlatkaInspectionForm, SignaturePanel,
+│   ├── organisms/          # KlatkaInspectionForm, SignaturePanel,
 │   │                        # DashboardStats, InspectionsList, MeasurementSettings, NotesSection
 │   ├── layout/
 │   │   └── MainLayout.tsx  # Header/footer chrome, logout, auto-sync-on-mount trigger
@@ -207,9 +207,9 @@ No global client store. State lives in four places by design:
 
 Creating and completing an inspection crosses four screens and two persistence layers:
 
-1. **`BuildingDetailsScreen`** builds an in-memory `Inspection` object (no Firestore write yet) from `CreateInspectionModal` input plus technician/reviewer data snapshotted from `useUserSettings`, then `navigate()`s to `MeasurementScreen`, passing the object via `location.state`.
+1. **`BuildingDetailsScreen`** builds a skeleton in-memory `Inspection` object (no Firestore write yet) — technician/reviewer data snapshotted from `useUserSettings`, `address` defaulted to the building's full address, an empty/incremented `apartmentNumber`, `unitType: 'mieszkanie'` — then `navigate()`s straight to `MeasurementScreen`, passing the object via `location.state`. The FAB, the "next measurement" flow (`location.state.lastApartmentNumber` → incremented), and resuming an `INACCESSIBLE` unit all use this same navigate-to-screen path; there is no create dialog.
 
-2. **`MeasurementScreen`** holds it in `useState` and mirrors every change to `sessionStorage` (key: `` draft-inspection:{buildingId} ``) via an `updateInspection()` wrapper. It only writes to Firestore when the user taps "Zapisz," using a **client-generated ID** (`generateInspectionId()`) so the write never blocks navigation.
+2. **`MeasurementScreen`** holds it in `useState` and mirrors every change to `sessionStorage` (key: `` draft-inspection:{buildingId} ``) via an `updateInspection()` wrapper. The identity fields (adres / typ lokalu / numer / właściciel) are edited **inline at the top of the screen** — they write into the same in-memory inspection through `updateInspection`. The screen also subscribes to sibling inspections (`useCollection`) to drive the duplicate-number warning and automatic `klatka` numbering. Its header carries **Anuluj** (clears the draft → back to building) and **Niedostępne** (fire-and-forget save of an `INACCESSIBLE` record → back; hidden when resuming an existing unit). It only writes to Firestore when the user taps "Zapisz," using a **client-generated ID** (`generateInspectionId()`) so the write never blocks navigation; the protocol number is (re)generated at save/inaccessible time from the possibly-edited apartment number.
    - **Rehydration source depends on `useNavigationType()`**: browser **`POP`** (back/forward) prefers the `sessionStorage` draft, because it holds the most recently edited state; **`PUSH`/`REPLACE`** (a fresh "new measurement" action) prefers `location.state`, because that's the newly-constructed object the user just asked to start editing. Getting this branch backwards reintroduces a real, previously-shipped stale-data bug (History, Era 13) — preserve it exactly if you touch this screen.
    - `klatkaData` follows the same local-state-then-save flow but has no per-point measurement list; `isKlatka` (derived from `unitType === 'klatka'`) switches the entire screen body between the numeric-keypad measurement UI and `KlatkaInspectionForm`.
 
@@ -262,7 +262,7 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 
 **Toasts** (`utils/toast.ts`) are imperative and DOM-based, not a React component/context, specifically so they can be called from plain utility functions (like `generateInspectionPdf()`) that run outside any component tree. Use them for background/async status; use `alert()` (the existing pattern) for blocking, must-acknowledge validation/error messages, and ordinary component state for anything already inside a render tree.
 
-**Modals** are hand-rolled per use site: `fixed inset-0 bg-black bg-opacity-70` overlay + centered card, no portal/dialog library. `CreateInspectionModal` and the inline "new project"/"new building" modals are the reference implementations.
+**Modals** are hand-rolled per use site: `fixed inset-0 bg-black bg-opacity-70` overlay + centered card, no portal/dialog library. The inline "new project"/"new building" modals are the reference implementations.
 
 **Known inconsistency**: `atoms/Badge.tsx` uses light-mode Tailwind colors (`bg-green-50 text-green-600`, etc.) instead of the dark palette used everywhere else in the app — see §16.
 
@@ -276,7 +276,6 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 | `InspectionCard` | molecules | Inspection summary row (list view), PDF/delete actions |
 | `MeasurementListItem` / `CompactMeasurementListItem` | molecules | Measurement row, full and summary variants |
 | `StatusBadge` | molecules | Online/offline/pending indicator — **currently unused/dead code**, see §16 |
-| `CreateInspectionModal` | organisms | New/resume/mark-inaccessible inspection form, unit-type-aware |
 | `KlatkaInspectionForm` | organisms | ~14-section staircase inspection checklist |
 | `SignaturePanel` | organisms | Signature capture; reused identically for technician, reviewer, and owner signatures |
 | `DashboardStats` | organisms | Total/synced/pending counts for a building |
