@@ -434,6 +434,7 @@ export const SummaryScreen: React.FC = () => {
           <SignaturePanel
             onSave={handleSaveSignature}
             initialSignature={inspection.ownerSignature}
+            customTitle="Podpis Właściciela/Najemcy"
           />
         )}
 
@@ -463,6 +464,7 @@ export const SummaryScreen: React.FC = () => {
               inspection.ownerSignature &&
               inspection.ownerSignature.trim().length > 0
             )}
+            subLabel="Po złożeniu podpisu nie można edytować pomiaru"
           >
             Edytuj pomiary
           </Button>

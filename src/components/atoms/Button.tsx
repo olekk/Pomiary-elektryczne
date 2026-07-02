@@ -13,6 +13,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize
   fullWidth?: boolean
   icon?: React.ReactNode
+  subLabel?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -36,6 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
   size = 'md',
   fullWidth = false,
   icon,
+  subLabel,
   children,
   disabled,
   className = '',
@@ -43,6 +45,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const baseClasses =
     'rounded-lg font-semibold transition-colors flex items-center justify-center gap-2'
+  const layoutClass = subLabel ? 'flex-col' : ''
   const widthClass = fullWidth ? 'w-full' : ''
   const disabledClass = disabled
     ? 'opacity-50 cursor-not-allowed'
@@ -50,12 +53,24 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${disabledClass} ${className}`}
+      className={`${baseClasses} ${layoutClass} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${disabledClass} ${className}`}
       disabled={disabled}
       {...props}
     >
-      {icon}
-      {children}
+      {subLabel ? (
+        <>
+          <span className="flex items-center justify-center gap-2">
+            {icon}
+            {children}
+          </span>
+          <span className="text-sm font-normal text-slate-400">{subLabel}</span>
+        </>
+      ) : (
+        <>
+          {icon}
+          {children}
+        </>
+      )}
     </button>
   )
 }

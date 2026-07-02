@@ -5,17 +5,21 @@ import { Card, Button } from '../atoms'
 interface SignaturePanelProps {
   onSave: (signature: string) => Promise<void> | void
   initialSignature?: string
+  customTitle?: string
 }
 
 export const SignaturePanel: React.FC<SignaturePanelProps> = ({
   onSave,
   initialSignature,
+  customTitle = 'Podpis',
 }) => {
   const signatureRef = useRef<SignatureCanvas>(null)
   const [hasSignature, setHasSignature] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const hasStoredSignature = Boolean(initialSignature && initialSignature.trim().length > 0)
+  const hasStoredSignature = Boolean(
+    initialSignature && initialSignature.trim().length > 0
+  )
 
   // Wczytaj istniejący podpis gdy canvas się pojawi (po rozwinięciu)
   useEffect(() => {
@@ -63,18 +67,30 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
   if (!isExpanded) {
     return (
       <Card className="mb-4">
-        <h3 className="font-bold text-slate-100 mb-3">Podpis</h3>
+        <h3 className="font-bold text-slate-100 mb-3">{customTitle}</h3>
         {hasStoredSignature ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-slate-700 bg-slate-950 p-2">
-              <img src={initialSignature} alt="Podgląd podpisu właściciela" className="w-full h-32 object-contain rounded bg-white" />
+              <img
+                src={initialSignature}
+                alt="Podgląd podpisu właściciela"
+                className="w-full h-32 object-contain rounded bg-white"
+              />
             </div>
-            <Button variant="secondary" fullWidth onClick={() => setIsExpanded(true)}>
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => setIsExpanded(true)}
+            >
               Zmień / Edytuj podpis
             </Button>
           </div>
         ) : (
-          <Button variant="primary" fullWidth onClick={() => setIsExpanded(true)}>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => setIsExpanded(true)}
+          >
             Złóż podpis
           </Button>
         )}
@@ -110,7 +126,11 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
           </Button>
         </div>
       </Card>
-      <Button variant="secondary" fullWidth onClick={() => setIsExpanded(false)}>
+      <Button
+        variant="secondary"
+        fullWidth
+        onClick={() => setIsExpanded(false)}
+      >
         Anuluj i zwiń panel
       </Button>
     </div>
