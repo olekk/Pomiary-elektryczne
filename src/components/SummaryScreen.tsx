@@ -240,9 +240,9 @@ export const SummaryScreen: React.FC = () => {
                       '1. Przyłącze',
                       d.przylacze === 'napowietrzne'
                         ? 'Napowietrzne'
-                        : 'Kabelowe'
+                        : 'Kablowe'
                     )}
-                    {d.przylacze === 'kabelowe' &&
+                    {d.przylacze === 'kablowe' &&
                       row(
                         '  1.1 Typ kabla / przekrój',
                         `${d.typKabla || '—'} / ${d.przekrojPrzylacza || '—'} mm²`
@@ -381,7 +381,10 @@ export const SummaryScreen: React.FC = () => {
                         : 'NIE NADAJE SIĘ',
                       (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? green : red
                     )}
-                    {row('14. Termin usterek', d.terminUsterek || '—')}
+                    {row(
+                      '14. Termin usunięcia usterek',
+                      d.terminUsterek || '—'
+                    )}
                   </>
                 )
               })()}

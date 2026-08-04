@@ -11,6 +11,7 @@ import {
   MeasurementSettings,
   NotesSection,
   KlatkaInspectionForm,
+  DEFAULT_KLATKA_DATA,
 } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card, Input, Select } from './atoms'
@@ -185,12 +186,13 @@ export const MeasurementScreen: React.FC = () => {
   const [notes, setNotes] = useState(currentInspection?.notes || '')
 
   const isKlatka = currentInspection?.unitType === 'klatka'
-  const [klatkaData, setKlatkaData] = useState<KlatkaData>(
-    currentInspection?.klatkaData || {
-      przylacze: 'napowietrzne',
-      pwpStatus: 'jest',
-    }
-  )
+  // Domyślne wartości pól wyboru muszą być w stanie od początku — inaczej pole,
+  // którego użytkownik nie dotknął, zapisuje się jako `undefined` i PDF traktuje
+  // je jako brak/wynik negatywny (patrz `DEFAULT_KLATKA_DATA`).
+  const [klatkaData, setKlatkaData] = useState<KlatkaData>({
+    ...DEFAULT_KLATKA_DATA,
+    ...currentInspection?.klatkaData,
+  })
 
   const handleNotesChange = useCallback(
     (value: string) => {

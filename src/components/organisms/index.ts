@@ -3,4 +3,7 @@ export { InspectionsList } from './InspectionsList'
 export { MeasurementSettings } from './MeasurementSettings'
 export { NotesSection } from './NotesSection'
 export { SignaturePanel } from './SignaturePanel'
-export { KlatkaInspectionForm } from './KlatkaInspectionForm'
+export {
+  KlatkaInspectionForm,
+  DEFAULT_KLATKA_DATA,
+} from './KlatkaInspectionForm'

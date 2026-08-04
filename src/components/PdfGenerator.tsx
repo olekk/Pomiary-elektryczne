@@ -275,16 +275,24 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const hasManual = manualNotes.length > 0
   const hasAnyRemarks = hasAuto || hasManual
 
-  const hasProblems = inspection.unitType !== 'klatka'
-    ? inspection.measurements.some((m) => m.result === 'NIE')
-    : inspection.klatkaData?.ocenaInstalacji !== 'nadaje'
+  // Brak wartości = pole nietknięte przez użytkownika → domyślnie "nadaje"
+  // (tak samo, jak pokazuje formularz i podsumowanie).
+  const ocenaInstalacji = inspection.klatkaData?.ocenaInstalacji || 'nadaje'
+
+  const hasProblems =
+    inspection.unitType !== 'klatka'
+      ? inspection.measurements.some((m) => m.result === 'NIE')
+      : ocenaInstalacji !== 'nadaje'
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Image src={`${window.location.origin}/logo.png`} style={{ width: '50%', marginBottom: 10 }} />
+          <Image
+            src={`${window.location.origin}/logo.png`}
+            style={{ width: '50%', marginBottom: 10 }}
+          />
           <Text style={styles.title}>PROTOKÓŁ POMIARÓW OCHRONNYCH</Text>
           <Text style={styles.subtitle}>
             Nr protokołu: {inspection.protocolNumber}
@@ -310,10 +318,12 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </Text>
             <Text style={styles.value}>{inspection.apartmentNumber}</Text>
           </View>
-          {inspection.unitType !== 'klatka' && <View style={styles.infoRow}>
-            <Text style={styles.label}>Najemca / Właściciel:</Text>
-            <Text style={styles.value}>{inspection.ownerName}</Text>
-          </View>}
+          {inspection.unitType !== 'klatka' && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Najemca / Właściciel:</Text>
+              <Text style={styles.value}>{inspection.ownerName}</Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Data pomiaru:</Text>
             <Text style={styles.value}>
@@ -326,96 +336,333 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               {hasProblems
                 ? '-'
                 : (() => {
-                  const nextDate = new Date(inspection.date)
-                  nextDate.setFullYear(nextDate.getFullYear() + 5)
-                  return nextDate.toLocaleDateString('pl-PL')
-                })()}
+                    const nextDate = new Date(inspection.date)
+                    nextDate.setFullYear(nextDate.getFullYear() + 5)
+                    return nextDate.toLocaleDateString('pl-PL')
+                  })()}
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Przyczyna pomiaru:</Text>
             <Text style={styles.value}>badanie okresowe</Text>
           </View>
-          {inspection.unitType !== 'klatka' && <View style={styles.infoRow}>
-            <Text style={styles.label}>Tabela wyników pomiarów</Text>
-            <Text style={styles.value}>
-              impedancji pętli zwarcia obwodu elektrycznego
-            </Text>
-          </View>}
+          {inspection.unitType !== 'klatka' && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Tabela wyników pomiarów</Text>
+              <Text style={styles.value}>
+                impedancji pętli zwarcia obwodu elektrycznego
+              </Text>
+            </View>
+          )}
         </View>
 
-        {inspection.unitType !== 'klatka' && <Text style={styles.subtitle}>
-          Badanie ochrony przed porażeniem przez samoczynne wyłącznie
-        </Text>}
+        {inspection.unitType !== 'klatka' && (
+          <Text style={styles.subtitle}>
+            Badanie ochrony przed porażeniem przez samoczynne wyłącznie
+          </Text>
+        )}
 
-        {inspection.unitType === 'klatka' && inspection.klatkaData ? (() => {
-          const d = inspection.klatkaData
+        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
+          (() => {
+            const d = inspection.klatkaData
 
-          const kRow = (num: string, label: string, value: string, indent: number = 0) => (
-            <View style={{ flexDirection: 'row', borderBottom: '1pt solid #999', borderLeft: '1pt solid #999', borderRight: '1pt solid #999', paddingVertical: 4, paddingHorizontal: 6, paddingLeft: 6 + indent * 18 }} key={num}>
-              <Text style={{ width: '8%', fontWeight: 'bold', fontSize: 8 }}>{num}</Text>
-              <Text style={{ width: '62%', fontSize: 8 }}>{label}</Text>
-              <Text style={{ width: '30%', fontSize: 8, fontWeight: 'bold', textAlign: 'right' }}>{value}</Text>
-            </View>
-          )
-
-          return (
-            <View style={{ marginTop: 10 }}>
-              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 4 }}>
-                Oględziny instalacji elektrycznej i urządzeń w części wspólnej budynku,
-              </Text>
-              <Text style={{ fontSize: 9, textAlign: 'center', marginBottom: 10 }}>
-                ocena stanu technicznego instalacji elektrycznej.
-              </Text>
-
-              {/* Header */}
-              <View style={{ flexDirection: 'row', backgroundColor: '#333', color: '#fff', padding: 5, fontWeight: 'bold', fontSize: 8, borderTop: '1pt solid #999', borderLeft: '1pt solid #999', borderRight: '1pt solid #999' }}>
-                <Text style={{ width: '8%', color: '#fff', fontWeight: 'bold', fontSize: 8 }}>Lp.</Text>
-                <Text style={{ width: '62%', color: '#fff', fontWeight: 'bold', fontSize: 8 }}>Przedmiot oględzin</Text>
-                <Text style={{ width: '30%', color: '#fff', fontWeight: 'bold', fontSize: 8, textAlign: 'right' }}>Wynik / Dane</Text>
+            const kRow = (
+              num: string,
+              label: string,
+              value: string,
+              indent: number = 0
+            ) => (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  borderBottom: '1pt solid #999',
+                  borderLeft: '1pt solid #999',
+                  borderRight: '1pt solid #999',
+                  paddingVertical: 4,
+                  paddingHorizontal: 6,
+                  paddingLeft: 6 + indent * 18,
+                }}
+                key={num}
+              >
+                <Text style={{ width: '8%', fontWeight: 'bold', fontSize: 8 }}>
+                  {num}
+                </Text>
+                <Text style={{ width: '62%', fontSize: 8 }}>{label}</Text>
+                <Text
+                  style={{
+                    width: '30%',
+                    fontSize: 8,
+                    fontWeight: 'bold',
+                    textAlign: 'right',
+                  }}
+                >
+                  {value}
+                </Text>
               </View>
+            )
 
-              {kRow('1.', 'Przyłącze', d.przylacze === 'napowietrzne' ? 'NAPOWIETRZNE' : 'KABELOWE')}
-              {d.przylacze === 'kabelowe' && kRow('1.1', 'Typ kabla / przekrój', `${d.typKabla || '—'} / ${d.przekrojPrzylacza || '—'} mm²`, 1)}
-              {kRow('2.', 'Wyłącznik pożarowy prądu (PWP)', d.pwpStatus === 'jest' ? 'JEST' : 'BRAK')}
-              {d.pwpStatus === 'jest' && kRow('2.1', 'Lokalizacja', d.pwpLokalizacja || '—', 1)}
-              {kRow('3.', `Zabezpieczenie główne budynku, TYP ${d.zabezpieczenieTyp || 'Bi-WTs'}`, `${d.zabezpieczenieWartosc || '—'} A`)}
-              {kRow('4.', 'GLZ główne zasilanie budynku', `${d.glzTyp || '—'} / ${d.glzPrzekroj || '—'} mm²`)}
-              {kRow('4.1', 'WLZ (Piony)', `${d.wlzTyp || '—'} / ${d.wlzPrzekroj || '—'} mm²`, 1)}
-              {kRow('4.2', 'Stan izolacji', (d.stanIzolacji || 'dobry') === 'dobry' ? 'DOBRY' : 'ZŁY', 1)}
-              {kRow('4.3', 'Przewód ochronny PE', (d.przewodPE || 'jest') === 'jest' ? 'JEST' : 'BRAK', 1)}
-              {(d.przewodPE ?? 'jest') === 'jest' && kRow('4.3.1', 'Typ / przekrój', `${d.przewodPETyp || '—'} / ${d.przewodPEPrzekroj || '—'} mm²`, 2)}
-              {kRow('5.', 'Rozdzielnie / Tablice', '')}
-              {kRow('5.1', 'Rodzaj obudowy', (d.rodzajObudowy || 'metalowa') === 'metalowa' ? 'METALOWA' : 'DREWNIANA', 1)}
-              {kRow('5.2', 'Uziemione drzwiczki', (d.uziemioneDrzwiczki || 'tak') === 'tak' ? 'TAK' : 'NIE', 1)}
-              {kRow('6.', 'Tablice licznikowe', (d.tabliceLokalizacja || 'klatka') === 'klatka' ? 'klatka schodowa' : 'w mieszkaniach')}
-              {kRow('6.1', 'Ilość lokali mieszkalnych', d.iloscLokali || '—', 1)}
-              {kRow('7.', 'Ochronnik przepięć', (d.ochronnikTyp || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
-              {kRow('8.', 'Urządzenie p/kradzieży prądu', (d.urzadzeniePKradziezy || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
-              {kRow('9.', 'Tablica administracyjna, lokalizacja', d.tablicaAdmLokalizacja || '—')}
-              {kRow('9.1', 'Wyłączniki instalacyjne w rozdzielni ADM', (d.wylaczniki || 'nadmiarowo-pradowy') === 'topikowe' ? 'topikowe' : 'wyłącznik nadmiarowo-prądowy', 1)}
-              {kRow('10.', 'Oświetlenie', '')}
-              {kRow('10.1', `Klatki schodowej, napięcie ${d.klatkaVoltage || '230V'}, przewód`, d.klatkaPrzewod || '—', 1)}
-              {kRow('10.1.1', 'Sterowanie', (d.klatkaAutomat || 'automat-schodowy') === 'automat-schodowy' ? 'automat schodowy' : 'lampy na czujnik ruchu', 2)}
-              {kRow('10.2', 'Strychu', (d.strychMontaz || 'natynkowo') === 'natynkowo' ? 'natynkowo' : 'podtynkowo', 1)}
-              {kRow('10.3', 'Piwnicy', (d.piwnicaMontaz || 'natynkowo') === 'natynkowo' ? 'natynkowo' : 'podtynkowo', 1)}
-              {kRow('11.', 'Badania i pomiary instalacji', '')}
-              {kRow('11.1', 'Pomiar rezystancji izolacji WLZ', (d.rezystancjaWLZ || 'w-normie') === 'w-normie' ? 'W NORMIE' : 'NIEZGODNE Z NORMĄ', 1)}
-              {kRow('11.2', 'Pomiar napięć w przyłączu', `L1: ${d.napiecieL1 || '—'}V  L2: ${d.napiecieL2 || '—'}V  L3: ${d.napiecieL3 || '—'}V`, 1)}
-              {kRow('12.', 'Instalacja piorunochronna', (d.piorunochron || 'brak') === 'jest' ? 'JEST' : 'BRAK')}
-              {d.piorunochron === 'jest' && (
-                <>
-                  {kRow('12.1', 'Połączenia, osprzęt, zabezpieczenia od korozji oraz uziemienia zwodu', 'są sprawne', 1)}
-                  {kRow('12.1.1', 'Stan', (d.piorunochronStan || 'dobry') === 'dobry' ? 'DOBRY' : 'ZŁY', 2)}
-                  {kRow('12.2', 'Uwagi', d.piorunochronUwagi || '—', 1)}
-                  {kRow('12.3', 'Wynik pomiarów', (d.piorunochronWynik || 'pozytywny') === 'pozytywny' ? 'POZYTYWNY' : 'NEGATYWNY', 1)}
-                </>
-              )}
-              {kRow('13.', 'Ocena: instalacja elektryczna', (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? 'NADAJE SIĘ do dalszej eksploatacji' : 'NIE NADAJE SIĘ do dalszej eksploatacji')}
-              {kRow('14.', 'Termin usunięcia usterek', d.terminUsterek || '—')}
-            </View>
-          )
-        })() : (
+            return (
+              <View style={{ marginTop: 10 }}>
+                <Text
+                  style={{ fontSize: 9, textAlign: 'center', marginBottom: 4 }}
+                >
+                  Oględziny instalacji elektrycznej i urządzeń w części wspólnej
+                  budynku,
+                </Text>
+                <Text
+                  style={{ fontSize: 9, textAlign: 'center', marginBottom: 10 }}
+                >
+                  ocena stanu technicznego instalacji elektrycznej.
+                </Text>
+
+                {/* Header */}
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    backgroundColor: '#333',
+                    color: '#fff',
+                    padding: 5,
+                    fontWeight: 'bold',
+                    fontSize: 8,
+                    borderTop: '1pt solid #999',
+                    borderLeft: '1pt solid #999',
+                    borderRight: '1pt solid #999',
+                  }}
+                >
+                  <Text
+                    style={{
+                      width: '8%',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: 8,
+                    }}
+                  >
+                    Lp.
+                  </Text>
+                  <Text
+                    style={{
+                      width: '62%',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: 8,
+                    }}
+                  >
+                    Przedmiot oględzin
+                  </Text>
+                  <Text
+                    style={{
+                      width: '30%',
+                      color: '#fff',
+                      fontWeight: 'bold',
+                      fontSize: 8,
+                      textAlign: 'right',
+                    }}
+                  >
+                    Wynik / Dane
+                  </Text>
+                </View>
+
+                {kRow(
+                  '1.',
+                  'Przyłącze',
+                  d.przylacze === 'napowietrzne' ? 'NAPOWIETRZNE' : 'KABLOWE'
+                )}
+                {d.przylacze === 'kablowe' &&
+                  kRow(
+                    '1.1',
+                    'Typ kabla / przekrój',
+                    `${d.typKabla || '—'} / ${d.przekrojPrzylacza || '—'} mm²`,
+                    1
+                  )}
+                {kRow(
+                  '2.',
+                  'Wyłącznik pożarowy prądu (PWP)',
+                  d.pwpStatus === 'jest' ? 'JEST' : 'BRAK'
+                )}
+                {d.pwpStatus === 'jest' &&
+                  kRow('2.1', 'Lokalizacja', d.pwpLokalizacja || '—', 1)}
+                {kRow(
+                  '3.',
+                  `Zabezpieczenie główne budynku`,
+                  `Typ ${d.zabezpieczenieTyp || '—'} / ${d.zabezpieczenieWartosc || '—'} A`
+                )}
+                {kRow(
+                  '4.',
+                  'GLZ główne zasilanie budynku',
+                  `${d.glzTyp || '—'} / ${d.glzPrzekroj || '—'} mm²`
+                )}
+                {kRow(
+                  '4.1',
+                  'WLZ (Piony)',
+                  `${d.wlzTyp || '—'} / ${d.wlzPrzekroj || '—'} mm²`,
+                  1
+                )}
+                {kRow(
+                  '4.2',
+                  'Stan izolacji',
+                  (d.stanIzolacji || 'dobry') === 'dobry' ? 'DOBRY' : 'ZŁY',
+                  1
+                )}
+                {kRow(
+                  '4.3',
+                  'Przewód ochronny PE',
+                  (d.przewodPE || 'jest') === 'jest' ? 'JEST' : 'BRAK',
+                  1
+                )}
+                {(d.przewodPE ?? 'jest') === 'jest' &&
+                  kRow(
+                    '4.3.1',
+                    'Typ / przekrój',
+                    `${d.przewodPETyp || '—'} / ${d.przewodPEPrzekroj || '—'} mm²`,
+                    2
+                  )}
+                {kRow('5.', 'Rozdzielnie / Tablice', '')}
+                {kRow(
+                  '5.1',
+                  'Rodzaj obudowy',
+                  (d.rodzajObudowy || 'metalowa') === 'metalowa'
+                    ? 'METALOWA'
+                    : 'DREWNIANA',
+                  1
+                )}
+                {kRow(
+                  '5.2',
+                  'Uziemione drzwiczki',
+                  (d.uziemioneDrzwiczki || 'tak') === 'tak' ? 'TAK' : 'NIE',
+                  1
+                )}
+                {kRow(
+                  '6.',
+                  'Tablice licznikowe',
+                  (d.tabliceLokalizacja || 'klatka') === 'klatka'
+                    ? 'klatka schodowa'
+                    : 'w mieszkaniach'
+                )}
+                {kRow(
+                  '6.1',
+                  'Ilość lokali mieszkalnych',
+                  d.iloscLokali || '—',
+                  1
+                )}
+                {kRow(
+                  '7.',
+                  'Ochronnik przepięć',
+                  (d.ochronnikTyp || 'brak') === 'jest' ? 'JEST' : 'BRAK'
+                )}
+                {kRow(
+                  '8.',
+                  'Urządzenie p/kradzieży prądu',
+                  (d.urzadzeniePKradziezy || 'brak') === 'jest'
+                    ? 'JEST'
+                    : 'BRAK'
+                )}
+                {kRow(
+                  '9.',
+                  'Tablica administracyjna, lokalizacja',
+                  d.tablicaAdmLokalizacja || '—'
+                )}
+                {kRow(
+                  '9.1',
+                  'Wyłączniki instalacyjne w rozdzielni ADM',
+                  (d.wylaczniki || 'nadmiarowo-pradowy') === 'topikowe'
+                    ? 'topikowe'
+                    : 'wyłącznik nadmiarowo-prądowy',
+                  1
+                )}
+                {kRow('10.', 'Oświetlenie', '')}
+                {kRow(
+                  '10.1',
+                  `Klatki schodowej, napięcie ${d.klatkaVoltage || '230V'}, przewód`,
+                  d.klatkaPrzewod || '—',
+                  1
+                )}
+                {kRow(
+                  '10.1.1',
+                  'Sterowanie',
+                  (d.klatkaAutomat || 'automat-schodowy') === 'automat-schodowy'
+                    ? 'automat schodowy'
+                    : 'lampy na czujnik ruchu',
+                  2
+                )}
+                {kRow(
+                  '10.2',
+                  'Strychu',
+                  (d.strychMontaz || 'natynkowo') === 'natynkowo'
+                    ? 'natynkowo'
+                    : 'podtynkowo',
+                  1
+                )}
+                {kRow(
+                  '10.3',
+                  'Piwnicy',
+                  (d.piwnicaMontaz || 'natynkowo') === 'natynkowo'
+                    ? 'natynkowo'
+                    : 'podtynkowo',
+                  1
+                )}
+                {kRow('11.', 'Badania i pomiary instalacji', '')}
+                {kRow(
+                  '11.1',
+                  'Pomiar rezystancji izolacji WLZ',
+                  (d.rezystancjaWLZ || 'w-normie') === 'w-normie'
+                    ? 'W NORMIE'
+                    : 'NIEZGODNE Z NORMĄ',
+                  1
+                )}
+                {kRow(
+                  '11.2',
+                  'Pomiar napięć w przyłączu',
+                  `L1: ${d.napiecieL1 || '—'}V  L2: ${d.napiecieL2 || '—'}V  L3: ${d.napiecieL3 || '—'}V`,
+                  1
+                )}
+                {kRow(
+                  '12.',
+                  'Instalacja piorunochronna',
+                  (d.piorunochron || 'brak') === 'jest' ? 'JEST' : 'BRAK'
+                )}
+                {d.piorunochron === 'jest' && (
+                  <>
+                    {kRow(
+                      '12.1',
+                      'Połączenia, osprzęt, zabezpieczenia od korozji oraz uziemienia zwodu',
+                      'są sprawne',
+                      1
+                    )}
+                    {kRow(
+                      '12.1.1',
+                      'Stan',
+                      (d.piorunochronStan || 'dobry') === 'dobry'
+                        ? 'DOBRY'
+                        : 'ZŁY',
+                      2
+                    )}
+                    {kRow('12.2', 'Uwagi', d.piorunochronUwagi || '—', 1)}
+                    {kRow(
+                      '12.3',
+                      'Wynik pomiarów',
+                      (d.piorunochronWynik || 'pozytywny') === 'pozytywny'
+                        ? 'POZYTYWNY'
+                        : 'NEGATYWNY',
+                      1
+                    )}
+                  </>
+                )}
+                {kRow(
+                  '13.',
+                  'Ocena instalacji elektryczna',
+                  ocenaInstalacji === 'nadaje'
+                    ? 'NADAJE SIĘ do dalszej eksploatacji'
+                    : 'NIE NADAJE SIĘ do dalszej eksploatacji'
+                )}
+                {kRow(
+                  '14.',
+                  'Termin usunięcia usterek',
+                  d.terminUsterek || '—'
+                )}
+              </View>
+            )
+          })()
+        ) : (
           <>
             {/* Measurements Table */}
             <View style={styles.table}>
@@ -423,19 +670,24 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               <View style={styles.tableHeader}>
                 <Text style={styles.col1}>Lp.</Text>
                 <Text style={styles.col2}>Pomieszczenie</Text>
-                <Text style={styles.colSocket}>{"Punkt\npomiarowy"}</Text>
+                <Text style={styles.colSocket}>{'Punkt\npomiarowy'}</Text>
                 <Text style={styles.col3}>Typ zabezpieczenia</Text>
                 <Text style={styles.col4}>
                   Wartość prądu In urządzenia wyłączającego [A]
                 </Text>
-                <Text style={styles.col5}>{"Dopuszczalna\nimpedancja\nZs dop[Ω]"}</Text>
-                <Text style={styles.col6}>{"Zmierzona\nimpedancja\nZs[Ω]"}</Text>
+                <Text style={styles.col5}>
+                  {'Dopuszczalna\nimpedancja\nZs dop[Ω]'}
+                </Text>
+                <Text style={styles.col6}>
+                  {'Zmierzona\nimpedancja\nZs[Ω]'}
+                </Text>
                 <Text style={styles.col7}>Ocena</Text>
               </View>
 
               {/* Table Rows */}
               {inspection.measurements.map((m, idx) => {
-                let rowStyle = idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
+                let rowStyle =
+                  idx % 2 === 0 ? styles.tableRow : styles.tableRowAlt
 
                 if (m.result === 'TAK') rowStyle = styles.tableRowPass
                 else if (m.result === 'NIE') rowStyle = styles.tableRowFail
@@ -444,7 +696,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                   <View style={rowStyle} key={m.id}>
                     <Text style={styles.col1}>{m.pointNumber}</Text>
                     <Text style={styles.col2}>{m.room}</Text>
-                    <Text style={styles.colSocket}>{m.socketType || 'Gniazdo 230V'}</Text>
+                    <Text style={styles.colSocket}>
+                      {m.socketType || 'Gniazdo 230V'}
+                    </Text>
                     <Text style={styles.col3}>{m.protectionType}</Text>
                     <Text style={styles.col4}>{m.amperage}A</Text>
                     <Text style={styles.col5}>{m.zsDop.toFixed(2)}</Text>
@@ -457,8 +711,14 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               })}
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text>Pomiary gniazd przeprowadzone w kolejności od lewej do prawej. &nbsp; &nbsp;</Text>
-              <Image src={`${window.location.origin}/od-lewej-do-prawej.png`} style={styles.directionImage} />
+              <Text>
+                Pomiary gniazd przeprowadzone w kolejności od lewej do prawej.
+                &nbsp; &nbsp;
+              </Text>
+              <Image
+                src={`${window.location.origin}/od-lewej-do-prawej.png`}
+                style={styles.directionImage}
+              />
             </View>
           </>
         )}
@@ -546,7 +806,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           )}
         </View>
         <View style={styles.inspectionContainer}>
-          {inspection.unitType !== 'klatka' && <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>}
+          {inspection.unitType !== 'klatka' && (
+            <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>
+          )}
 
           <Text style={styles.paragraph}>
             Miernik: Typ: MPI 540 | Producent: Sonel | Nr seryjny: KO4539
@@ -569,7 +831,13 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           </Text>
         </View>
 
-        <View style={{ ...styles.footer, flexDirection: 'row', justifyContent: 'space-between' }}>
+        <View
+          style={{
+            ...styles.footer,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+          }}
+        >
           {/* Wykonujący pomiary */}
           <View style={{ flex: 1 }}>
             <Text>Wykonujący pomiary: {technicianName}</Text>
@@ -589,31 +857,53 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
               <Text>Nr uprawnień: {reviewerLicenseNumber || '-'}</Text>
               {reviewerSignature && (
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ marginBottom: 5 }}>Podpis sprawdzającego:</Text>
+                  <Text style={{ marginBottom: 5 }}>
+                    Podpis sprawdzającego:
+                  </Text>
                   <Image src={reviewerSignature} style={styles.signature} />
                 </View>
               )}
             </View>
           )}
         </View>
-        {inspection.unitType !== 'klatka' && (<>
-          <View style={styles.footer}>
-            <Text style={styles.conclusionsTitle}>
-              Użytkownik lokalu (najemca/właściciel) zobowiązuje się do usunięcia wszelkich usterek wykazanych w niniejszym protokole w terminie 14 dni od daty jego podpisania. Prace naprawcze muszą zostać zlecone osobie posiadającej ważne uprawnienia elektryczne, a ich wykonanie należy potwierdzić stosownym protokołem powykonawczym i zgłosić administratorowi obiektu. Ponadto, podpisujący potwierdza, że został poinformowany o konieczności zerowania/uziemienia gniazd wtykowych w pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach wynikających z niewłaściwej eksploatacji instalacji elektrycznej.
-            </Text>
-            <Text>
-              Składając poniższy podpis (w tym w formie elektronicznej na urządzeniu mobilnym), potwierdzam odbiór protokołu, zapoznanie się z jego treścią oraz uwagami. Administratorem danych osobowych jest HC INSTAL Henryk Cieśla. Dane przetwarzane są w celu wykonania usługi, w celach księgowych oraz archiwizacyjnych.
-            </Text>
-          </View>
-          <View style={styles.ownerSignature}>
-            <Text>Podpis najemcy (właściciela):</Text>
-            <Text>{inspection.ownerName}</Text>
-            {ownerSignature ? (
-              <Image src={ownerSignature} style={styles.signature} />
-            ) : (
-              <Text style={{ marginTop: 8, color: '#777' }}>Brak podpisu</Text>
-            )}
-          </View></>)}
+        {inspection.unitType !== 'klatka' && (
+          <>
+            <View style={styles.footer}>
+              <Text style={styles.conclusionsTitle}>
+                Użytkownik lokalu (najemca/właściciel) zobowiązuje się do
+                usunięcia wszelkich usterek wykazanych w niniejszym protokole w
+                terminie 14 dni od daty jego podpisania. Prace naprawcze muszą
+                zostać zlecone osobie posiadającej ważne uprawnienia
+                elektryczne, a ich wykonanie należy potwierdzić stosownym
+                protokołem powykonawczym i zgłosić administratorowi obiektu.
+                Ponadto, podpisujący potwierdza, że został poinformowany o
+                konieczności zerowania/uziemienia gniazd wtykowych w
+                pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach
+                wynikających z niewłaściwej eksploatacji instalacji
+                elektrycznej.
+              </Text>
+              <Text>
+                Składając poniższy podpis (w tym w formie elektronicznej na
+                urządzeniu mobilnym), potwierdzam odbiór protokołu, zapoznanie
+                się z jego treścią oraz uwagami. Administratorem danych
+                osobowych jest HC INSTAL Henryk Cieśla. Dane przetwarzane są w
+                celu wykonania usługi, w celach księgowych oraz
+                archiwizacyjnych.
+              </Text>
+            </View>
+            <View style={styles.ownerSignature}>
+              <Text>Podpis najemcy (właściciela):</Text>
+              <Text>{inspection.ownerName}</Text>
+              {ownerSignature ? (
+                <Image src={ownerSignature} style={styles.signature} />
+              ) : (
+                <Text style={{ marginTop: 8, color: '#777' }}>
+                  Brak podpisu
+                </Text>
+              )}
+            </View>
+          </>
+        )}
         <View style={styles.companyDetails}>
           <Text>
             HC INSTAL Henryk Cieśla | 44-153 Trachy | ul. Zamojska 2 | NIP

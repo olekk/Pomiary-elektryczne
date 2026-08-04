@@ -5,7 +5,7 @@ export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
 export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 
-export type PrzylaczType = 'napowietrzne' | 'kabelowe'
+export type PrzylaczType = 'kablowe' | 'napowietrzne'
 export type PwpStatus = 'jest' | 'brak'
 export type JestBrak = 'jest' | 'brak'
 export type TakNie = 'tak' | 'nie'
