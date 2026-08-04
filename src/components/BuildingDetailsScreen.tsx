@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { Plus } from 'lucide-react'
 import { useCollection, useDocument, useUserSettings, useAuth } from '../hooks'
+import { Fab } from './atoms'
 import { MainLayout } from './layout/MainLayout'
 import {
   DashboardStats,
   InspectionsList,
 } from './organisms'
 import { incrementApartmentNumber, getFullAddress } from '../utils'
-import { generateProtocolNumber } from '../utils'
+import { generateProtocolNumber, inspectionFromDoc, buildingFromSnapshot } from '../utils'
 import type { Inspection, Building } from '../types'
 import {
   collection,
@@ -16,54 +16,10 @@ import {
   where,
   orderBy,
   doc,
-  type QueryDocumentSnapshot,
-  type DocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { deleteInspectionFromFirestore } from '../services'
-
-const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    projectId: data.projectId,
-    buildingId: data.buildingId,
-    address: data.address,
-    apartmentNumber: data.apartmentNumber,
-    ownerName: data.ownerName || '',
-    date: data.date?.toDate ? data.date.toDate() : new Date(),
-    technicianName: data.technicianName || data.technician || '',
-    technicianLicenseNumber: data.technicianLicenseNumber || '',
-    technicianSignature: data.technicianSignature || '',
-    reviewerName: data.reviewerName || '',
-    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
-    reviewerSignature: data.reviewerSignature || '',
-    measurements: data.measurements || [],
-    notes: data.notes || '',
-    ownerSignature: data.ownerSignature || data.signature || '',
-    protocolNumber: data.protocolNumber,
-    synced: data.synced ?? true,
-    status: data.status || 'COMPLETED',
-    unitType: data.unitType || 'mieszkanie',
-    klatkaData: data.klatkaData || undefined,
-  }
-}
-
-const buildingMapper = (snap: DocumentSnapshot): Building | null => {
-  if (!snap.exists()) return null
-  const data = snap.data()!
-  return {
-    id: snap.id,
-    projectId: data.projectId,
-    name: data.name,
-    street: data.street || data.name || '',
-    zipCode: data.zipCode || '',
-    city: data.city || '',
-    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
-    userId: data.userId || '',
-  }
-}
+import { logger } from '../utils/logger'
 
 export const BuildingDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -86,7 +42,7 @@ export const BuildingDetailsScreen: React.FC = () => {
   )
 
   const { data: inspections, isLoading: isLoadingInspections, fromCache: inspectionsFromCache } =
-    useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
+    useCollection<Inspection>(inspectionsQuery, inspectionFromDoc, `inspections-${buildingId || 'none'}`, 'Inspections')
 
   // Subscribe to building document
   const buildingDocRef = useMemo(
@@ -96,7 +52,7 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(
     buildingDocRef,
-    buildingMapper,
+    buildingFromSnapshot,
     'Building'
   )
 
@@ -176,7 +132,7 @@ export const BuildingDetailsScreen: React.FC = () => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
       deleteInspectionFromFirestore(id)
         .catch((error: unknown) => {
-          console.error('❌ Error deleting inspection:', error)
+          logger.error('❌ Error deleting inspection:', error)
         })
     }
   }
@@ -229,14 +185,7 @@ export const BuildingDetailsScreen: React.FC = () => {
         />
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => startNewInspection()}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
-        style={{ width: '64px', height: '64px' }}
-      >
-        <Plus size={32} />
-      </button>
+      <Fab onClick={() => startNewInspection()} ariaLabel="Nowy pomiar" />
     </MainLayout>
   )
 }

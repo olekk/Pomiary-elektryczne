@@ -25,7 +25,7 @@ export async function generateInspectionPdf(inspection: Inspection): Promise<voi
 
     toast.update('PDF wygenerowany pomyślnie!', 'success')
   } catch (error) {
-    console.error('Error generating PDF:', error)
+    logger.error('Error generating PDF:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     if (errorMessage.includes('font') || errorMessage.includes('Font')) {
       toast.update('Błąd ładowania fontów PDF. Upewnij się, że aplikacja była uruchomiona przynajmniej raz online.', 'error', 5000)

@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Trash2, CheckCircle, DoorOpen, Cloud, HardDrive, Search, X } from 'lucide-react'
+import { Home, Trash2, CheckCircle, DoorOpen, Search, X } from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
-import { Button, ActionMenu } from './atoms'
-import { getFullAddress } from '../utils'
+import { Button, ActionMenu, Fab } from './atoms'
+import { DataSourceChip } from './molecules'
+import { getFullAddress, buildingFromDoc, inspectionFromDoc } from '../utils'
 import {
   collection,
   query,
@@ -12,53 +13,11 @@ import {
   orderBy,
   addDoc,
   serverTimestamp,
-  type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { deleteBuildingFromFirestore } from '../services'
 import type { Building, Inspection } from '../types'
 import { logger } from '../utils/logger'
-
-const buildingMapper = (doc: QueryDocumentSnapshot): Building => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    projectId: data.projectId,
-    name: data.name,
-    street: data.street || data.name || '',
-    zipCode: data.zipCode || '',
-    city: data.city || '',
-    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
-    userId: data.userId || '',
-  }
-}
-
-const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    projectId: data.projectId,
-    buildingId: data.buildingId,
-    address: data.address,
-    apartmentNumber: data.apartmentNumber,
-    ownerName: data.ownerName || '',
-    date: data.date?.toDate ? data.date.toDate() : new Date(),
-    technicianName: data.technicianName || data.technician || '',
-    technicianLicenseNumber: data.technicianLicenseNumber || '',
-    technicianSignature: data.technicianSignature || '',
-    reviewerName: data.reviewerName || '',
-    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
-    reviewerSignature: data.reviewerSignature || '',
-    measurements: data.measurements || [],
-    notes: data.notes || '',
-    ownerSignature: data.ownerSignature || data.signature || '',
-    protocolNumber: data.protocolNumber,
-    synced: data.synced ?? true,
-    status: data.status || 'COMPLETED',
-    unitType: data.unitType || 'mieszkanie',
-  }
-}
 
 export const ProjectDetailsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -105,9 +64,9 @@ export const ProjectDetailsScreen: React.FC = () => {
   )
 
   const { data: buildings, isLoading: isLoadingBuildings, fromCache: buildingsFromCache } =
-    useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${projectId || 'none'}`, 'Buildings')
+    useCollection<Building>(buildingsQuery, buildingFromDoc, `buildings-${projectId || 'none'}`, 'Buildings')
   const { data: projectInspections } =
-    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${projectId || 'none'}`, 'ProjectInspections')
+    useCollection<Inspection>(projectInspectionsQuery, inspectionFromDoc, `inspections-${projectId || 'none'}`, 'ProjectInspections')
   const { data: projects, isLoading: isLoadingProjects } =
     useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'all-projects', 'Projects')
 
@@ -141,7 +100,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     return buildings.filter((b) => normalize(getFullAddress(b)).includes(q))
   }, [buildings, searchQuery])
 
-  const handleCreateBuilding = async () => {
+  const handleCreateBuilding = () => {
     if (!newStreet.trim() || !newZipCode.trim() || !newCity.trim()) {
       alert('Wypełnij wszystkie pola adresu')
       return
@@ -188,7 +147,7 @@ export const ProjectDetailsScreen: React.FC = () => {
     ) {
       deleteBuildingFromFirestore(id)
         .catch((error: unknown) => {
-          console.error('❌ Error deleting building:', error)
+          logger.error('❌ Error deleting building:', error)
         })
     }
   }
@@ -225,15 +184,7 @@ export const ProjectDetailsScreen: React.FC = () => {
               <span className="text-sm text-slate-400">
                 Budynki ({searchQuery.trim() ? `${filteredBuildings.length} / ${buildings.length}` : buildings.length})
               </span>
-              <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${buildingsFromCache
-                    ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
-                    : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
-                  }`}
-              >
-                {buildingsFromCache ? <HardDrive size={12} className="animate-pulse" /> : <Cloud size={12} />}
-                {buildingsFromCache ? 'Dane lokalne' : 'Aktualne'}
-              </div>
+              <DataSourceChip fromCache={buildingsFromCache} />
             </div>
 
             {/* Search bar */}
@@ -334,14 +285,7 @@ export const ProjectDetailsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowNewModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
-        style={{ width: '64px', height: '64px' }}
-      >
-        <Plus size={32} />
-      </button>
+      <Fab onClick={() => setShowNewModal(true)} ariaLabel="Nowy budynek" />
 
       {/* Modal - Nowy Budynek */}
       {showNewModal && (

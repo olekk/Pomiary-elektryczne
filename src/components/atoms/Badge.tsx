@@ -9,11 +9,13 @@ interface BadgeProps {
   pulse?: boolean
 }
 
+// Dark-mode palette, consistent with the app's design system (§11) and the
+// DataSourceChip freshness indicator.
 const variantClasses: Record<BadgeVariant, string> = {
-  success: 'bg-green-50 text-green-600 border-green-500',
-  danger: 'bg-red-50 text-red-600 border-red-500',
-  warning: 'bg-orange-50 text-orange-600 border-orange-500',
-  info: 'bg-blue-50 text-blue-600 border-blue-500',
+  success: 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50',
+  danger: 'bg-red-900/50 text-red-300 border border-red-700/50',
+  warning: 'bg-amber-900/50 text-amber-300 border border-amber-700/50',
+  info: 'bg-blue-900/50 text-blue-300 border border-blue-700/50',
 }
 
 export const Badge: React.FC<BadgeProps> = ({

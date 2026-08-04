@@ -1,24 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, FolderOpen, Trash2 } from 'lucide-react'
+import { FolderOpen, Trash2 } from 'lucide-react'
 import { useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
-import { Button, ActionMenu } from './atoms'
-import { collection, query, orderBy, type QueryDocumentSnapshot } from 'firebase/firestore'
+import { Button, ActionMenu, Fab } from './atoms'
+import { collection, query, orderBy } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveProjectToFirestore, deleteProjectFromFirestore } from '../services'
 import type { Project } from '../types'
+import { projectFromDoc } from '../utils'
 import { logger } from '../utils/logger'
-
-const projectMapper = (doc: QueryDocumentSnapshot): Project => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    name: data.name,
-    status: data.status || 'active',
-    createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-  }
-}
 
 export const ProjectsScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -30,7 +21,7 @@ export const ProjectsScreen: React.FC = () => {
 
   const { data: projects, isLoading: isLoadingProjects } = useCollection<Project>(
     projectsQuery,
-    projectMapper,
+    projectFromDoc,
     'all-projects',
     'Projects'
   )
@@ -38,7 +29,7 @@ export const ProjectsScreen: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
 
-  const handleCreateProject = async () => {
+  const handleCreateProject = () => {
     if (!newProjectName.trim()) {
       alert('Wprowadź nazwę projektu')
       return
@@ -58,7 +49,7 @@ export const ProjectsScreen: React.FC = () => {
         logger.log(`✅ Project ${projectId} saved successfully`)
       })
       .catch((error) => {
-        console.error(`❌ Failed to save project ${projectId}:`, error)
+        logger.error(`❌ Failed to save project ${projectId}:`, error)
       })
 
     setNewProjectName('')
@@ -73,7 +64,7 @@ export const ProjectsScreen: React.FC = () => {
     ) {
       deleteProjectFromFirestore(id)
         .catch((error: unknown) => {
-          console.error('❌ Error deleting project:', error)
+          logger.error('❌ Error deleting project:', error)
         })
     }
   }
@@ -140,14 +131,7 @@ export const ProjectsScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowNewModal(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-5 rounded-full shadow-2xl flex items-center justify-center transition-colors"
-        style={{ width: '64px', height: '64px' }}
-      >
-        <Plus size={32} />
-      </button>
+      <Fab onClick={() => setShowNewModal(true)} ariaLabel="Nowy projekt" />
 
       {/* Modal - Nowy Projekt */}
       {showNewModal && (

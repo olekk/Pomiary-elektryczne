@@ -38,13 +38,15 @@ export function useCollection<T>(
   const [fromCache, setFromCache] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  // Refs keep the latest values accessible inside the effect
-  // without triggering re-subscriptions.
+  // Refs keep the latest values accessible inside the subscribe effect
+  // without triggering re-subscriptions. Updated in an effect (not during
+  // render); it runs before the subscribe effect below in the same commit.
   const queryRef = useRef(q)
-  queryRef.current = q
-
   const mapperRef = useRef(mapper)
-  mapperRef.current = mapper
+  useEffect(() => {
+    queryRef.current = q
+    mapperRef.current = mapper
+  })
 
   useEffect(() => {
     const currentQuery = queryRef.current

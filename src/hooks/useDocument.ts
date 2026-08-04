@@ -33,16 +33,22 @@ export function useDocument<T>(
 
   const docPath = docRef?.path ?? '__null__'
 
+  // Refs keep the latest values accessible inside the subscribe effect
+  // without triggering re-subscriptions. Updated in an effect (not during
+  // render); it runs before the subscribe effect below in the same commit.
   const docRefRef = useRef(docRef)
-  docRefRef.current = docRef
-
   const mapperRef = useRef(mapper)
-  mapperRef.current = mapper
+  useEffect(() => {
+    docRefRef.current = docRef
+    mapperRef.current = mapper
+  })
 
   useEffect(() => {
     const currentDocRef = docRefRef.current
 
     if (!currentDocRef) {
+      // Sync-reset when there is nothing to subscribe to (external-store sync).
+      /* eslint-disable-next-line react-hooks/set-state-in-effect */
       setData(null)
       setIsLoading(false)
       setFromCache(false)
@@ -103,7 +109,6 @@ export function useDocument<T>(
       logger.log(`🔌 ${label || 'Document'}: unsubscribing (path=${docPath})`)
       unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPath, label])
 
   return { data, isLoading, isInitialized, fromCache, error }

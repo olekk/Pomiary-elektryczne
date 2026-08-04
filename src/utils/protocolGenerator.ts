@@ -4,8 +4,8 @@ import { normalizeAddressForProtocol } from './addressHelper'
  * Generator Numeru Protokołu
  * Centralne miejsce definiujące format numeru protokołu pomiarów.
  *
- * Format: PROT/RRRR/MM/DD/ULICA_NUMER/MIESZKANIE
- * Przykład: PROT/2026/02/12/LESNA_5/42
+ * Format: ULICA_NUMER/MIESZKANIE/RRRR/MM/DD/PROT
+ * Przykład: LESNA_5/42/2026/02/12/PROT
  */
 
 /**

@@ -8,42 +8,15 @@ import {
   countMeasurementsByResult,
   ensureDate,
   generateInspectionPdf,
+  inspectionFromSnapshot,
 } from '../utils'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
 import { useDocument } from '../hooks'
-import { doc, type DocumentSnapshot } from 'firebase/firestore'
+import { doc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { generateInspectionId } from '../utils'
-
-const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
-  if (!snap.exists()) return null
-  const d = snap.data()!
-  return {
-    id: snap.id,
-    projectId: d.projectId,
-    buildingId: d.buildingId,
-    address: d.address,
-    apartmentNumber: d.apartmentNumber,
-    ownerName: d.ownerName || '',
-    date: d.date?.toDate ? d.date.toDate() : new Date(),
-    technicianName: d.technicianName || d.technician || '',
-    technicianLicenseNumber: d.technicianLicenseNumber || '',
-    technicianSignature: d.technicianSignature || '',
-    reviewerName: d.reviewerName || '',
-    reviewerLicenseNumber: d.reviewerLicenseNumber || '',
-    reviewerSignature: d.reviewerSignature || '',
-    measurements: d.measurements || [],
-    notes: d.notes || '',
-    ownerSignature: d.ownerSignature || d.signature || '',
-    protocolNumber: d.protocolNumber,
-    synced: d.synced ?? true,
-    status: d.status || 'COMPLETED',
-    unitType: d.unitType || 'mieszkanie',
-    klatkaData: d.klatkaData || undefined,
-  }
-}
 
 export const SummaryScreen: React.FC = () => {
   const navigate = useNavigate()
@@ -68,7 +41,7 @@ export const SummaryScreen: React.FC = () => {
   )
   const { data: firestoreInspection } = useDocument<Inspection>(
     inspectionDocRef,
-    inspectionMapper,
+    inspectionFromSnapshot,
     'Inspection'
   )
 
@@ -78,9 +51,11 @@ export const SummaryScreen: React.FC = () => {
     locationState?.inspection || null
   )
 
-  // When Firestore data arrives (reload case), use it
+  // When Firestore data arrives (reload case), adopt it once as the local
+  // editable copy — a sync-from-snapshot pattern, not a render loop.
   useEffect(() => {
     if (firestoreInspection && !localInspection) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalInspection(firestoreInspection)
     }
   }, [firestoreInspection, localInspection])
@@ -90,7 +65,10 @@ export const SummaryScreen: React.FC = () => {
 
   const [notes, setNotes] = useState(inspection?.notes || '')
 
+  // Re-sync the notes editor when a different inspection (or its saved notes)
+  // arrives from a snapshot.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNotes(inspection?.notes || '')
   }, [inspection?.id, inspection?.notes])
 
@@ -104,22 +82,6 @@ export const SummaryScreen: React.FC = () => {
       setLocalInspection({ ...localInspection, notes: value })
     }
   }
-
-  // Debounced auto-save: persist notes 1s after the user stops typing
-  useEffect(() => {
-    if (!hasUserEditedNotes.current || !inspection) return
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-
-    saveTimerRef.current = setTimeout(() => {
-      saveInspection(inspection.ownerSignature || '')
-      logger.log('💾 Notes auto-saved')
-    }, 1000)
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    }
-  }, [notes])
 
   const saveInspection = (sig?: string) => {
     if (!inspection) return null
@@ -141,6 +103,24 @@ export const SummaryScreen: React.FC = () => {
 
     return toSave
   }
+
+  // Debounced auto-save: persist notes 1s after the user stops typing.
+  // Deliberately keyed on `notes` only — re-arming on every `inspection`
+  // change would fire a redundant save after each snapshot/signature update.
+  useEffect(() => {
+    if (!hasUserEditedNotes.current || !inspection) return
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+
+    saveTimerRef.current = setTimeout(() => {
+      saveInspection(inspection.ownerSignature || '')
+      logger.log('💾 Notes auto-saved')
+    }, 1000)
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [notes]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSaveSignature = (ownerSignature: string) => {
     if (!inspection) return
@@ -199,11 +179,7 @@ export const SummaryScreen: React.FC = () => {
             <h1 className="text-xl font-bold">Pomiar Zakończony</h1>
             <p className="text-sm text-green-300">
               {inspection.address} /{' '}
-              {inspection.unitType === 'lokal'
-                ? 'Lokal '
-                : inspection.unitType === 'klatka'
-                  ? ''
-                  : ''}
+              {inspection.unitType === 'lokal' ? 'Lokal ' : ''}
               {inspection.apartmentNumber}
             </p>
           </div>

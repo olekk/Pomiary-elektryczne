@@ -34,6 +34,9 @@ const AuthContext = createContext<AuthContextValue>({
   signOutUser: async () => {},
 })
 
+// Context, hook, and provider are intentionally co-located; the hook export
+// breaks Fast Refresh for this file only, which is acceptable here.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({

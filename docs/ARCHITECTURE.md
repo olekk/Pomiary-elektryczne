@@ -1,6 +1,6 @@
 # Architecture — Pomiary Elektryczne
 
-Canonical technical reference for the current system. This document describes **how the app works today**, verified against source as of 2026-07-02. It intentionally contains no changelog — for how the architecture got here and why past decisions were made (including ones since reversed), see [`docs/archive/ARCHITECTURE_HISTORY.md`](archive/ARCHITECTURE_HISTORY.md).
+Canonical technical reference for the current system. This document describes **how the app works today**, verified against source as of 2026-07-03. It intentionally contains no changelog — for how the architecture got here and why past decisions were made (including ones since reversed), see [`docs/archive/ARCHITECTURE_HISTORY.md`](archive/ARCHITECTURE_HISTORY.md).
 
 ## 1. Overview & Tech Stack
 
@@ -35,8 +35,8 @@ Pomiary Elektryczne is an offline-first Progressive Web App used by electricians
 ```
 src/
 ├── components/
-│   ├── atoms/              # Button, Input, Select, Card, Badge, ActionMenu — zero business logic
-│   ├── molecules/          # FormField, InspectionCard, MeasurementListItem, StatusBadge
+│   ├── atoms/              # Button, Input, Select, Card, Badge, ActionMenu, Fab — zero business logic
+│   ├── molecules/          # FormField, InspectionCard, MeasurementListItem, StatsCard, DataSourceChip
 │   ├── organisms/          # KlatkaInspectionForm, SignaturePanel,
 │   │                        # DashboardStats, InspectionsList, MeasurementSettings, NotesSection
 │   ├── layout/
@@ -64,9 +64,9 @@ src/
 │   │                        # addDoc() calls for building creation live in their screens)
 │   └── __tests__/           # Firebase-emulator integration tests
 ├── utils/                   # Pure functions only — unit-tested, 90% statement coverage enforced
-│   ├── addressHelper.ts, apartmentUtils.ts, cn.ts, dateUtils.ts, generatePdf.tsx,
-│   │   idGenerator.ts, logger.ts, measurementCalculations.ts, protocolGenerator.ts,
-│   │   toast.ts, validators.ts
+│   ├── addressHelper.ts, apartmentUtils.ts, cn.ts, dateUtils.ts, firestoreMappers.ts,
+│   │   generatePdf.tsx, idGenerator.ts, logger.ts, measurementCalculations.ts,
+│   │   protocolGenerator.ts, toast.ts, validators.ts
 │   └── __tests__/
 ├── types/index.ts            # All domain types + ZS_DOP_TABLE + DEFAULT_K_FACTORS
 ├── firebase.ts                # App/Auth/Firestore init + recoverFirestore()
@@ -165,10 +165,12 @@ Project: `pomiary-elektryczne-57ad6`. Config is inline in `src/firebase.ts` (not
 
 **Collections**: `projects`, `buildings`, `inspections`, `users` (document ID = Firebase Auth `uid`).
 
-Field-level notes and quirks worth knowing before writing a new document mapper:
+**Document → domain mapping is centralized in `utils/firestoreMappers.ts`** (`inspectionFromDoc`/`inspectionFromSnapshot`, `buildingFromDoc`/`buildingFromSnapshot`, `projectFromDoc`) — every `useCollection`/`useDocument` subscription in the app uses these shared mappers. Adding a field to `Inspection`/`Building`/`Project` means updating that one module (plus its unit tests) and the write payload in `firebaseService.ts`.
+
+Field-level notes and quirks worth knowing:
 
 - **`Building.name`** is a legacy field from before addresses were split into `street`/`zipCode`/`city`. `getFullAddress()` (`utils/addressHelper.ts`) prefers the structured fields and falls back to `name` for old documents.
-- **Every document mapper reads defensively** (`data.field || fallback`) because the schema evolved incrementally and old documents lack newer fields — `technician` → `technicianName`, `signature` → `ownerSignature`, `name` → `street`/`zipCode`/`city` are all renames that only the mapper's fallback bridges.
+- **The mappers read defensively** (`data.field || fallback`) because the schema evolved incrementally and old documents lack newer fields — `technician` → `technicianName`, `signature` → `ownerSignature`, `name` → `street`/`zipCode`/`city` are all renames that only the mapper's fallback bridges.
 - **`Inspection` documents omit `undefined` fields on write.** Firestore's SDK throws on `undefined` values; `saveInspectionToFirestore()` explicitly guards `noGrounding` (`noGrounding === undefined ? measurement : { ...measurement, noGrounding }`) and defaults every optional string field to `''`. Any new optional field needs the same treatment.
 - **Cascading deletes** (`deleteProjectFromFirestore`, `deleteBuildingFromFirestore` in `firebaseService.ts`) use `writeBatch` after a `getDocs()` query to find children — the one place in the app that intentionally does a blocking, non-cached read, because correctness matters more than offline-availability for a destructive, rare operation.
 - **Security rules**: `FIRESTORE_RULES.txt` at the repo root is a **manual reference document, not a deployed/managed rules file** — there is no `firestore.rules` tracked by `firebase.json`, so what's actually enforced in the Firebase Console cannot be verified from this repository. The reference file is also known-stale (it validates a `technician` field that hasn't existed since the rename to `technicianName`). Do not treat it as authoritative; confirm against the Firebase Console before relying on it.
@@ -223,7 +225,7 @@ Creating and completing an inspection crosses four screens and two persistence l
 
 - **Firestore is initialized** with `persistentLocalCache({ tabManager: persistentMultipleTabManager() })` — this *is* the offline database. There is no separate IndexedDB/localStorage layer for inspection data; `localStorage` is used only as a cold-start fallback cache for `UserSettings`.
 - **`onSnapshot` double-emit**: every subscription fires once immediately from cache (works offline, `fromCache: true`) and again when the server confirms (`fromCache: false`). UI never needs to branch on `navigator.onLine` to decide what to render — it renders whatever the latest snapshot says.
-- **Auto-sync triggers**: `MainLayout` calls `retryPendingSync()` once on mount if online and there's a pending count; a `window.addEventListener('online', ...)` trigger also fires a retry on reconnect. Neither manually calls `enableNetwork()`/`disableNetwork()` — the Firebase SDK manages its own connection; the app only nudges it to retry.
+- **Auto-sync trigger**: `MainLayout` calls `retryPendingSync()` once on mount if online and there's a pending count — since every screen renders inside `MainLayout`, any navigation while online retries pending writes. The `window` `online`/`offline` events only feed the `useOnlineStatus()` UI hint; there is currently **no** retry fired directly on reconnect (a retry happens on the next screen mount instead). Nothing manually calls `enableNetwork()`/`disableNetwork()` — the Firebase SDK manages its own connection; the app only nudges it to retry.
 - **Safety timeouts**: `useCollection`, `useDocument`, and `useAuth` each force their loading state to `false` after 3–5 seconds if the underlying Firebase callback never fires — mitigation for a known iOS Safari stuck-state bug (History, Era 7). Any new Firestore-subscribing hook should follow the same pattern.
 - **`recoverFirestore()`** (`src/firebase.ts`): terminates and recreates the Firestore instance. Required because heavy `fetch()` activity (PDF font/asset loading) can kill Firestore's internal WebChannel on iOS Safari, hanging all subsequent reads. Called unconditionally after every PDF generation. **Any future feature doing sustained fetch/blob work should call it too.**
 - **Client-generated IDs** (`generateInspectionId()`, format `insp_{timestamp}_{random}`) mean every write can resolve against the local cache instantly, with no server round-trip required before the app can navigate away or show success.
@@ -256,7 +258,7 @@ Buttons go through the `Button` atom's `variant` prop rather than hand-rolled co
 
 Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaData` fields reuse the same convention for `dobry`/`zły`, `jest`/`brak`, etc. There is no third/warning color for measurement results — the earlier three-state `B.UZ` was removed (History, Era 8).
 
-**Cache-freshness indicator**: list screens show a small badge sourced from `useCollection`/`useDocument`'s `fromCache` flag — amber "Dane lokalne" (serving from local cache) vs. green "Aktualne" (server-confirmed). Reuse this pattern for any new screen that needs to communicate data freshness, rather than inventing a new indicator.
+**Cache-freshness indicator**: list screens show `molecules/DataSourceChip` fed by `useCollection`/`useDocument`'s `fromCache` flag — amber "Dane lokalne" (serving from local cache) vs. green "Aktualne" (server-confirmed). Reuse that component for any new screen that needs to communicate data freshness, rather than inventing a new indicator.
 
 **Row-level actions** go through the shared `atoms/ActionMenu.tsx` kebab (three-dot) dropdown — handles outside-click dismissal, `Escape`, and arrow-key navigation — not one-off icon buttons.
 
@@ -264,7 +266,7 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 
 **Modals** are hand-rolled per use site: `fixed inset-0 bg-black bg-opacity-70` overlay + centered card, no portal/dialog library. The inline "new project"/"new building" modals are the reference implementations.
 
-**Known inconsistency**: `atoms/Badge.tsx` uses light-mode Tailwind colors (`bg-green-50 text-green-600`, etc.) instead of the dark palette used everywhere else in the app — see §16.
+**Floating action buttons** (the bottom-right "+" on the Projects/Buildings/Inspections screens) go through the shared `atoms/Fab.tsx`.
 
 ## 12. Component Inventory
 
@@ -272,10 +274,12 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 | --- | --- | --- |
 | `Button`, `Input`, `Select`, `Card`, `Badge` | atoms | Presentational primitives, zero business logic |
 | `ActionMenu` | atoms | Reusable kebab dropdown with keyboard nav |
+| `Fab` | atoms | Floating action button (bottom-right "+") |
 | `FormField` | molecules | Label + input + error wrapper |
 | `InspectionCard` | molecules | Inspection summary row (list view), PDF/delete actions |
 | `MeasurementListItem` / `CompactMeasurementListItem` | molecules | Measurement row, full and summary variants |
-| `StatusBadge` | molecules | Online/offline/pending indicator — **currently unused/dead code**, see §16 |
+| `StatsCard` | molecules | Single stat tile used by `DashboardStats` |
+| `DataSourceChip` | molecules | Cache-freshness chip ("Dane lokalne" / "Aktualne") |
 | `KlatkaInspectionForm` | organisms | ~14-section staircase inspection checklist |
 | `SignaturePanel` | organisms | Signature capture; reused identically for technician, reviewer, and owner signatures |
 | `DashboardStats` | organisms | Total/synced/pending counts for a building |
@@ -300,7 +304,7 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 
 | Type | Location | Runner | Scope / threshold |
 | --- | --- | --- | --- |
-| Unit | `src/utils/**/__tests__/*.test.ts` | Vitest | Pure functions in `utils/`; **90% statement coverage enforced** on `src/utils/**` (`vitest.config.ts`) |
+| Unit | `src/utils/**/__tests__/*.test.ts` | Vitest | Pure functions in `utils/`; **90% statement coverage enforced** on `src/utils/**` (`vitest.config.ts`; the browser-only modules `toast.ts`/`generatePdf.tsx` and the barrel `index.ts` are excluded — they can't run in the node test environment) |
 | Integration | `src/services/__tests__/*.integration.test.ts` | Vitest + real Firebase Emulator (no mocks) | `firebaseService.ts` — save/read round-trips, cascading deletes, required-field validation |
 | Mutation | `src/utils/**` | Stryker | Thresholds: high 80 / low 60 / break 50 |
 
@@ -321,12 +325,9 @@ Commands: `npm test` (unit), `npm run test:coverage`, `npm run test:integration`
 Living section — update in place as items are fixed or new ones are found, rather than leaving stale entries.
 
 1. **Firestore rules drift.** `FIRESTORE_RULES.txt` (repo root) references a `technician` field that hasn't existed since the rename to `technicianName`, and there's no `firestore.rules` tracked in this repo to verify against what's actually deployed. Needs reconciling with the Firebase Console's live rules.
-2. **Duplicated Firestore document mappers.** `inspectionMapper`/`buildingMapper` are independently redefined per screen (`BuildingDetailsScreen`, `ProjectDetailsScreen`, `MeasurementScreen`, `SummaryScreen`, `usePendingSync`), with slightly different field coverage between copies (e.g. not all of them map `klatkaData`). A field added to `Inspection`/`Building` requires updating every mapper by hand — `tsc` won't catch a missed one, since mappers aren't type-checked against the actual Firestore data shape.
-3. **`Badge` atom uses light-mode colors** (`bg-green-50 text-green-600`, etc.) inconsistent with the rest of the dark-mode-only app (§11). Worth checking whether it's actually rendered anywhere live.
-4. **Dead code**: `molecules/StatusBadge.tsx` and its usage in `MainLayout` are commented out. The underlying `isOnline`/`pendingSyncCount`/`retryPendingSync` wiring is still active and useful (drives auto-sync); only the visual badge is unused.
-5. **No component/hook/screen test coverage** (§14) — all automated testing is on `utils/` and the Firestore service layer. The offline-sync UI paths are both the riskiest part of the app (by its own bug history) and the least tested.
-6. **No documented Firestore data-ownership model.** Current rules (as far as the stale reference file indicates) allow any authenticated user to read/write everything — presumably fine for a small internal team, but that's inferred, not a recorded decision.
-7. **`reports/` and `firestore-debug.log`** are present at the repo root (mutation-test HTML report, emulator debug log) — verify `.gitignore` excludes them before they get committed by accident.
+2. **No component/hook/screen test coverage** (§14) — all automated testing is on `utils/` and the Firestore service layer. The offline-sync UI paths are both the riskiest part of the app (by its own bug history) and the least tested.
+3. **No documented Firestore data-ownership model.** Current rules (as far as the stale reference file indicates) allow any authenticated user to read/write everything — presumably fine for a small internal team, but that's inferred, not a recorded decision.
+4. **No retry-on-reconnect sync trigger.** Pending writes are only retried when a screen (re)mounts while online (§8); regaining connectivity while sitting on one screen doesn't fire a retry until the next navigation. The Firestore SDK still syncs its own cached writes on reconnect — this only affects the app-level `synced` flag bookkeeping — but wiring `retryPendingSync()` to the `online` event (as existed in an earlier architecture) would make the pending counter recover without a navigation.
 
 ## See also
 

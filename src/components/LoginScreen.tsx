@@ -4,6 +4,7 @@ import { auth } from '../firebase'
 import { Input } from './atoms/Input'
 import { Button } from './atoms/Button'
 import { AlertCircle, Loader } from 'lucide-react'
+import { logger } from '../utils/logger'
 
 export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -20,7 +21,7 @@ export const LoginScreen: React.FC = () => {
       await signInWithEmailAndPassword(auth, email, password)
       // onAuthStateChanged w App.tsx automatycznie obsłuży nawigację
     } catch (err: unknown) {
-      console.error('Błąd logowania:', err)
+      logger.error('Błąd logowania:', err)
 
       // Obsługa typowych błędów Firebase Auth
       if (err instanceof Error) {

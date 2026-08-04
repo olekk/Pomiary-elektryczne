@@ -35,7 +35,7 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
           : '',
     }
   } catch (error) {
-    console.error('Error reading user settings from local storage:', error)
+    logger.error('Error reading user settings from local storage:', error)
     return null
   }
 }
@@ -57,7 +57,7 @@ const saveUserSettingsToLocal = (
       })
     )
   } catch (error) {
-    console.error('Error saving user settings to local storage:', error)
+    logger.error('Error saving user settings to local storage:', error)
   }
 }
 
@@ -85,6 +85,9 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
   const [reviewerSignature, setReviewerSignature] = useState('')
   const [isLoading, setIsLoading] = useState(true)
 
+  // This hook mirrors an external store (localStorage + Firestore) into local
+  // state; the synchronous reset/fallback below is that sync, not a render loop.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!userId) {
       setTechnicianName('')
@@ -150,6 +153,7 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
 
     return () => unsubscribe()
   }, [userId])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const save = useCallback(
     async (settings: UserSettings) => {

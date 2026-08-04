@@ -1,5 +1,5 @@
 export { StatsCard } from './StatsCard'
-export { StatusBadge } from './StatusBadge'
+export { DataSourceChip } from './DataSourceChip'
 export {
   MeasurementListItem,
   CompactMeasurementListItem,

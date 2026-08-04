@@ -26,3 +26,7 @@ dist-ssr
 # Firebase
 .firebase/
 *.cache
+
+# Test/tooling artifacts
+reports/
+coverage/

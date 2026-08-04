@@ -33,17 +33,11 @@ import {
   createMeasurement,
   renumberMeasurements,
   generateProtocolNumber,
+  inspectionFromDoc,
+  buildingFromSnapshot,
 } from '../utils'
 import { useCollection, useDocument, useAuth, useUserSettings } from '../hooks'
-import {
-  collection,
-  doc,
-  query,
-  where,
-  orderBy,
-  type DocumentSnapshot,
-  type QueryDocumentSnapshot,
-} from 'firebase/firestore'
+import { collection, doc, query, where, orderBy } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { logger } from '../utils/logger'
@@ -80,49 +74,6 @@ function loadDraftFromSession(buildingId: string): Inspection | null {
 
 function clearDraftFromSession(buildingId: string) {
   sessionStorage.removeItem(SESSION_KEY_PREFIX + buildingId)
-}
-
-const buildingMapper = (snap: DocumentSnapshot): Building | null => {
-  if (!snap.exists()) return null
-  const d = snap.data()!
-  return {
-    id: snap.id,
-    projectId: d.projectId,
-    name: d.name,
-    street: d.street || d.name || '',
-    zipCode: d.zipCode || '',
-    city: d.city || '',
-    createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(),
-    updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate() : new Date(),
-    userId: d.userId || '',
-  }
-}
-
-const inspectionMapper = (snap: QueryDocumentSnapshot): Inspection => {
-  const d = snap.data()
-  return {
-    id: snap.id,
-    projectId: d.projectId,
-    buildingId: d.buildingId,
-    address: d.address,
-    apartmentNumber: d.apartmentNumber,
-    ownerName: d.ownerName || '',
-    date: d.date?.toDate ? d.date.toDate() : new Date(),
-    technicianName: d.technicianName || d.technician || '',
-    technicianLicenseNumber: d.technicianLicenseNumber || '',
-    technicianSignature: d.technicianSignature || '',
-    reviewerName: d.reviewerName || '',
-    reviewerLicenseNumber: d.reviewerLicenseNumber || '',
-    reviewerSignature: d.reviewerSignature || '',
-    measurements: d.measurements || [],
-    notes: d.notes || '',
-    ownerSignature: d.ownerSignature || d.signature || '',
-    protocolNumber: d.protocolNumber,
-    synced: d.synced ?? true,
-    status: d.status || 'COMPLETED',
-    unitType: d.unitType || 'mieszkanie',
-    klatkaData: d.klatkaData || undefined,
-  }
 }
 
 export const MeasurementScreen: React.FC = () => {
@@ -200,13 +151,17 @@ export const MeasurementScreen: React.FC = () => {
     [updateInspection]
   )
 
-  // Update license number and reviewer data when loaded
+  // Update license number and reviewer data when loaded.
+  // Snapshots async-loaded settings into the draft (and sessionStorage) exactly
+  // once — a sync-from-external-source pattern the set-state-in-effect rule
+  // can't distinguish from a render loop.
   useEffect(() => {
     if (
       technicianLicenseNumber &&
       currentInspection &&
       !currentInspection.technicianLicenseNumber
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       updateInspection((prev) =>
         prev ? { ...prev, technicianLicenseNumber } : null
       )
@@ -223,6 +178,7 @@ export const MeasurementScreen: React.FC = () => {
       if (reviewerSignature && !currentInspection.reviewerSignature)
         updates.reviewerSignature = reviewerSignature
       if (Object.keys(updates).length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         updateInspection((prev) => (prev ? { ...prev, ...updates } : null))
       }
     }
@@ -239,7 +195,7 @@ export const MeasurementScreen: React.FC = () => {
     [buildingId]
   )
   const { data: currentBuilding, isLoading: isLoadingBuilding } =
-    useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
+    useDocument<Building>(buildingDocRef, buildingFromSnapshot, 'Building')
 
   // Subscribe to sibling inspections for duplicate detection + automatic klatka numbering
   const inspectionsQuery = useMemo(
@@ -255,7 +211,7 @@ export const MeasurementScreen: React.FC = () => {
   )
   const { data: existingInspections } = useCollection<Inspection>(
     inspectionsQuery,
-    inspectionMapper,
+    inspectionFromDoc,
     `inspections-${buildingId || 'none'}`,
     'Inspections'
   )

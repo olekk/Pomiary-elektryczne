@@ -8,33 +8,8 @@ import { db } from '../firebase'
 import { useCollection } from './useCollection'
 import { retrySyncInspection } from '../services'
 import type { Inspection } from '../types'
+import { inspectionFromDoc } from '../utils'
 import { logger } from '../utils/logger'
-
-const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    projectId: data.projectId,
-    buildingId: data.buildingId,
-    address: data.address,
-    apartmentNumber: data.apartmentNumber,
-    ownerName: data.ownerName || '',
-    date: data.date?.toDate ? data.date.toDate() : new Date(),
-    technicianName: data.technicianName || '',
-    technicianLicenseNumber: data.technicianLicenseNumber || '',
-    technicianSignature: data.technicianSignature || '',
-    reviewerName: data.reviewerName || '',
-    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
-    reviewerSignature: data.reviewerSignature || '',
-    measurements: data.measurements || [],
-    notes: data.notes || '',
-    ownerSignature: data.ownerSignature || '',
-    protocolNumber: data.protocolNumber || '',
-    synced: data.synced ?? false,
-    status: data.status || 'COMPLETED',
-    unitType: data.unitType || 'mieszkanie',
-  } as Inspection
-}
 
 /**
  * Hook that tracks pending (unsynced) inspections and provides retry logic.
@@ -50,7 +25,7 @@ export function usePendingSync() {
     []
   )
 
-  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, 'pending-sync', 'PendingSync')
+  const { data: pendingInspections } = useCollection<Inspection>(q, inspectionFromDoc, 'pending-sync', 'PendingSync')
 
   const pendingSyncCount = pendingInspections.length
 

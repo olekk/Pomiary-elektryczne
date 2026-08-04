@@ -44,7 +44,9 @@ Full hook signatures and behavior: `docs/ARCHITECTURE.md` §6.
 
 Check these before writing something new — most of what you need already exists:
 
-- `atoms/Button`, `Input`, `Select`, `Card`, `Badge`, `ActionMenu` (kebab menu with keyboard nav)
+- `atoms/Button`, `Input`, `Select`, `Card`, `Badge`, `ActionMenu` (kebab menu with keyboard nav), `Fab` (floating "+" button)
+- `molecules/DataSourceChip` — the cache-freshness indicator ("Dane lokalne" / "Aktualne"); feed it `fromCache` from `useCollection`/`useDocument`.
+- `utils/firestoreMappers.ts` — the only Firestore document→domain mappers (`inspectionFromDoc`, `buildingFromSnapshot`, etc.). Never define a per-screen mapper.
 - `organisms/SignaturePanel` — already generic, used identically for technician, reviewer, and owner signatures. Don't fork it.
 - `utils/generateInspectionPdf()` — the only PDF trigger. It was duplicated once and centralized after; don't reintroduce a second copy of the `pdf(...).toBlob()` + download logic.
 - `utils/showToast()` — imperative, DOM-based, for background/async status shown outside a component tree (e.g. from a plain utility function). Use `alert()` (existing pattern) for blocking validation/error messages instead of a new toast/snackbar system.
@@ -94,7 +96,7 @@ Full component inventory: `docs/ARCHITECTURE.md` §12.
 ## Common Pitfalls
 
 - **Stale drafts on browser back**: `MeasurementScreen` branches on `useNavigationType()` — `POP` prefers the `sessionStorage` draft, `PUSH`/`REPLACE` prefers `location.state`. Preserve this exactly if you touch that screen; it's the fix for a real regression.
-- **Duplicated Firestore document mappers**: `inspectionMapper`/`buildingMapper` are redefined per screen with slightly different field coverage. Adding a field to `Inspection`/`Building`? Grep for every mapper definition and update all of them — `tsc` won't catch a missed one.
+- **Firestore document mappers live only in `utils/firestoreMappers.ts`** (they used to be duplicated per screen with diverging field coverage — that's fixed). Adding a field to `Inspection`/`Building`/`Project`? Update the shared mapper + its unit tests + the write payload in `firebaseService.ts`; don't define a local mapper in a screen or hook.
 - **iOS Safari + heavy fetch**: anything doing sustained `fetch()`/blob work can kill Firestore's WebChannel on iOS Safari. Call `recoverFirestore()` afterward, same as `generateInspectionPdf()` does.
 - **`onSnapshot` never firing**: always pair a new subscription hook with a safety timeout (see Core Invariants) — otherwise a stuck iOS Safari session hangs the UI forever.
 

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { Card, Button } from '../atoms'
+import { logger } from '../../utils/logger'
 
 interface SignaturePanelProps {
   onSave: (signature: string) => Promise<void> | void
@@ -21,20 +22,23 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
     initialSignature && initialSignature.trim().length > 0
   )
 
-  // Wczytaj istniejący podpis gdy canvas się pojawi (po rozwinięciu)
+  // Wczytaj istniejący podpis gdy canvas się pojawi (po rozwinięciu).
+  // Syncs the imperative canvas widget — must run in an effect.
   useEffect(() => {
     if (isExpanded && initialSignature && signatureRef.current) {
       try {
         signatureRef.current.fromDataURL(initialSignature)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setHasSignature(true)
       } catch (error) {
-        console.error('Error loading signature:', error)
+        logger.error('Error loading signature:', error)
       }
     }
   }, [initialSignature, isExpanded])
 
   // Reset expanded state when the inspection changes (new initialSignature reference)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsExpanded(false)
   }, [initialSignature])
 
@@ -53,7 +57,7 @@ export const SignaturePanel: React.FC<SignaturePanelProps> = ({
       // Jeśli onSave zwraca Promise, obsługujemy błędy w tle
       if (result instanceof Promise) {
         result.catch((error) => {
-          console.error('❌ Error saving signature:', error)
+          logger.error('❌ Error saving signature:', error)
           // Podpis już zapisany lokalnie, sync nastąpi później
         })
       }

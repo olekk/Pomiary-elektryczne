@@ -28,7 +28,6 @@ const firestoreSettings = {
 const app = initializeApp(firebaseConfig)
 
 // 2. Inicjalizacja Firestore (mutable — recoverFirestore() may reassign)
-// eslint-disable-next-line import/no-mutable-exports
 let db = initializeFirestore(app, firestoreSettings)
 
 // 3. Inicjalizacja Auth

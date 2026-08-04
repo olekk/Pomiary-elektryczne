@@ -1,6 +1,6 @@
 import React from 'react'
-import { FileText, Cloud, HardDrive } from 'lucide-react'
-import { InspectionCard } from '../molecules'
+import { FileText } from 'lucide-react'
+import { InspectionCard, DataSourceChip } from '../molecules'
 import type { Inspection } from '../../types'
 
 interface InspectionsListProps {
@@ -10,18 +10,6 @@ interface InspectionsListProps {
   onDelete: (id: string) => void
   onClick?: (inspection: Inspection) => void
 }
-
-const DataSourceChip: React.FC<{ fromCache: boolean }> = ({ fromCache }) => (
-  <div
-    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${fromCache
-      ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
-      : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
-      }`}
-  >
-    {fromCache ? <HardDrive size={12} className="animate-pulse" /> : <Cloud size={12} />}
-    {fromCache ? 'Dane lokalne' : 'Aktualne'}
-  </div>
-)
 
 export const InspectionsList: React.FC<InspectionsListProps> = ({
   inspections,

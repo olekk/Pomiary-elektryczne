@@ -4,6 +4,7 @@ import { Button, Card, Input } from './atoms'
 import { SignaturePanel } from './organisms'
 import { Save } from 'lucide-react'
 import { useAuth, useUserSettings } from '../hooks'
+import { logger } from '../utils/logger'
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuth()
@@ -66,7 +67,7 @@ export const SettingsScreen: React.FC = () => {
       reviewerSignatureBase64: reviewerSignature,
     })
       .catch((error) => {
-        console.error('❌ Error saving settings:', error)
+        logger.error('❌ Error saving settings:', error)
       })
 
     alert('Ustawienia zapisane!')
