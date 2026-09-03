@@ -11,6 +11,10 @@ interface KlatkaInspectionFormProps {
  * Wartości domyślne pól wyboru formularza klatki.
  * Pola, których użytkownik nie dotknie, i tak muszą trafić do Firestore i PDF —
  * inaczej `undefined` bywa interpretowane jako wynik negatywny (np. ocena instalacji).
+ *
+ * `typKabla` i `przekrojPrzylacza` są wolnotekstowe, a mimo to mają wartości domyślne:
+ * to najczęstszy przypadek w terenie, więc wstępne wypełnienie oszczędza wpisywanie.
+ * Elektryk nadpisuje je, gdy zastany kabel jest inny.
  */
 export const DEFAULT_KLATKA_DATA: KlatkaData = {
   przylacze: 'kablowe',
@@ -43,6 +47,18 @@ const set = (prev: KlatkaData, patch: Partial<KlatkaData>): KlatkaData => ({
   ...prev,
   ...patch,
 })
+
+/**
+ * Usuwa pola dotyczące wyłącznie przyłącza kablowego.
+ * Klucze są kasowane, a nie ustawiane na `undefined` — Firestore odrzuca
+ * wartości `undefined`, co cicho wywracało zapis całej inspekcji.
+ */
+const withoutKablowePola = (data: KlatkaData): KlatkaData => {
+  const next = { ...data }
+  delete next.typKabla
+  delete next.przekrojPrzylacza
+  return next
+}
 
 const SectionRow: React.FC<{
   num: string
@@ -84,14 +100,14 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
           <Select
             label="Przyłącze"
             value={v.przylacze}
-            onChange={(e) =>
-              u({
-                przylacze: e.target.value as PrzylaczType,
-                ...(e.target.value === 'napowietrzne'
-                  ? { typKabla: undefined, przekrojPrzylacza: undefined }
-                  : {}),
-              })
-            }
+            onChange={(e) => {
+              const przylacze = e.target.value as PrzylaczType
+              onChange(
+                przylacze === 'napowietrzne'
+                  ? withoutKablowePola(set(v, { przylacze }))
+                  : set(v, { przylacze })
+              )
+            }}
             options={[
               { value: 'kablowe', label: 'Kablowe' },
               { value: 'napowietrzne', label: 'Napowietrzne' },
@@ -392,8 +408,7 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
             onChange={(e) =>
               u({
                 klatkaAutomat: e.target.value as
-                  | 'automat-schodowy'
-                  | 'czujnik-ruchu',
+                  'automat-schodowy' | 'czujnik-ruchu',
               })
             }
             options={[
@@ -523,8 +538,7 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
                 onChange={(e) =>
                   u({
                     piorunochronWynik: e.target.value as
-                      | 'pozytywny'
-                      | 'negatywny',
+                      'pozytywny' | 'negatywny',
                   })
                 }
                 options={[

@@ -12,7 +12,7 @@ import {
   getDoc,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import type { Inspection, Project, UserSettings } from '../types'
+import type { Inspection, KlatkaData, Project, UserSettings } from '../types'
 import { logger } from '../utils/logger'
 import { ensureDate } from '../utils'
 
@@ -126,10 +126,19 @@ export const saveInspectionToFirestore = async (
 ): Promise<void> => {
   const sanitizedMeasurements = (inspection.measurements || []).map(
     ({ noGrounding, ...measurement }) =>
-      noGrounding === undefined
-        ? measurement
-        : { ...measurement, noGrounding }
+      noGrounding === undefined ? measurement : { ...measurement, noGrounding }
   )
+
+  // Firestore odrzuca wartości `undefined`. Pola klatki nieistotne dla danego
+  // wariantu (np. typKabla przy przyłączu napowietrznym) muszą zostać pominięte,
+  // inaczej cały zapis inspekcji cicho pada w fire-and-forget `.catch()`.
+  const sanitizedKlatkaData = inspection.klatkaData
+    ? (Object.fromEntries(
+        Object.entries(inspection.klatkaData).filter(
+          ([, fieldValue]) => fieldValue !== undefined
+        )
+      ) as KlatkaData)
+    : undefined
 
   const dataToSave = {
     projectId: inspection.projectId,
@@ -152,7 +161,7 @@ export const saveInspectionToFirestore = async (
     status: inspection.status || 'COMPLETED',
     unitType: inspection.unitType || 'mieszkanie',
     createdAt: Timestamp.now(),
-    ...(inspection.klatkaData ? { klatkaData: inspection.klatkaData } : {}),
+    ...(sanitizedKlatkaData ? { klatkaData: sanitizedKlatkaData } : {}),
   }
 
   const docRef = doc(db, 'inspections', inspectionId)
@@ -235,8 +244,7 @@ export const getUserSettingsFromFirestore = async (
   const data = snapshot.data()
 
   return {
-    displayName:
-      typeof data.displayName === 'string' ? data.displayName : '',
+    displayName: typeof data.displayName === 'string' ? data.displayName : '',
     licenseNumber:
       typeof data.licenseNumber === 'string' ? data.licenseNumber : '',
     signatureBase64:
@@ -244,8 +252,12 @@ export const getUserSettingsFromFirestore = async (
     reviewerName:
       typeof data.reviewerName === 'string' ? data.reviewerName : '',
     reviewerLicenseNumber:
-      typeof data.reviewerLicenseNumber === 'string' ? data.reviewerLicenseNumber : '',
+      typeof data.reviewerLicenseNumber === 'string'
+        ? data.reviewerLicenseNumber
+        : '',
     reviewerSignatureBase64:
-      typeof data.reviewerSignatureBase64 === 'string' ? data.reviewerSignatureBase64 : '',
+      typeof data.reviewerSignatureBase64 === 'string'
+        ? data.reviewerSignatureBase64
+        : '',
   }
 }

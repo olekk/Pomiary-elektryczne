@@ -10,6 +10,10 @@ import {
 } from '@react-pdf/renderer'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
+import {
+  OWNER_CLAUSE_CONSENT,
+  OWNER_CLAUSE_OBLIGATIONS,
+} from '../constants/clauses'
 
 interface PdfGeneratorProps {
   inspection: Inspection
@@ -870,26 +874,9 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <>
             <View style={styles.footer}>
               <Text style={styles.conclusionsTitle}>
-                Użytkownik lokalu (najemca/właściciel) zobowiązuje się do
-                usunięcia wszelkich usterek wykazanych w niniejszym protokole w
-                terminie 14 dni od daty jego podpisania. Prace naprawcze muszą
-                zostać zlecone osobie posiadającej ważne uprawnienia
-                elektryczne, a ich wykonanie należy potwierdzić stosownym
-                protokołem powykonawczym i zgłosić administratorowi obiektu.
-                Ponadto, podpisujący potwierdza, że został poinformowany o
-                konieczności zerowania/uziemienia gniazd wtykowych w
-                pomieszczeniach mokrych (łazienka, kuchnia) oraz o zagrożeniach
-                wynikających z niewłaściwej eksploatacji instalacji
-                elektrycznej.
+                {OWNER_CLAUSE_OBLIGATIONS}
               </Text>
-              <Text>
-                Składając poniższy podpis (w tym w formie elektronicznej na
-                urządzeniu mobilnym), potwierdzam odbiór protokołu, zapoznanie
-                się z jego treścią oraz uwagami. Administratorem danych
-                osobowych jest HC INSTAL Henryk Cieśla. Dane przetwarzane są w
-                celu wykonania usługi, w celach księgowych oraz
-                archiwizacyjnych.
-              </Text>
+              <Text>{OWNER_CLAUSE_CONSENT}</Text>
             </View>
             <View style={styles.ownerSignature}>
               <Text>Podpis najemcy (właściciela):</Text>

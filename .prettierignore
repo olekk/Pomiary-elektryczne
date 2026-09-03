@@ -1,0 +1,12 @@
+# Artefakty budowania i narzędzi — generowane, nie formatujemy
+dist
+dev-dist
+coverage
+reports
+.firebase
+
+# Wygenerowany service worker (źródłem jest public/sw.js)
+dist/sw.js
+dist/sw.mjs
+
+package-lock.json

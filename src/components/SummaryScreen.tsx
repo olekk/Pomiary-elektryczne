@@ -24,6 +24,15 @@ import { doc, type DocumentSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveInspectionToFirestore, markInspectionAsSynced } from '../services'
 import { generateInspectionId } from '../utils'
+import {
+  OWNER_CLAUSE_CONSENT,
+  OWNER_CLAUSE_OBLIGATIONS,
+} from '../constants/clauses'
+
+const CLAUSE_FONT_MIN = 1
+const CLAUSE_FONT_MAX = 1.75
+const CLAUSE_FONT_STEP = 0.125
+const CLAUSE_FONT_DEFAULT = 1.125
 
 const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
   if (!snap.exists()) return null
@@ -98,10 +107,7 @@ export const SummaryScreen: React.FC = () => {
 
   const [notes, setNotes] = useState(inspection?.notes || '')
 
-  const CLAUSE_FONT_MIN = 1
-  const CLAUSE_FONT_MAX = 1.75
-  const CLAUSE_FONT_STEP = 0.125
-  const [clauseFontSize, setClauseFontSize] = useState(1.125)
+  const [clauseFontSize, setClauseFontSize] = useState(CLAUSE_FONT_DEFAULT)
 
   useEffect(() => {
     setNotes(inspection?.notes || '')
@@ -459,7 +465,10 @@ export const SummaryScreen: React.FC = () => {
                     size="sm"
                     onClick={() =>
                       setClauseFontSize((s) =>
-                        Math.max(CLAUSE_FONT_MIN, +(s - CLAUSE_FONT_STEP).toFixed(3))
+                        Math.max(
+                          CLAUSE_FONT_MIN,
+                          +(s - CLAUSE_FONT_STEP).toFixed(3)
+                        )
                       )
                     }
                     disabled={clauseFontSize <= CLAUSE_FONT_MIN}
@@ -472,7 +481,10 @@ export const SummaryScreen: React.FC = () => {
                     size="sm"
                     onClick={() =>
                       setClauseFontSize((s) =>
-                        Math.min(CLAUSE_FONT_MAX, +(s + CLAUSE_FONT_STEP).toFixed(3))
+                        Math.min(
+                          CLAUSE_FONT_MAX,
+                          +(s + CLAUSE_FONT_STEP).toFixed(3)
+                        )
                       )
                     }
                     disabled={clauseFontSize >= CLAUSE_FONT_MAX}
@@ -486,28 +498,13 @@ export const SummaryScreen: React.FC = () => {
                 className="font-bold text-slate-100 mb-3"
                 style={{ fontSize: `${clauseFontSize}rem`, lineHeight: 1.5 }}
               >
-                Użytkownik lokalu (najemca/właściciel) zobowiązuje się do
-                usunięcia wszelkich usterek wykazanych w niniejszym protokole
-                w terminie 14 dni od daty jego podpisania. Prace naprawcze
-                muszą zostać zlecone osobie posiadającej ważne uprawnienia
-                elektryczne, a ich wykonanie należy potwierdzić stosownym
-                protokołem powykonawczym i zgłosić administratorowi obiektu.
-                Ponadto, podpisujący potwierdza, że został poinformowany o
-                konieczności zerowania/uziemienia gniazd wtykowych w
-                pomieszczeniach mokrych (łazienka, kuchnia) oraz o
-                zagrożeniach wynikających z niewłaściwej eksploatacji
-                instalacji elektrycznej.
+                {OWNER_CLAUSE_OBLIGATIONS}
               </p>
               <p
                 className="text-slate-300"
                 style={{ fontSize: `${clauseFontSize}rem`, lineHeight: 1.5 }}
               >
-                Składając poniższy podpis (w tym w formie elektronicznej na
-                urządzeniu mobilnym), potwierdzam odbiór protokołu,
-                zapoznanie się z jego treścią oraz uwagami. Administratorem
-                danych osobowych jest HC INSTAL Henryk Cieśla. Dane
-                przetwarzane są w celu wykonania usługi, w celach księgowych
-                oraz archiwizacyjnych.
+                {OWNER_CLAUSE_CONSENT}
               </p>
             </Card>
             <SignaturePanel
