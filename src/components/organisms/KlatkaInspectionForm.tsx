@@ -14,6 +14,8 @@ interface KlatkaInspectionFormProps {
  */
 export const DEFAULT_KLATKA_DATA: KlatkaData = {
   przylacze: 'kablowe',
+  typKabla: 'YAKY',
+  przekrojPrzylacza: '4×35',
   pwpStatus: 'jest',
   pwpLokalizacja: 'przy wejściu',
   stanIzolacji: 'dobry',

@@ -82,7 +82,9 @@ export const ProjectsScreen: React.FC = () => {
     <MainLayout title="Moje Projekty">
       {/* Content */}
       <div className="p-4 min-h-full">
-        {!isLoadingProjects && projects.length === 0 ? (
+        {isLoadingProjects && projects.length === 0 ? (
+          <div className="text-center text-slate-400 py-8">Ładowanie...</div>
+        ) : !isLoadingProjects && projects.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen size={64} className="mx-auto text-slate-600 mb-4" />
             <h2 className="text-xl font-semibold text-slate-200 mb-2">

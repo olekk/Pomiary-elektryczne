@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { Home, FileDown, CheckCircle, Plus, Pencil } from 'lucide-react'
+import {
+  Home,
+  FileDown,
+  CheckCircle,
+  Plus,
+  Pencil,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import { SignaturePanel, NotesSection } from './organisms'
 import { CompactMeasurementListItem } from './molecules'
 import { Button, Card } from './atoms'
@@ -89,6 +97,11 @@ export const SummaryScreen: React.FC = () => {
   const effectiveBuildingId = resolvedBuildingId || inspection?.buildingId
 
   const [notes, setNotes] = useState(inspection?.notes || '')
+
+  const CLAUSE_FONT_MIN = 1
+  const CLAUSE_FONT_MAX = 1.75
+  const CLAUSE_FONT_STEP = 0.125
+  const [clauseFontSize, setClauseFontSize] = useState(1.125)
 
   useEffect(() => {
     setNotes(inspection?.notes || '')
@@ -434,11 +447,75 @@ export const SummaryScreen: React.FC = () => {
         />
 
         {inspection.unitType !== 'klatka' && (
-          <SignaturePanel
-            onSave={handleSaveSignature}
-            initialSignature={inspection.ownerSignature}
-            customTitle="Podpis Właściciela/Najemcy"
-          />
+          <>
+            <Card className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold text-slate-100">
+                  Oświadczenie użytkownika lokalu
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setClauseFontSize((s) =>
+                        Math.max(CLAUSE_FONT_MIN, +(s - CLAUSE_FONT_STEP).toFixed(3))
+                      )
+                    }
+                    disabled={clauseFontSize <= CLAUSE_FONT_MIN}
+                    aria-label="Zmniejsz czcionkę klauzuli"
+                  >
+                    <ZoomOut size={14} />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setClauseFontSize((s) =>
+                        Math.min(CLAUSE_FONT_MAX, +(s + CLAUSE_FONT_STEP).toFixed(3))
+                      )
+                    }
+                    disabled={clauseFontSize >= CLAUSE_FONT_MAX}
+                    aria-label="Zwiększ czcionkę klauzuli"
+                  >
+                    <ZoomIn size={14} />
+                  </Button>
+                </div>
+              </div>
+              <p
+                className="font-bold text-slate-100 mb-3"
+                style={{ fontSize: `${clauseFontSize}rem`, lineHeight: 1.5 }}
+              >
+                Użytkownik lokalu (najemca/właściciel) zobowiązuje się do
+                usunięcia wszelkich usterek wykazanych w niniejszym protokole
+                w terminie 14 dni od daty jego podpisania. Prace naprawcze
+                muszą zostać zlecone osobie posiadającej ważne uprawnienia
+                elektryczne, a ich wykonanie należy potwierdzić stosownym
+                protokołem powykonawczym i zgłosić administratorowi obiektu.
+                Ponadto, podpisujący potwierdza, że został poinformowany o
+                konieczności zerowania/uziemienia gniazd wtykowych w
+                pomieszczeniach mokrych (łazienka, kuchnia) oraz o
+                zagrożeniach wynikających z niewłaściwej eksploatacji
+                instalacji elektrycznej.
+              </p>
+              <p
+                className="text-slate-300"
+                style={{ fontSize: `${clauseFontSize}rem`, lineHeight: 1.5 }}
+              >
+                Składając poniższy podpis (w tym w formie elektronicznej na
+                urządzeniu mobilnym), potwierdzam odbiór protokołu,
+                zapoznanie się z jego treścią oraz uwagami. Administratorem
+                danych osobowych jest HC INSTAL Henryk Cieśla. Dane
+                przetwarzane są w celu wykonania usługi, w celach księgowych
+                oraz archiwizacyjnych.
+              </p>
+            </Card>
+            <SignaturePanel
+              onSave={handleSaveSignature}
+              initialSignature={inspection.ownerSignature}
+              customTitle="Podpis Właściciela/Najemcy"
+            />
+          </>
         )}
 
         <div className="space-y-3 mt-4">
