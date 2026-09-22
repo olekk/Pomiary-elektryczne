@@ -1,10 +1,25 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Home, Trash2, CheckCircle, DoorOpen, Cloud, HardDrive, Search, X } from 'lucide-react'
+import {
+  Plus,
+  Home,
+  Trash2,
+  CheckCircle,
+  DoorOpen,
+  Cloud,
+  HardDrive,
+  Search,
+  X,
+  FileDown,
+} from 'lucide-react'
 import { useAuth, useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button, ActionMenu } from './atoms'
-import { getFullAddress } from '../utils'
+import {
+  getFullAddress,
+  compareApartmentNumbers,
+  generateInspectionPdfsBatch,
+} from '../utils'
 import {
   collection,
   query,
@@ -57,6 +72,7 @@ const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
     synced: data.synced ?? true,
     status: data.status || 'COMPLETED',
     unitType: data.unitType || 'mieszkanie',
+    klatkaData: data.klatkaData || undefined,
   }
 }
 
@@ -77,10 +93,10 @@ export const ProjectDetailsScreen: React.FC = () => {
     () =>
       projectId
         ? query(
-          collection(db, 'buildings'),
-          where('projectId', '==', projectId),
-          orderBy('createdAt', 'desc')
-        )
+            collection(db, 'buildings'),
+            where('projectId', '==', projectId),
+            orderBy('createdAt', 'desc')
+          )
         : null,
     [projectId]
   )
@@ -90,10 +106,10 @@ export const ProjectDetailsScreen: React.FC = () => {
     () =>
       projectId
         ? query(
-          collection(db, 'inspections'),
-          where('projectId', '==', projectId),
-          orderBy('createdAt', 'desc')
-        )
+            collection(db, 'inspections'),
+            where('projectId', '==', projectId),
+            orderBy('createdAt', 'desc')
+          )
         : null,
     [projectId]
   )
@@ -104,16 +120,33 @@ export const ProjectDetailsScreen: React.FC = () => {
     []
   )
 
-  const { data: buildings, isLoading: isLoadingBuildings, fromCache: buildingsFromCache } =
-    useCollection<Building>(buildingsQuery, buildingMapper, `buildings-${projectId || 'none'}`, 'Buildings')
-  const { data: projectInspections } =
-    useCollection<Inspection>(projectInspectionsQuery, inspectionMapper, `inspections-${projectId || 'none'}`, 'ProjectInspections')
-  const { data: projects, isLoading: isLoadingProjects } =
-    useCollection(projectsQuery, (doc) => ({ id: doc.id, name: doc.data().name }), 'all-projects', 'Projects')
+  const {
+    data: buildings,
+    isLoading: isLoadingBuildings,
+    fromCache: buildingsFromCache,
+  } = useCollection<Building>(
+    buildingsQuery,
+    buildingMapper,
+    `buildings-${projectId || 'none'}`,
+    'Buildings'
+  )
+  const { data: projectInspections } = useCollection<Inspection>(
+    projectInspectionsQuery,
+    inspectionMapper,
+    `inspections-${projectId || 'none'}`,
+    'ProjectInspections'
+  )
+  const { data: projects, isLoading: isLoadingProjects } = useCollection(
+    projectsQuery,
+    (doc) => ({ id: doc.id, name: doc.data().name }),
+    'all-projects',
+    'Projects'
+  )
 
   // Oblicz statystyki inspekcji per budynek
   const buildingStats = useMemo(() => {
-    const stats: Record<string, { completed: number; inaccessible: number }> = {}
+    const stats: Record<string, { completed: number; inaccessible: number }> =
+      {}
     for (const inspection of projectInspections) {
       const bId = inspection.buildingId
       if (!stats[bId]) {
@@ -180,22 +213,46 @@ export const ProjectDetailsScreen: React.FC = () => {
     setShowNewModal(false)
   }
 
+  const handleDownloadAllPdfs = (buildingId: string, address: string) => {
+    const buildingInspections = projectInspections
+      .filter((inspection) => inspection.buildingId === buildingId)
+      .sort((a, b) =>
+        compareApartmentNumbers(a.apartmentNumber, b.apartmentNumber)
+      )
+
+    if (buildingInspections.length === 0) {
+      alert(`Budynek "${address}" nie ma jeszcze żadnych protokołów.`)
+      return
+    }
+
+    if (
+      !confirm(
+        `Wygenerować i pobrać ${buildingInspections.length} protokołów PDF dla "${address}"? Pliki będą pobierane kolejno — nie zamykaj aplikacji.`
+      )
+    ) {
+      return
+    }
+
+    generateInspectionPdfsBatch(buildingInspections)
+  }
+
   const handleDeleteBuilding = (id: string, address: string) => {
     if (
       confirm(
         `Czy na pewno chcesz usunąć budynek "${address}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      deleteBuildingFromFirestore(id)
-        .catch((error: unknown) => {
-          console.error('❌ Error deleting building:', error)
-        })
+      deleteBuildingFromFirestore(id).catch((error: unknown) => {
+        console.error('❌ Error deleting building:', error)
+      })
     }
   }
 
   // Znajdź nazwę projektu
   const currentProject = projects.find((p) => p.id === projectId)
-  const projectName = currentProject?.name || (isLoadingProjects ? 'Ładowanie…' : 'Nieznany projekt')
+  const projectName =
+    currentProject?.name ||
+    (isLoadingProjects ? 'Ładowanie…' : 'Nieznany projekt')
 
   // Jeśli brak projectId, przekieruj do głównego ekranu
   if (!projectId) {
@@ -223,22 +280,34 @@ export const ProjectDetailsScreen: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm text-slate-400">
-                Budynki ({searchQuery.trim() ? `${filteredBuildings.length} / ${buildings.length}` : buildings.length})
+                Budynki (
+                {searchQuery.trim()
+                  ? `${filteredBuildings.length} / ${buildings.length}`
+                  : buildings.length}
+                )
               </span>
               <div
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${buildingsFromCache
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  buildingsFromCache
                     ? 'bg-amber-900/50 text-amber-300 border border-amber-700/50'
                     : 'bg-emerald-900/50 text-emerald-300 border border-emerald-700/50'
-                  }`}
+                }`}
               >
-                {buildingsFromCache ? <HardDrive size={12} className="animate-pulse" /> : <Cloud size={12} />}
+                {buildingsFromCache ? (
+                  <HardDrive size={12} className="animate-pulse" />
+                ) : (
+                  <Cloud size={12} />
+                )}
                 {buildingsFromCache ? 'Dane lokalne' : 'Aktualne'}
               </div>
             </div>
 
             {/* Search bar */}
             <div className="relative mb-4">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+              />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -249,7 +318,10 @@ export const ProjectDetailsScreen: React.FC = () => {
               />
               {searchQuery && (
                 <button
-                  onClick={() => { setSearchQuery(''); searchInputRef.current?.focus() }}
+                  onClick={() => {
+                    setSearchQuery('')
+                    searchInputRef.current?.focus()
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                   aria-label="Wyczyść wyszukiwanie"
                 >
@@ -290,9 +362,25 @@ export const ProjectDetailsScreen: React.FC = () => {
                         ariaLabel="Opcje budynku"
                         items={[
                           {
-                            label: 'Usuń',
+                            label: 'Pobierz wszystkie PDF',
+                            icon: (
+                              <FileDown size={16} className="text-blue-400" />
+                            ),
+                            onClick: () =>
+                              handleDownloadAllPdfs(
+                                building.id,
+                                getFullAddress(building)
+                              ),
+                            className: 'text-blue-400 hover:bg-blue-900/40',
+                          },
+                          {
+                            label: 'Usuń budynek',
                             icon: <Trash2 size={16} className="text-red-400" />,
-                            onClick: () => handleDeleteBuilding(building.id, getFullAddress(building)),
+                            onClick: () =>
+                              handleDeleteBuilding(
+                                building.id,
+                                getFullAddress(building)
+                              ),
                             className: 'text-red-400 hover:bg-red-900/40',
                           },
                         ]}
@@ -302,23 +390,24 @@ export const ProjectDetailsScreen: React.FC = () => {
                     {/* Statystyki inspekcji */}
                     {(buildingStats[building.id]?.completed > 0 ||
                       buildingStats[building.id]?.inaccessible > 0) && (
-                        <div className="flex items-center gap-4 mb-4 text-sm">
-                          <div className="flex items-center gap-1.5 text-emerald-400">
-                            <CheckCircle size={16} />
+                      <div className="flex items-center gap-4 mb-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-emerald-400">
+                          <CheckCircle size={16} />
+                          <span>
+                            Wykonano: {buildingStats[building.id].completed}
+                          </span>
+                        </div>
+                        {buildingStats[building.id].inaccessible > 0 && (
+                          <div className="flex items-center gap-1.5 text-orange-400">
+                            <DoorOpen size={16} />
                             <span>
-                              Wykonano: {buildingStats[building.id].completed}
+                              Niedostępne:{' '}
+                              {buildingStats[building.id].inaccessible}
                             </span>
                           </div>
-                          {buildingStats[building.id].inaccessible > 0 && (
-                            <div className="flex items-center gap-1.5 text-orange-400">
-                              <DoorOpen size={16} />
-                              <span>
-                                Niedostępne: {buildingStats[building.id].inaccessible}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
+                    )}
 
                     <Button
                       onClick={() => navigate(`/building/${building.id}`)}
@@ -406,10 +495,7 @@ export const ProjectDetailsScreen: React.FC = () => {
               >
                 Anuluj
               </Button>
-              <Button
-                onClick={handleCreateBuilding}
-                className="flex-1"
-              >
+              <Button onClick={handleCreateBuilding} className="flex-1">
                 Utwórz
               </Button>
             </div>

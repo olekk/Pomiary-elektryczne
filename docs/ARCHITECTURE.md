@@ -230,14 +230,22 @@ Creating and completing an inspection crosses four screens and two persistence l
 
 ## 9. PDF Generation
 
-`utils/generatePdf.tsx` (`generateInspectionPdf(inspection)`) is the single entry point — do not re-implement the blob/download dance elsewhere (it was duplicated once, in 2026-06, and centralized two days later; see History Era 12).
+`utils/generatePdf.tsx` is the single entry point — do not re-implement the blob/download dance elsewhere (it was duplicated once, in 2026-06, and centralized two days later; see History Era 12). It exports two functions over one shared internal render/download helper:
+
+- `generateInspectionPdf(inspection)` — one protocol.
+- `generateInspectionPdfsBatch(inspections)` — several protocols, rendered and downloaded sequentially (used by the per-building "Pobierz wszystkie PDF" action in `ProjectDetailsScreen`).
+
+Both go through one module-level promise chain (`enqueuePdfJob`), so PDF work never runs concurrently: a second click while a run is in flight is queued, and its toast says so (`Czekam na zakończenie poprzedniego pobierania…`) until its turn comes. Without that, two runs would interleave their downloads — collapsing the spacing below — and one run's `recoverFirestore()` would terminate Firestore in the middle of the other.
 
 - Shows an indeterminate toast ("Generowanie PDF…") via `utils/toast.ts`.
 - Dynamically imports `@react-pdf/renderer` and `components/PdfGenerator.tsx` (kept out of the main bundle — see §15).
 - `PdfGenerator.tsx` registers the Roboto font family from `/fonts/Roboto-{Regular,Bold}.ttf`, which are precached by the service worker specifically for this purpose (`vite.config.ts`'s `globPatterns` includes `ttf`) — `@react-pdf/renderer` fetches fonts via plain `fetch()`, not as font requests, so runtime font-caching strategies wouldn't otherwise catch them.
 - On error, the toast is updated with a specific message depending on whether the failure looks font-related, network-related, or other.
-- `finally` block always calls `recoverFirestore()` (§8), regardless of success or failure.
+- `finally` block always calls `recoverFirestore()` (§8), regardless of success or failure — once per batch, not once per protocol.
 - Output filename is the protocol number with `/` replaced by `-`.
+- The object URL is revoked on a 2s timeout rather than immediately after `link.click()` — Safari cancels a download whose blob URL disappears too soon, which is reachable when downloads fire back to back.
+
+**Batch specifics** (`generateInspectionPdfsBatch`): the `@react-pdf/renderer` import happens once for the whole batch; the toast reports progress (`Generowanie PDF 3/12 — 4/2026/KW15`); a failure on one protocol is collected and reported in the closing toast instead of aborting the rest; consecutive downloads are spaced by `BATCH_DOWNLOAD_DELAY_MS` (600 ms) because browsers silently drop downloads fired too quickly. Callers sort with `compareApartmentNumbers()` (`utils/apartmentUtils.ts`) so files arrive in unit order (1, 1A, 2, 10) rather than Firestore's `createdAt desc`. Desktop browsers show a one-time "allow multiple downloads" prompt; iOS Safari handles downloads one at a time, which the spacing accommodates.
 
 ## 10. Authentication
 

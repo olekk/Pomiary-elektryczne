@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { incrementApartmentNumber } from '../apartmentUtils'
+import {
+  incrementApartmentNumber,
+  compareApartmentNumbers,
+} from '../apartmentUtils'
 
 describe('incrementApartmentNumber', () => {
   // Standard numeric increments
@@ -31,7 +34,40 @@ describe('incrementApartmentNumber', () => {
   it('handles undefined-like falsy input', () => {
     // @ts-expect-error testing runtime guard against falsy values
     expect(incrementApartmentNumber(undefined)).toBe('')
-    // @ts-expect-error testing runtime guard against falsy values  
+    // @ts-expect-error testing runtime guard against falsy values
     expect(incrementApartmentNumber(null)).toBe('')
+  })
+})
+
+describe('compareApartmentNumbers', () => {
+  const sorted = (values: string[]) => [...values].sort(compareApartmentNumbers)
+
+  it('sortuje numerycznie, nie leksykalnie', () => {
+    expect(sorted(['10', '2', '1'])).toEqual(['1', '2', '10'])
+  })
+
+  it('numer z literą idzie po samym numerze', () => {
+    expect(sorted(['2', '1B', '1', '1A'])).toEqual(['1', '1A', '1B', '2'])
+  })
+
+  it('ignoruje wielkość liter w sufiksie', () => {
+    expect(sorted(['1b', '1A'])).toEqual(['1A', '1b'])
+  })
+
+  it('wartości bez cyfr trafiają na koniec, alfabetycznie', () => {
+    expect(sorted(['Klatka B', '3', 'Klatka A'])).toEqual([
+      '3',
+      'Klatka A',
+      'Klatka B',
+    ])
+  })
+
+  it('traktuje dwie wartości bez cyfr jako porównywalne (bez NaN)', () => {
+    expect(compareApartmentNumbers('Klatka', 'Klatka')).toBe(0)
+  })
+
+  it('obsługuje puste i białe znaki', () => {
+    expect(compareApartmentNumbers('', '')).toBe(0)
+    expect(compareApartmentNumbers(' 2 ', '10')).toBeLessThan(0)
   })
 })

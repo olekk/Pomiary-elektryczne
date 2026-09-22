@@ -23,3 +23,24 @@ export const incrementApartmentNumber = (apartmentNumber: string): string => {
 
   return incrementedNumber + letter
 }
+
+/**
+ * Porównuje numery lokali "po ludzku", do sortowania list protokołów.
+ * Przykłady kolejności: "1", "1A", "2", "10", "10B", "Klatka"
+ * (wartości bez części cyfrowej trafiają na koniec, alfabetycznie).
+ */
+export const compareApartmentNumbers = (a: string, b: string): number => {
+  const parse = (value: string) => {
+    const trimmed = (value || '').trim()
+    const match = trimmed.match(/^(\d+)(.*)$/)
+    return match
+      ? { number: parseInt(match[1], 10), rest: match[2].trim().toLowerCase() }
+      : { number: Number.POSITIVE_INFINITY, rest: trimmed.toLowerCase() }
+  }
+
+  const left = parse(a)
+  const right = parse(b)
+
+  if (left.number !== right.number) return left.number - right.number
+  return left.rest.localeCompare(right.rest, 'pl')
+}

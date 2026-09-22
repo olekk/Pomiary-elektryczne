@@ -11,7 +11,7 @@ interface ToastOptions {
   type?: ToastType
 }
 
-interface ToastHandle {
+export interface ToastHandle {
   /** Update the message, optionally the type, and optionally a new auto-dismiss duration (ms). */
   update: (message: string, type?: ToastType, duration?: number) => void
   /** Remove the toast immediately. */
@@ -46,23 +46,26 @@ function getOrCreateContainer(): HTMLElement {
   return container
 }
 
-const STYLES: Record<ToastType, { bg: string; border: string; text: string; icon: string }> = {
+const STYLES: Record<
+  ToastType,
+  { bg: string; border: string; text: string; icon: string }
+> = {
   info: {
-    bg: 'rgba(30, 41, 59, 0.95)',   // slate-800
-    border: '1px solid rgba(59, 130, 246, 0.5)',  // blue-500/50
-    text: '#e2e8f0',  // slate-200
+    bg: 'rgba(30, 41, 59, 0.7)', // slate-800/70
+    border: '1px solid rgba(59, 130, 246, 0.5)', // blue-500/50
+    text: '#e2e8f0', // slate-200
     icon: '⏳',
   },
   success: {
-    bg: 'rgba(20, 83, 45, 0.95)',   // green-900
-    border: '1px solid rgba(34, 197, 94, 0.6)',   // green-500/60
-    text: '#bbf7d0',  // green-200
+    bg: 'rgba(20, 83, 45, 0.7)', // green-900/70
+    border: '1px solid rgba(34, 197, 94, 0.6)', // green-500/60
+    text: '#bbf7d0', // green-200
     icon: '✅',
   },
   error: {
-    bg: 'rgba(127, 29, 29, 0.9)',   // red-900
-    border: '1px solid rgba(239, 68, 68, 0.6)',   // red-500/60
-    text: '#fecaca',  // red-200
+    bg: 'rgba(127, 29, 29, 0.7)', // red-900/70
+    border: '1px solid rgba(239, 68, 68, 0.6)', // red-500/60
+    text: '#fecaca', // red-200
     icon: '❌',
   },
 }
@@ -73,8 +76,6 @@ function applyStyles(el: HTMLElement, type: ToastType) {
     background: s.bg,
     border: s.border,
     color: s.text,
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
   })
 }
 
@@ -87,7 +88,10 @@ function applyStyles(el: HTMLElement, type: ToastType) {
  * t.update('PDF wygenerowany!', 'success')
  * t.dismiss()              // or let auto-dismiss handle it
  */
-export function showToast(message: string, options: ToastOptions = {}): ToastHandle {
+export function showToast(
+  message: string,
+  options: ToastOptions = {}
+): ToastHandle {
   const { duration = 3000, type = 'info' } = options
   const container = getOrCreateContainer()
 
