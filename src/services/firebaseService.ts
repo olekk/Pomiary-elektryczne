@@ -13,7 +13,13 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import type { Inspection, KlatkaData, Project, UserSettings } from '../types'
+import type {
+  Inspection,
+  KlatkaData,
+  OdgromowaData,
+  Project,
+  UserSettings,
+} from '../types'
 import { logger } from '../utils/logger'
 import { ensureDate, buildInspectionStatusMap } from '../utils'
 
@@ -118,6 +124,12 @@ export const deleteBuildingFromFirestore = async (
   )
 }
 
+/** Płytka kopia obiektu bez kluczy o wartości `undefined` */
+const withoutUndefinedFields = <T extends object>(data: T): T =>
+  Object.fromEntries(
+    Object.entries(data).filter(([, fieldValue]) => fieldValue !== undefined)
+  ) as T
+
 /**
  * Save an inspection to Firestore
  */
@@ -130,15 +142,14 @@ export const saveInspectionToFirestore = async (
       noGrounding === undefined ? measurement : { ...measurement, noGrounding }
   )
 
-  // Firestore odrzuca wartości `undefined`. Pola klatki nieistotne dla danego
-  // wariantu (np. typKabla przy przyłączu napowietrznym) muszą zostać pominięte,
-  // inaczej cały zapis inspekcji cicho pada w fire-and-forget `.catch()`.
+  // Firestore odrzuca wartości `undefined`. Pola klatki/odgromowej nieistotne dla
+  // danego wariantu (np. typKabla przy przyłączu napowietrznym) muszą zostać
+  // pominięte, inaczej cały zapis inspekcji cicho pada w fire-and-forget `.catch()`.
   const sanitizedKlatkaData = inspection.klatkaData
-    ? (Object.fromEntries(
-        Object.entries(inspection.klatkaData).filter(
-          ([, fieldValue]) => fieldValue !== undefined
-        )
-      ) as KlatkaData)
+    ? withoutUndefinedFields<KlatkaData>(inspection.klatkaData)
+    : undefined
+  const sanitizedOdgromowaData = inspection.odgromowaData
+    ? withoutUndefinedFields<OdgromowaData>(inspection.odgromowaData)
     : undefined
 
   const dataToSave = {
@@ -163,6 +174,9 @@ export const saveInspectionToFirestore = async (
     unitType: inspection.unitType || 'mieszkanie',
     createdAt: Timestamp.now(),
     ...(sanitizedKlatkaData ? { klatkaData: sanitizedKlatkaData } : {}),
+    ...(sanitizedOdgromowaData
+      ? { odgromowaData: sanitizedOdgromowaData }
+      : {}),
   }
 
   const batch = writeBatch(db)
@@ -230,6 +244,7 @@ export const mapInspectionDoc = (
     status: data.status || 'COMPLETED',
     unitType: data.unitType || 'mieszkanie',
     klatkaData: data.klatkaData || undefined,
+    odgromowaData: data.odgromowaData || undefined,
   }
 }
 

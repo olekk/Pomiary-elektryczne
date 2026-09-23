@@ -7,3 +7,4 @@ export {
   KlatkaInspectionForm,
   DEFAULT_KLATKA_DATA,
 } from './KlatkaInspectionForm'
+export { OdgromowaInspectionForm } from './OdgromowaInspectionForm'

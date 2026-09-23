@@ -3,13 +3,17 @@ export type Amperage = 10 | 16 | 20 | 25
 export type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
 export type Room = 'Łazienka' | 'Kuchnia' | (string & {})
 export type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
-export type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
+export type UnitType = 'mieszkanie' | 'lokal' | 'klatka' | 'odgromowa'
 
 export type PrzylaczType = 'kablowe' | 'napowietrzne'
 export type PwpStatus = 'jest' | 'brak'
 export type JestBrak = 'jest' | 'brak'
 export type TakNie = 'tak' | 'nie'
 export type DobryZly = 'dobry' | 'zły'
+
+// Wynik końcowy protokołu (wniosek) — wspólny dla wszystkich typów protokołów.
+// Liczony w jednym miejscu: `getProtocolVerdict()` (utils/protocolVerdict.ts).
+export type ProtocolVerdict = 'nadaje' | 'nadaje-po-usunieciu' | 'nie-nadaje'
 
 export interface KlatkaData {
   // 1. Przyłącze
@@ -73,10 +77,70 @@ export interface KlatkaData {
   piorunochronWynik?: 'pozytywny' | 'negatywny'
 
   // 13. Ocena
-  ocenaInstalacji?: 'nadaje' | 'nie-nadaje'
+  ocenaInstalacji?: ProtocolVerdict
 
   // 14. Termin usunięcia usterek
   terminUsterek?: string
+}
+
+// ─── Przegląd instalacji odgromowej ───
+// Wartości wyliczeń (etykiety do UI/PDF) są w constants/odgromowa.ts.
+export type RodzajUziomu =
+  'otokowy' | 'fundamentowy' | 'pionowy' | 'mieszany' | 'nieustalony'
+export type RodzajZwodow = 'niskie' | 'podniesione' | 'pionowe' | 'naturalne'
+export type MaterialZwodow = 'fezn-6' | 'fezn-8' | 'al-8' | 'bednarka-fezn'
+export type PrzewodyUziomowe = 'bednarka-zlacze' | 'inne'
+export type RodzajGruntu =
+  'piasek' | 'glina' | 'il' | 'zwir' | 'nasypowy' | 'nieustalony'
+export type StanPogody = 'sucho' | 'po-opadach' | 'mroz'
+export type StanGruntu = 'suchy' | 'wilgotny' | 'zamarzniety'
+export type StanPrzewodow =
+  'bez-uwag' | 'korozja' | 'uchwyty' | 'przerwa' | 'uszkodzenie'
+export type StanZlaczy =
+  'bez-uwag' | 'skorodowane' | 'nierozlaczalne' | 'brak-dostepu'
+export type StanSpd = 'sprawne' | 'do-wymiany' | 'brak'
+export type Ciaglosc = 'zachowana' | 'brak'
+export type ZalecenieOdgromowe =
+  | 'wymiana-uchwytow'
+  | 'naprawa-ciaglosci'
+  | 'wymiana-zlacza'
+  | 'antykorozja'
+  | 'spd'
+  | 'rozbudowa-uziomu'
+
+export interface ZlaczeKontrolne {
+  nr: string // K1…Kn
+  ciaglosc: Ciaglosc
+  rUziemienia: number | null // [Ω], null = jeszcze nie zmierzono
+}
+
+export interface OdgromowaData {
+  // 2. Opis instalacji — wypełniany raz na budynek, kopiowany z poprzedniego protokołu
+  rodzajUziomu: RodzajUziomu
+  zwody: RodzajZwodow
+  materialZwodow: MaterialZwodow
+  przewodyUziomowe: PrzewodyUziomowe
+  przewodyUziomoweInne?: string
+
+  // 3. Warunki pomiaru
+  rodzajGruntu: RodzajGruntu
+  stanPogody: StanPogody
+  stanGruntu: StanGruntu
+
+  // 5. Oględziny
+  zwodyStan: StanPrzewodow
+  przewodyOdprowadzajaceStan: StanPrzewodow
+  zlaczaStan: StanZlaczy
+
+  // 6. Pomiary — jeden wiersz na złącze kontrolne
+  zlacza: ZlaczeKontrolne[]
+
+  // 7. Ograniczniki przepięć
+  spd: StanSpd
+
+  // 9. Wnioski
+  wynik: ProtocolVerdict
+  zalecenia: ZalecenieOdgromowe[] // tylko przy wyniku innym niż 'nadaje'
 }
 
 export interface Measurement {
@@ -138,6 +202,7 @@ export interface Inspection {
   status?: InspectionStatus // 'COMPLETED' domyślnie, 'INACCESSIBLE' = niedostępne
   unitType?: UnitType // 'mieszkanie' domyślnie
   klatkaData?: KlatkaData // data for 'klatka' unit type inspections
+  odgromowaData?: OdgromowaData // data for 'odgromowa' unit type inspections
 }
 
 export interface UserSettings {
@@ -164,6 +229,9 @@ export const ZS_DOP_TABLE: Record<ProtectionType, Record<Amperage, number>> = {
     25: 1.7,
   },
 }
+
+// Dopuszczalna rezystancja uziemienia instalacji odgromowej [Ω]
+export const R_UZIEMIENIA_DOP = 10
 
 // Domyślne współczynniki k
 export const DEFAULT_K_FACTORS: Record<ProtectionType, number> = {

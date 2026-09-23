@@ -8,12 +8,22 @@ import {
   Image,
   Font,
 } from '@react-pdf/renderer'
-import type { Inspection } from '../types'
+import type { Inspection, ProtocolVerdict } from '../types'
 import { logger } from '../utils/logger'
+import {
+  getProtocolVerdict,
+  getNextInspectionDate,
+  isDwellingUnit,
+  getProtocolTitle,
+  VERDICT_CONCLUSIONS,
+  verdictLabel,
+} from '../utils'
 import {
   OWNER_CLAUSE_CONSENT,
   OWNER_CLAUSE_OBLIGATIONS,
 } from '../constants/clauses'
+import { MEASURING_INSTRUMENT } from '../constants/instrument'
+import { OdgromowaPdfSection } from './OdgromowaPdfSection'
 
 interface PdfGeneratorProps {
   inspection: Inspection
@@ -213,6 +223,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#16a34a',
   },
+  conclusionConditional: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ea580c',
+  },
   conclusionNotSuitable: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -234,6 +249,15 @@ const styles = StyleSheet.create({
     width: 30,
   },
 })
+
+const CONCLUSION_STYLES: Record<
+  ProtocolVerdict,
+  (typeof styles)[keyof typeof styles]
+> = {
+  nadaje: styles.conclusionSuitable,
+  'nadaje-po-usunieciu': styles.conclusionConditional,
+  'nie-nadaje': styles.conclusionNotSuitable,
+}
 
 export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const technicianName = inspection.technicianName || 'Brak danych technika'
@@ -279,14 +303,15 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
   const hasManual = manualNotes.length > 0
   const hasAnyRemarks = hasAuto || hasManual
 
-  // Brak wartości = pole nietknięte przez użytkownika → domyślnie "nadaje"
-  // (tak samo, jak pokazuje formularz i podsumowanie).
-  const ocenaInstalacji = inspection.klatkaData?.ocenaInstalacji || 'nadaje'
-
-  const hasProblems =
-    inspection.unitType !== 'klatka'
-      ? inspection.measurements.some((m) => m.result === 'NIE')
-      : ocenaInstalacji !== 'nadaje'
+  const verdict = getProtocolVerdict(inspection)
+  const hasDefects = verdict !== 'nadaje'
+  const nextInspectionDate = getNextInspectionDate(
+    new Date(inspection.date),
+    verdict
+  )
+  // Mieszkanie/lokal: pomiary Zs + oświadczenie i podpis najemcy
+  const isDwelling = isDwellingUnit(inspection.unitType)
+  const isOdgromowa = inspection.unitType === 'odgromowa'
 
   return (
     <Document>
@@ -297,7 +322,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             src={`${window.location.origin}/logo.png`}
             style={{ width: '50%', marginBottom: 10 }}
           />
-          <Text style={styles.title}>PROTOKÓŁ POMIARÓW OCHRONNYCH</Text>
+          <Text style={styles.title}>
+            {isOdgromowa
+              ? 'PROTOKÓŁ Z PRZEGLĄDU INSTALACJI ODGROMOWEJ'
+              : 'PROTOKÓŁ POMIARÓW OCHRONNYCH'}
+          </Text>
           <Text style={styles.subtitle}>
             Nr protokołu: {inspection.protocolNumber}
           </Text>
@@ -312,24 +341,23 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.label}>Adres:</Text>
             <Text style={styles.value}>{inspection.address}</Text>
           </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>
-              {inspection.unitType === 'lokal'
-                ? 'Lokal:'
-                : inspection.unitType === 'klatka'
-                  ? 'Klatka:'
-                  : 'Mieszkanie:'}
-            </Text>
-            <Text style={styles.value}>{inspection.apartmentNumber}</Text>
-          </View>
-          {inspection.unitType !== 'klatka' && (
+          {/* Odgromowa: nazwa obiektu jest już w tytule protokołu */}
+          {!isOdgromowa && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Obiekt:</Text>
+              <Text style={styles.value}>{getProtocolTitle(inspection)}</Text>
+            </View>
+          )}
+          {isDwelling && (
             <View style={styles.infoRow}>
               <Text style={styles.label}>Najemca / Właściciel:</Text>
               <Text style={styles.value}>{inspection.ownerName}</Text>
             </View>
           )}
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Data pomiaru:</Text>
+            <Text style={styles.label}>
+              {isOdgromowa ? 'Data badania:' : 'Data pomiaru:'}
+            </Text>
             <Text style={styles.value}>
               {new Date(inspection.date).toLocaleDateString('pl-PL')}
             </Text>
@@ -337,20 +365,16 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Data kolejnego badania:</Text>
             <Text style={styles.value}>
-              {hasProblems
-                ? '-'
-                : (() => {
-                    const nextDate = new Date(inspection.date)
-                    nextDate.setFullYear(nextDate.getFullYear() + 5)
-                    return nextDate.toLocaleDateString('pl-PL')
-                  })()}
+              {nextInspectionDate
+                ? nextInspectionDate.toLocaleDateString('pl-PL')
+                : '-'}
             </Text>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.label}>Przyczyna pomiaru:</Text>
             <Text style={styles.value}>badanie okresowe</Text>
           </View>
-          {inspection.unitType !== 'klatka' && (
+          {isDwelling && (
             <View style={styles.infoRow}>
               <Text style={styles.label}>Tabela wyników pomiarów</Text>
               <Text style={styles.value}>
@@ -360,13 +384,19 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
           )}
         </View>
 
-        {inspection.unitType !== 'klatka' && (
+        {isDwelling && (
           <Text style={styles.subtitle}>
             Badanie ochrony przed porażeniem przez samoczynne wyłącznie
           </Text>
         )}
 
-        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
+        {isOdgromowa && inspection.odgromowaData ? (
+          <OdgromowaPdfSection
+            data={inspection.odgromowaData}
+            verdict={verdict}
+            nextInspectionDate={nextInspectionDate}
+          />
+        ) : inspection.unitType === 'klatka' && inspection.klatkaData ? (
           (() => {
             const d = inspection.klatkaData
 
@@ -654,9 +684,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                 {kRow(
                   '13.',
                   'Ocena instalacji elektryczna',
-                  ocenaInstalacji === 'nadaje'
-                    ? 'NADAJE SIĘ do dalszej eksploatacji'
-                    : 'NIE NADAJE SIĘ do dalszej eksploatacji'
+                  verdictLabel(verdict)
                 )}
                 {kRow(
                   '14.',
@@ -726,60 +754,64 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </View>
           </>
         )}
-        {/* --- SEKCJA OGLĘDZINY --- */}
-        <View style={styles.inspectionContainer}>
-          <Text style={styles.sectionTitle}>
-            OGLĘDZINY INSTALACJI ELEKTRYCZNEJ
-          </Text>
-          <Text style={styles.sectionSubtitle}>wg normy PN-IEC 60364-6-61</Text>
+        {/* --- SEKCJA OGLĘDZINY (instalacja elektryczna; odgromowa ma własne) --- */}
+        {!isOdgromowa && (
+          <View style={styles.inspectionContainer}>
+            <Text style={styles.sectionTitle}>
+              OGLĘDZINY INSTALACJI ELEKTRYCZNEJ
+            </Text>
+            <Text style={styles.sectionSubtitle}>
+              wg normy PN-IEC 60364-6-61
+            </Text>
 
-          <Text style={styles.paragraph}>
-            Oględziny badanej instalacji elektrycznej przeprowadzono przed
-            przystąpieniem do wykonywania prób i pomiarów oraz podczas
-            wykonywania prób i pomiarów.
-          </Text>
+            <Text style={styles.paragraph}>
+              Oględziny badanej instalacji elektrycznej przeprowadzono przed
+              przystąpieniem do wykonywania prób i pomiarów oraz podczas
+              wykonywania prób i pomiarów.
+            </Text>
 
-          {/* Tabela Oględzin */}
-          <View>
-            {/* Nagłówek Tabeli */}
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.colLp]}>Lp.</Text>
-              <Text style={[styles.colSubject]}>Przedmiot oględzin</Text>
-              <Text style={[styles.colRating]}>Ocena</Text>
-            </View>
+            {/* Tabela Oględzin */}
+            <View>
+              {/* Nagłówek Tabeli */}
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.colLp]}>Lp.</Text>
+                <Text style={[styles.colSubject]}>Przedmiot oględzin</Text>
+                <Text style={[styles.colRating]}>Ocena</Text>
+              </View>
 
-            {/* Wiersz 1 */}
-            <View style={styles.tableRow}>
-              <Text style={[styles.colLp]}>1</Text>
-              <Text style={[styles.colSubject]}>
-                Sposób ochrony przed porażeniem prądem elektrycznym
-              </Text>
-              <Text style={[styles.colRating]}>
-                {hasProblems ? 'NIE WŁAŚCIWY' : 'WŁAŚCIWY'}
-              </Text>
-            </View>
+              {/* Wiersz 1 */}
+              <View style={styles.tableRow}>
+                <Text style={[styles.colLp]}>1</Text>
+                <Text style={[styles.colSubject]}>
+                  Sposób ochrony przed porażeniem prądem elektrycznym
+                </Text>
+                <Text style={[styles.colRating]}>
+                  {hasDefects ? 'NIE WŁAŚCIWY' : 'WŁAŚCIWY'}
+                </Text>
+              </View>
 
-            {/* Wiersz 2 */}
-            <View style={styles.tableRow}>
-              <Text style={[styles.colLp]}>2</Text>
-              <Text style={[styles.colSubject]}>
-                Oznaczenia przewodów neutralnych i ochronnych
-              </Text>
-              <Text style={[styles.colRating]}>JEST</Text>
-            </View>
+              {/* Wiersz 2 */}
+              <View style={styles.tableRow}>
+                <Text style={[styles.colLp]}>2</Text>
+                <Text style={[styles.colSubject]}>
+                  Oznaczenia przewodów neutralnych i ochronnych
+                </Text>
+                <Text style={[styles.colRating]}>JEST</Text>
+              </View>
 
-            {/* Wiersz 3 */}
-            <View style={styles.tableRow}>
-              <Text style={[styles.colLp]}>3</Text>
-              <Text style={[styles.colSubject]}>
-                Poprawność połączeń przewodów
-              </Text>
-              <Text style={[styles.colRating]}>
-                {hasProblems ? 'NIE POPRAWNE' : 'JEST'}
-              </Text>
+              {/* Wiersz 3 */}
+              <View style={styles.tableRow}>
+                <Text style={[styles.colLp]}>3</Text>
+                <Text style={[styles.colSubject]}>
+                  Poprawność połączeń przewodów
+                </Text>
+                <Text style={[styles.colRating]}>
+                  {hasDefects ? 'NIE POPRAWNE' : 'JEST'}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         <View style={styles.recommendationsBox}>
           <Text style={styles.recommendationsTitle}>
@@ -809,29 +841,26 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             <Text style={styles.recommendationsText}>Brak uwag.</Text>
           )}
         </View>
-        <View style={styles.inspectionContainer}>
-          {inspection.unitType !== 'klatka' && (
-            <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>
-          )}
+        {/* Odgromowa drukuje miernik w sekcji 4 */}
+        {!isOdgromowa && (
+          <View style={styles.inspectionContainer}>
+            {isDwelling && (
+              <Text style={styles.sectionTitle}>PODSUMOWANIE</Text>
+            )}
 
-          <Text style={styles.paragraph}>
-            Miernik: Typ: MPI 540 | Producent: Sonel | Nr seryjny: KO4539
-          </Text>
-        </View>
+            <Text style={styles.paragraph}>
+              Miernik: Typ: {MEASURING_INSTRUMENT.typ} | Producent:{' '}
+              {MEASURING_INSTRUMENT.producent} | Nr seryjny:{' '}
+              {MEASURING_INSTRUMENT.nrSeryjny}
+            </Text>
+          </View>
+        )}
 
         {/* Wnioski z pomiarów */}
         <View>
           <Text style={styles.conclusionsTitle}>Wnioski z pomiarów:</Text>
-          <Text
-            style={
-              hasProblems
-                ? styles.conclusionNotSuitable
-                : styles.conclusionSuitable
-            }
-          >
-            {hasProblems
-              ? 'INSTALACJA NIE NADAJE SIĘ DO EKSPLOATACJI'
-              : 'INSTALACJA NADAJE SIĘ DO EKSPLOATACJI'}
+          <Text style={CONCLUSION_STYLES[verdict]}>
+            {VERDICT_CONCLUSIONS[verdict]}
           </Text>
         </View>
 
@@ -870,7 +899,7 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
             </View>
           )}
         </View>
-        {inspection.unitType !== 'klatka' && (
+        {isDwelling && (
           <>
             <View style={styles.footer}>
               <Text style={styles.conclusionsTitle}>

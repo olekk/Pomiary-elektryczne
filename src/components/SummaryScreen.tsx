@@ -16,8 +16,14 @@ import {
   countMeasurementsByResult,
   ensureDate,
   generateInspectionPdf,
+  getProtocolVerdict,
+  isDwellingUnit,
+  getProtocolTitle,
+  verdictLabel,
+  evaluateZlacze,
 } from '../utils'
-import type { Inspection } from '../types'
+import type { Inspection, ProtocolVerdict } from '../types'
+import { R_UZIEMIENIA_DOP } from '../types'
 import { logger } from '../utils/logger'
 import { useDocument } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
@@ -28,6 +34,12 @@ import {
   OWNER_CLAUSE_CONSENT,
   OWNER_CLAUSE_OBLIGATIONS,
 } from '../constants/clauses'
+
+const VERDICT_TEXT_COLORS: Record<ProtocolVerdict, string> = {
+  nadaje: 'text-green-400',
+  'nadaje-po-usunieciu': 'text-orange-400',
+  'nie-nadaje': 'text-red-400',
+}
 
 const CLAUSE_FONT_MIN = 1
 const CLAUSE_FONT_MAX = 1.75
@@ -59,6 +71,7 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
     status: d.status || 'COMPLETED',
     unitType: d.unitType || 'mieszkanie',
     klatkaData: d.klatkaData || undefined,
+    odgromowaData: d.odgromowaData || undefined,
   }
 }
 
@@ -208,6 +221,7 @@ export const SummaryScreen: React.FC = () => {
   }
 
   const { passed, failed } = countMeasurementsByResult(inspection.measurements)
+  const verdict = getProtocolVerdict(inspection)
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -217,20 +231,69 @@ export const SummaryScreen: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold">Pomiar Zakończony</h1>
             <p className="text-sm text-green-300">
-              {inspection.address} /{' '}
-              {inspection.unitType === 'lokal'
-                ? 'Lokal '
-                : inspection.unitType === 'klatka'
-                  ? ''
-                  : ''}
-              {inspection.apartmentNumber}
+              {inspection.address} / {getProtocolTitle(inspection)}
             </p>
           </div>
         </div>
       </div>
 
       <div className="p-4">
-        {inspection.unitType === 'klatka' && inspection.klatkaData ? (
+        {inspection.unitType === 'odgromowa' && inspection.odgromowaData ? (
+          <Card className="mb-4">
+            <h2 className="font-bold text-lg text-slate-100 mb-3">
+              Instalacja odgromowa
+            </h2>
+            <div className="space-y-1 mb-3">
+              {inspection.odgromowaData.zlacza.map((z) => {
+                const ocena = evaluateZlacze(z)
+                return (
+                  <div
+                    key={z.nr}
+                    className="flex justify-between items-center border-b border-slate-700 pb-1 text-sm"
+                  >
+                    <span className="font-bold text-slate-200 w-10">
+                      {z.nr}
+                    </span>
+                    <span
+                      className={
+                        z.ciaglosc === 'zachowana'
+                          ? 'text-slate-400'
+                          : 'text-red-400'
+                      }
+                    >
+                      {z.ciaglosc === 'zachowana'
+                        ? 'ciągłość OK'
+                        : 'brak ciągłości'}
+                    </span>
+                    <span className="text-slate-100">
+                      {z.rUziemienia === null
+                        ? '—'
+                        : `${z.rUziemienia.toFixed(2)} Ω`}
+                    </span>
+                    <span
+                      className={`font-bold w-10 text-right ${
+                        ocena === 'TAK' ? 'text-green-400' : 'text-red-400'
+                      }`}
+                    >
+                      {ocena}
+                    </span>
+                  </div>
+                )
+              })}
+              <p className="text-xs text-slate-500 pt-1">
+                R dopuszczalne: {R_UZIEMIENIA_DOP} Ω
+              </p>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400 text-sm">Wynik</span>
+              <span
+                className={`font-medium text-sm ${VERDICT_TEXT_COLORS[verdict]}`}
+              >
+                {verdictLabel(verdict)}
+              </span>
+            </div>
+          </Card>
+        ) : inspection.unitType === 'klatka' && inspection.klatkaData ? (
           <Card className="mb-4">
             <h2 className="font-bold text-lg text-slate-100 mb-3">
               Dane klatki schodowej
@@ -395,10 +458,8 @@ export const SummaryScreen: React.FC = () => {
                     )}
                     {row(
                       '13. Ocena',
-                      (d.ocenaInstalacji || 'nadaje') === 'nadaje'
-                        ? 'NADAJE SIĘ'
-                        : 'NIE NADAJE SIĘ',
-                      (d.ocenaInstalacji || 'nadaje') === 'nadaje' ? green : red
+                      verdictLabel(verdict),
+                      VERDICT_TEXT_COLORS[verdict]
                     )}
                     {row(
                       '14. Termin usunięcia usterek',
@@ -452,7 +513,7 @@ export const SummaryScreen: React.FC = () => {
           className="mb-4"
         />
 
-        {inspection.unitType !== 'klatka' && (
+        {isDwellingUnit(inspection.unitType) && (
           <>
             <Card className="mb-4">
               <div className="flex items-center justify-between mb-3">

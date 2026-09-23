@@ -131,6 +131,16 @@ Consequences: `BuildingDetailsScreen`'s FAB, the "next measurement" flow, and re
 
 **Decision**: `buildings/{id}.inspectionStatuses` map (`inspectionId → status`), written in the same `writeBatch` as the inspection save/delete, self-healed on `BuildingDetailsScreen`, backfilled from Settings. Batch PDF download now loads the building's inspections on demand. See `docs/ARCHITECTURE.md` §5.
 
+## Era 16 — Lightning-protection protocol, three-state protocol verdict (2026-09-24)
+
+A fourth `UnitType`, `odgromowa` (przegląd instalacji odgromowej), added the same way `klatka` was in Era 11: an enum value plus an optional `odgromowaData` payload on the inspection, no new collection and no new route. It is a hybrid of the two existing shapes — a fixed checklist like `klatka` (installation description, measurement conditions, visual inspection, SPD) plus a per-row measurement table like a dwelling (one row per test joint K1…Kn: continuity + earth resistance vs. a fixed 10 Ω limit).
+
+**"Once per building" data**: the installation description and joint count are copied from the building's most recent `odgromowa` protocol when a new one is started (`findPreviousOdgromowa` + `createOdgromowaData`). A `Building.odgromowaSzablon` field was considered and rejected — it would add a second write target to the save path and another field to every duplicated building mapper, with no gain in reach (both approaches are scoped to one building document).
+
+**Verdict refactor**: the PDF used to derive a boolean `hasProblems` with a nested ternary on `unitType` (and `SummaryScreen` re-derived the `klatka` case separately). This became `getProtocolVerdict()` returning `ProtocolVerdict = 'nadaje' | 'nadaje-po-usunieciu' | 'nie-nadaje'` — one `switch`, one place. The third value ("fit for use after defects are fixed") is selectable for `klatka` and `odgromowa`; dwellings still derive a binary verdict from Zs results. This is a **protocol-level** verdict and is unrelated to Era 8's removal of the per-measurement `B.UZ` state — `Measurement.result` stays binary. Scattered `unitType !== 'klatka'` checks meaning "has Zs measurements and an owner signature" were replaced by `isDwellingUnit()`.
+
+The building sketch (section 8 of the protocol) is deliberately left as an empty frame in the PDF, to be decided separately (drawing vs. photo, and the base64 size cost).
+
 ## Sources
 
 - `docs/ARCHITEKTURA.md` (now `docs/ARCHITECTURE.md`) — dated changelog-style sections through 2026-03-23, extracted into the eras above.

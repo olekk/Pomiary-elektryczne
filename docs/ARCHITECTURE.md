@@ -37,7 +37,7 @@ src/
 ├── components/
 │   ├── atoms/              # Button, Input, Select, Card, Badge, ActionMenu — zero business logic
 │   ├── molecules/          # FormField, InspectionCard, MeasurementListItem, StatusBadge
-│   ├── organisms/          # KlatkaInspectionForm, SignaturePanel,
+│   ├── organisms/          # KlatkaInspectionForm, OdgromowaInspectionForm, SignaturePanel,
 │   │                        # DashboardStats, InspectionsList, MeasurementSettings, NotesSection
 │   ├── layout/
 │   │   └── MainLayout.tsx  # Header/footer chrome, logout, auto-sync-on-mount trigger
@@ -49,6 +49,7 @@ src/
 │   ├── SettingsScreen.tsx          # route: /settings
 │   ├── LoginScreen.tsx             # rendered outside the router when unauthenticated
 │   ├── PdfGenerator.tsx            # @react-pdf/renderer document definition
+│   ├── OdgromowaPdfSection.tsx     # PDF sections 2–9 of the lightning-protection protocol
 │   ├── NumericKeypad.tsx           # large-button numeric input for field use
 │   └── DebugConsole.tsx            # lazy vConsole loader, active behind ?debug=1
 ├── hooks/                   # All state-management hooks — see §6
@@ -65,10 +66,13 @@ src/
 │   └── __tests__/           # Firebase-emulator integration tests
 ├── utils/                   # Pure functions only — unit-tested, 90% statement coverage enforced
 │   ├── addressHelper.ts, apartmentUtils.ts, cn.ts, dateUtils.ts, generatePdf.tsx,
-│   │   idGenerator.ts, logger.ts, measurementCalculations.ts, protocolGenerator.ts,
-│   │   toast.ts, validators.ts
+│   │   idGenerator.ts, inspectionStatuses.ts, logger.ts, measurementCalculations.ts,
+│   │   odgromowa.ts, protocolGenerator.ts, protocolVerdict.ts, toast.ts, unitTypes.ts,
+│   │   validators.ts
 │   └── __tests__/
-├── types/index.ts            # All domain types + ZS_DOP_TABLE + DEFAULT_K_FACTORS
+├── types/index.ts            # All domain types + ZS_DOP_TABLE + DEFAULT_K_FACTORS + R_UZIEMIENIA_DOP
+├── constants/                 # clauses.ts (owner clause), instrument.ts (meter), odgromowa.ts
+│                              # (option lists/labels + DEFAULT_ODGROMOWA_DATA)
 ├── firebase.ts                # App/Auth/Firestore init + recoverFirestore()
 ├── App.tsx                    # AuthProvider + route table + auth guard
 └── main.tsx
@@ -86,8 +90,9 @@ type Amperage = 10 | 16 | 20 | 25
 type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
 type Room = 'Łazienka' | 'Kuchnia' | (string & {}) // constrained-but-extensible union
 type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
-type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
+type UnitType = 'mieszkanie' | 'lokal' | 'klatka' | 'odgromowa'
 type InspectionStatus = 'COMPLETED' | 'INACCESSIBLE'
+type ProtocolVerdict = 'nadaje' | 'nadaje-po-usunieciu' | 'nie-nadaje' // whole-protocol conclusion
 
 interface Measurement {
   id: string
@@ -137,13 +142,14 @@ interface Inspection {
   reviewerLicenseNumber?: string
   reviewerSignature?: string
   notes?: string
-  measurements: Measurement[] // empty for unitType 'klatka'
-  ownerSignature?: string // base64, collected in SummaryScreen (not for 'klatka')
+  measurements: Measurement[] // empty for unitType 'klatka' / 'odgromowa'
+  ownerSignature?: string // base64, collected in SummaryScreen (dwellings only)
   protocolNumber: string
   synced?: boolean
   status?: InspectionStatus // default 'COMPLETED'
   unitType?: UnitType // default 'mieszkanie'
   klatkaData?: KlatkaData // present only when unitType === 'klatka'
+  odgromowaData?: OdgromowaData // present only when unitType === 'odgromowa'
 }
 
 interface UserSettings {
@@ -157,6 +163,12 @@ interface UserSettings {
 ```
 
 `KlatkaData` (staircase/common-area inspection — see §5) is a ~14-section fixed checklist: electrical supply type, PWP (fire-service power cut-off switch), main protection, GLZ/WLZ wiring condition, distribution board, meter cabinets, surge protection, anti-theft device, administrative panel, lighting (voltage/wiring/staircase-timer or motion-sensor, attic/basement mounting), WLZ resistance test + phase voltages, lightning protection, overall assessment, and defect-remediation deadline. Full field list is in `types/index.ts`; UI is `organisms/KlatkaInspectionForm.tsx`.
+
+`OdgromowaData` (lightning-protection inspection) holds: installation description (earth electrode type, air terminations, conductor material, earthing conductors — "once per building"), measurement conditions (soil, weather, soil state), visual inspection (air terminations, down conductors, test joints), `zlacza: { nr, ciaglosc, rUziemienia }[]` (one row per test joint K1…Kn; `rUziemienia: number | null`), SPD state, `wynik: ProtocolVerdict`, and `zalecenia[]` (only when `wynik !== 'nadaje'`). A joint passes (`evaluateZlacze()`) when continuity is kept and R ≤ `R_UZIEMIENIA_DOP` (10 Ω). All enum option labels live in `constants/odgromowa.ts` and are shared by the form, summary and PDF via `labelOf()`. UI is `organisms/OdgromowaInspectionForm.tsx`.
+
+**Unit-type semantics**: `isDwellingUnit(unitType)` (`utils/unitTypes.ts`) is true for `mieszkanie`/`lokal` (and legacy docs without `unitType`) — those have Zs measurements, an owner, and the owner clause/signature. `klatka` and `odgromowa` are building-level protocols without any of those, auto-numbered per building (`autoUnitNumber()`: `klatka`, `klatka 2`, …). Use `isDwellingUnit()` rather than comparing against a specific type. The auto number is an internal ID — for display, `getProtocolTitle()` turns it into a professional title ("Mieszkanie nr 12", "Lokal użytkowy nr 3", "Części wspólne budynku — klatka nr 2", "Instalacja odgromowa"); the inspection card, summary header and the PDF "Obiekt:" row use it.
+
+**Protocol verdict**: `getProtocolVerdict(inspection)` (`utils/protocolVerdict.ts`) is the single source of the protocol conclusion — dwellings derive it from measurements (any `NIE` → `nie-nadaje`), `klatka` reads `klatkaData.ocenaInstalacji`, `odgromowa` reads `odgromowaData.wynik` (missing → `nadaje`). `getNextInspectionDate()` returns +5 years unless the verdict is `nie-nadaje`. PDF, `SummaryScreen` and both forms consume these; don't re-derive the verdict inline.
 
 `ZS_DOP_TABLE` — the allowable-impedance lookup table — and `DEFAULT_K_FACTORS` (WNP: 5, BI: 5.4) are also defined in `types/index.ts` and are the single source of truth for the pass/fail calculation (`utils/measurementCalculations.ts`).
 
@@ -213,7 +225,8 @@ Creating and completing an inspection crosses four screens and two persistence l
 
 2. **`MeasurementScreen`** holds it in `useState` and mirrors every change to `sessionStorage` (key: `draft-inspection:{buildingId}`) via an `updateInspection()` wrapper. The identity fields (adres / typ lokalu / numer / właściciel) are edited **inline at the top of the screen** — they write into the same in-memory inspection through `updateInspection`. The screen also subscribes to sibling inspections (`useCollection`) to drive the duplicate-number warning and automatic `klatka` numbering. Its header carries **Anuluj** (clears the draft → back to building) and **Niedostępne** (fire-and-forget save of an `INACCESSIBLE` record → back; hidden when resuming an existing unit). It only writes to Firestore when the user taps "Zapisz," using a **client-generated ID** (`generateInspectionId()`) so the write never blocks navigation; the protocol number is (re)generated at save/inaccessible time from the possibly-edited apartment number.
    - **Rehydration source depends on `useNavigationType()`**: browser **`POP`** (back/forward) prefers the `sessionStorage` draft, because it holds the most recently edited state; **`PUSH`/`REPLACE`** (a fresh "new measurement" action) prefers `location.state`, because that's the newly-constructed object the user just asked to start editing. Getting this branch backwards reintroduces a real, previously-shipped stale-data bug (History, Era 13) — preserve it exactly if you touch this screen.
-   - `klatkaData` follows the same local-state-then-save flow but has no per-point measurement list; `isKlatka` (derived from `unitType === 'klatka'`) switches the entire screen body between the numeric-keypad measurement UI and `KlatkaInspectionForm`.
+   - `klatkaData` and `odgromowaData` follow the same local-state-then-save flow but have no per-point Zs measurement list; `unitType` switches the screen body between the numeric-keypad measurement UI, `KlatkaInspectionForm` and `OdgromowaInspectionForm`. Neither payload is mirrored to the `sessionStorage` draft until save (same as before for `klatka`).
+   - **`odgromowa` prefill**: a new lightning-protection protocol (no `odgromowaData` yet) is prefilled once, as soon as the sibling-inspections subscription is initialized, from the building's newest completed `odgromowa` protocol (`findPreviousOdgromowa` → `createOdgromowaData`): installation description and joint numbers are copied, field data (conditions, inspection, R values, SPD, verdict) resets to defaults. Works offline — it reads the already-subscribed local cache. Save is blocked (`alert`) until every joint has an R value.
 
 3. **`SummaryScreen`** receives the saved inspection via `location.state` (fast path, freshly created) or falls back to a live `useDocument` Firestore subscription (reload / deep-link case, using `inspectionId` from the URL). Notes auto-save on a 1s debounce after the user stops typing; the owner signature saves immediately on capture. Both are fire-and-forget. Editing measurements is disabled once an owner signature is present (data-integrity guarantee, not just UI polish).
 
@@ -245,6 +258,7 @@ Both go through one module-level promise chain (`enqueuePdfJob`), so PDF work ne
 - On error, the toast is updated with a specific message depending on whether the failure looks font-related, network-related, or other.
 - `finally` block always calls `recoverFirestore()` (§8), regardless of success or failure — once per batch, not once per protocol.
 - Output filename is the protocol number with `/` replaced by `-`.
+- `PdfGenerator` branches its body by unit type: dwellings → Zs table + PN-IEC 60364-6-61 oględziny + owner clause/signature; `klatka` → checklist; `odgromowa` → `OdgromowaPdfSection` (sections 2–9, incl. an empty frame for the building sketch, which is not implemented yet). Title, conclusion text/colour (`VERDICT_CONCLUSIONS`) and next-inspection date all come from `getProtocolVerdict()`.
 - The object URL is revoked on a 2s timeout rather than immediately after `link.click()` — Safari cancels a download whose blob URL disappears too soon, which is reachable when downloads fire back to back.
 
 **Batch specifics** (`generateInspectionPdfsBatch`): the `@react-pdf/renderer` import happens once for the whole batch; the toast reports progress (`Generowanie PDF 3/12 — 4/2026/KW15`); a failure on one protocol is collected and reported in the closing toast instead of aborting the rest; consecutive downloads are spaced by `BATCH_DOWNLOAD_DELAY_MS` (600 ms) because browsers silently drop downloads fired too quickly. Callers sort with `compareApartmentNumbers()` (`utils/apartmentUtils.ts`) so files arrive in unit order (1, 1A, 2, 10) rather than Firestore's `createdAt desc`. Desktop browsers show a one-time "allow multiple downloads" prompt; iOS Safari handles downloads one at a time, which the spacing accommodates.
@@ -264,7 +278,7 @@ Firebase Auth, **email/password only** — no self-service registration; users a
 
 Buttons go through the `Button` atom's `variant` prop rather than hand-rolled colors: `primary` (blue), `secondary` (slate), `danger` (red), `success` (green), `warning` (orange).
 
-Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaData` fields reuse the same convention for `dobry`/`zły`, `jest`/`brak`, etc. There is no third/warning color for measurement results — the earlier three-state `B.UZ` was removed (History, Era 8).
+Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaData` fields reuse the same convention for `dobry`/`zły`, `jest`/`brak`, etc. There is no third/warning color for **per-measurement** results — the earlier three-state `B.UZ` was removed (History, Era 8). The **protocol verdict** (`ProtocolVerdict`) does have three states: `nadaje` → green, `nadaje-po-usunieciu` → orange, `nie-nadaje` → red.
 
 **Cache-freshness indicator**: list screens show a small badge sourced from `useCollection`/`useDocument`'s `fromCache` flag — amber "Dane lokalne" (serving from local cache) vs. green "Aktualne" (server-confirmed). Reuse this pattern for any new screen that needs to communicate data freshness, rather than inventing a new indicator.
 
@@ -287,6 +301,7 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 | `MeasurementListItem` / `CompactMeasurementListItem` | molecules | Measurement row, full and summary variants                                           |
 | `StatusBadge`                                        | molecules | Online/offline/pending indicator — **currently unused/dead code**, see §16           |
 | `KlatkaInspectionForm`                               | organisms | ~14-section staircase inspection checklist                                           |
+| `OdgromowaInspectionForm`                            | organisms | Lightning-protection protocol: description, conditions, joints table K1…Kn, verdict  |
 | `SignaturePanel`                                     | organisms | Signature capture; reused identically for technician, reviewer, and owner signatures |
 | `DashboardStats`                                     | organisms | Total/synced/pending counts for a building                                           |
 | `InspectionsList`                                    | organisms | List of `InspectionCard`s with loading/cache states                                  |

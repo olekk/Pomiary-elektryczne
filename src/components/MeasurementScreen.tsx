@@ -12,6 +12,7 @@ import {
   NotesSection,
   KlatkaInspectionForm,
   DEFAULT_KLATKA_DATA,
+  OdgromowaInspectionForm,
 } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card, Input, Select } from './atoms'
@@ -24,6 +25,7 @@ import type {
   Inspection,
   Building,
   KlatkaData,
+  OdgromowaData,
   UnitType,
 } from '../types'
 import {
@@ -34,6 +36,11 @@ import {
   createMeasurement,
   renumberMeasurements,
   generateProtocolNumber,
+  isDwellingUnit,
+  autoUnitNumber,
+  createOdgromowaData,
+  findPreviousOdgromowa,
+  findUnmeasuredZlacza,
 } from '../utils'
 import { useCollection, useDocument, useAuth, useUserSettings } from '../hooks'
 import {
@@ -124,6 +131,7 @@ const inspectionMapper = (snap: QueryDocumentSnapshot): Inspection => {
     status: d.status || 'COMPLETED',
     unitType: d.unitType || 'mieszkanie',
     klatkaData: d.klatkaData || undefined,
+    odgromowaData: d.odgromowaData || undefined,
   }
 }
 
@@ -186,7 +194,11 @@ export const MeasurementScreen: React.FC = () => {
   }, [])
   const [notes, setNotes] = useState(currentInspection?.notes || '')
 
-  const isKlatka = currentInspection?.unitType === 'klatka'
+  const unitType = currentInspection?.unitType
+  const isKlatka = unitType === 'klatka'
+  const isOdgromowa = unitType === 'odgromowa'
+  // Mieszkanie/lokal: pomiary Zs + właściciel. Klatka/odgromowa: formularz budynkowy.
+  const isDwelling = isDwellingUnit(unitType)
   // Domyślne wartości pól wyboru muszą być w stanie od początku — inaczej pole,
   // którego użytkownik nie dotknął, zapisuje się jako `undefined` i PDF traktuje
   // je jako brak/wynik negatywny (patrz `DEFAULT_KLATKA_DATA`).
@@ -194,6 +206,20 @@ export const MeasurementScreen: React.FC = () => {
     ...DEFAULT_KLATKA_DATA,
     ...currentInspection?.klatkaData,
   })
+  const [odgromowaData, setOdgromowaData] = useState<OdgromowaData>(
+    () => currentInspection?.odgromowaData ?? createOdgromowaData()
+  )
+  // Czy dane odgromowe już są „ustalone” (wznowienie, prefill albo edycja technika) —
+  // wtedy nie nadpisujemy ich kopią z poprzedniego protokołu.
+  const [odgromowaSettled, setOdgromowaSettled] = useState(
+    () => !!currentInspection?.odgromowaData
+  )
+  const [odgromowaDescriptionCopied, setOdgromowaDescriptionCopied] =
+    useState(false)
+  const handleOdgromowaChange = useCallback((data: OdgromowaData) => {
+    setOdgromowaSettled(true)
+    setOdgromowaData(data)
+  }, [])
 
   const handleNotesChange = useCallback(
     (value: string) => {
@@ -256,12 +282,13 @@ export const MeasurementScreen: React.FC = () => {
         : null,
     [buildingId]
   )
-  const { data: existingInspections } = useCollection<Inspection>(
-    inspectionsQuery,
-    inspectionMapper,
-    `inspections-${buildingId || 'none'}`,
-    'Inspections'
-  )
+  const { data: existingInspections, isInitialized: inspectionsInitialized } =
+    useCollection<Inspection>(
+      inspectionsQuery,
+      inspectionMapper,
+      `inspections-${buildingId || 'none'}`,
+      'Inspections'
+    )
 
   // Resume mode = editing a unit that already exists (came in with an id, e.g. an inaccessible one)
   const [isResumeMode] = useState(() => !!currentInspection?.id)
@@ -275,20 +302,32 @@ export const MeasurementScreen: React.FC = () => {
 
   const currentId = currentInspection?.id
 
-  // Automatic klatka number (klatka, klatka 2, …) — excludes the unit being edited
-  const autoKlatkaNumber = useMemo(() => {
-    const existingKlatki = existingInspections.filter(
-      (i) => i.unitType === 'klatka' && i.id !== currentId
-    )
-    return existingKlatki.length === 0
-      ? 'klatka'
-      : `klatka ${existingKlatki.length + 1}`
-  }, [existingInspections, currentId])
+  // Automatic number for building-level protocols (klatka, klatka 2, …;
+  // odgromowa, odgromowa 2, …) — excludes the unit being edited
+  const autoApartmentNumber = useMemo(() => {
+    if (unitType !== 'klatka' && unitType !== 'odgromowa') return null
+    const existingCount = existingInspections.filter(
+      (i) => i.unitType === unitType && i.id !== currentId
+    ).length
+    return autoUnitNumber(unitType, existingCount)
+  }, [existingInspections, currentId, unitType])
 
-  // Effective number — auto for klatka, typed for the rest
-  const effectiveApartmentNumber = isKlatka
-    ? autoKlatkaNumber
-    : currentInspection?.apartmentNumber || ''
+  // Effective number — auto for building-level protocols, typed for the rest
+  const effectiveApartmentNumber =
+    autoApartmentNumber ?? currentInspection?.apartmentNumber ?? ''
+
+  // Opis instalacji odgromowej jest „raz na budynek” — nowy przegląd startuje
+  // od kopii ostatniego protokołu odgromowego tego budynku (z lokalnego cache).
+  // Jednorazowo, w trakcie renderu (guard: odgromowaSettled), gdy lista
+  // inspekcji budynku jest już dostępna.
+  if (isOdgromowa && !odgromowaSettled && inspectionsInitialized) {
+    const previous = findPreviousOdgromowa(existingInspections, currentId)
+    if (previous?.odgromowaData) {
+      setOdgromowaData(createOdgromowaData(previous.odgromowaData))
+      setOdgromowaDescriptionCopied(true)
+    }
+    setOdgromowaSettled(true)
+  }
 
   const isDuplicateApartment = useMemo(() => {
     const trimmed = effectiveApartmentNumber.trim().toLowerCase()
@@ -364,7 +403,7 @@ export const MeasurementScreen: React.FC = () => {
       alert('Wypełnij adres!')
       return false
     }
-    if (!isKlatka && !currentInspection.apartmentNumber.trim()) {
+    if (isDwelling && !currentInspection.apartmentNumber.trim()) {
       alert(
         currentInspection.unitType === 'lokal'
           ? 'Wypełnij numer lokalu!'
@@ -374,7 +413,7 @@ export const MeasurementScreen: React.FC = () => {
     }
     if (
       requireOwner &&
-      !isKlatka &&
+      isDwelling &&
       !(currentInspection.ownerName || '').trim()
     ) {
       alert('Wypełnij wszystkie pola!')
@@ -387,9 +426,16 @@ export const MeasurementScreen: React.FC = () => {
   const handleSave = () => {
     if (!currentInspection) return
     if (!validateFields(true)) return
-    if (!isKlatka && currentInspection.measurements.length === 0) {
+    if (isDwelling && currentInspection.measurements.length === 0) {
       alert('Dodaj przynajmniej jeden pomiar!')
       return
+    }
+    if (isOdgromowa) {
+      const unmeasured = findUnmeasuredZlacza(odgromowaData.zlacza)
+      if (unmeasured.length > 0) {
+        alert(`Wpisz R uziemienia dla złącz: ${unmeasured.join(', ')}`)
+        return
+      }
     }
     if (!buildingId) {
       alert('Błąd: Brak ID budynku')
@@ -412,6 +458,7 @@ export const MeasurementScreen: React.FC = () => {
       status: 'COMPLETED',
       synced: false,
       ...(isKlatka ? { klatkaData } : {}),
+      ...(isOdgromowa ? { odgromowaData } : {}),
     }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
@@ -450,6 +497,7 @@ export const MeasurementScreen: React.FC = () => {
       status: 'INACCESSIBLE',
       synced: false,
       ...(isKlatka ? { klatkaData } : {}),
+      ...(isOdgromowa ? { odgromowaData } : {}),
     }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
@@ -501,7 +549,7 @@ export const MeasurementScreen: React.FC = () => {
           <div>
             <div className="grid grid-cols-2 gap-3">
               <Select
-                label="Typ lokalu"
+                label="Typ protokołu"
                 value={currentInspection.unitType}
                 onChange={(e) =>
                   setField({ unitType: e.target.value as UnitType })
@@ -510,9 +558,10 @@ export const MeasurementScreen: React.FC = () => {
                   { value: 'mieszkanie', label: 'Mieszkanie' },
                   { value: 'lokal', label: 'Lokal użytkowy' },
                   { value: 'klatka', label: 'Klatka' },
+                  { value: 'odgromowa', label: 'Instalacja odgromowa' },
                 ]}
               />
-              {!isKlatka && (
+              {isDwelling && (
                 <Input
                   label={numberLabel}
                   type="text"
@@ -526,8 +575,8 @@ export const MeasurementScreen: React.FC = () => {
             </div>
             {isDuplicateApartment && (
               <p className="text-red-400 text-sm mt-1">
-                {isKlatka
-                  ? 'Klatka o tym ID już istnieje.'
+                {!isDwelling
+                  ? 'Protokół o tym ID już istnieje.'
                   : currentInspection.unitType === 'lokal'
                     ? 'Lokal o tym numerze już istnieje.'
                     : 'Mieszkanie o tym numerze już istnieje.'}
@@ -535,7 +584,7 @@ export const MeasurementScreen: React.FC = () => {
             )}
           </div>
 
-          {!isKlatka && (
+          {isDwelling && (
             <Input
               label="Imię i nazwisko Właściciela/Najemcy"
               type="text"
@@ -545,7 +594,7 @@ export const MeasurementScreen: React.FC = () => {
             />
           )}
 
-          {!isKlatka && (
+          {isDwelling && (
             <p className="text-sm text-slate-400">
               Pomiary: {currentInspection.measurements.length}
             </p>
@@ -570,6 +619,17 @@ export const MeasurementScreen: React.FC = () => {
         {isKlatka ? (
           <div className="flex-1 overflow-y-auto p-4">
             <KlatkaInspectionForm value={klatkaData} onChange={setKlatkaData} />
+          </div>
+        ) : isOdgromowa ? (
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <OdgromowaInspectionForm
+              // Remount po skopiowaniu opisu — sekcja „Opis instalacji” startuje zwinięta
+              key={odgromowaDescriptionCopied ? 'copied' : 'fresh'}
+              value={odgromowaData}
+              onChange={handleOdgromowaChange}
+              descriptionCopied={odgromowaDescriptionCopied}
+            />
+            <NotesSection notes={notes} onNotesChange={handleNotesChange} />
           </div>
         ) : (
           <>

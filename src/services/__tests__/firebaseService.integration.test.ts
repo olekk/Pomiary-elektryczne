@@ -34,6 +34,7 @@ import {
   makeInspection,
   makeUserSettings,
 } from './testSetup.integration'
+import { DEFAULT_ODGROMOWA_DATA } from '../../constants/odgromowa'
 
 // ── Mock the firebase module so production code uses our emulator db ──
 let testDb: Firestore
@@ -150,6 +151,37 @@ describe('saveInspectionToFirestore', () => {
     expect(data.measurements[0].room).toBe('Kuchnia')
     expect(data.date).toBeInstanceOf(Timestamp)
     expect(data.createdAt).toBeInstanceOf(Timestamp)
+  })
+
+  it('saves odgromowaData round-trip, dropping undefined optional fields', async () => {
+    const inspId = 'insp-odgr-1'
+    await saveInspectionToFirestore(
+      makeInspection({
+        unitType: 'odgromowa',
+        measurements: [],
+        odgromowaData: {
+          ...DEFAULT_ODGROMOWA_DATA,
+          przewodyUziomoweInne: undefined,
+          zlacza: [
+            { nr: 'K1', ciaglosc: 'zachowana', rUziemienia: 4.2 },
+            { nr: 'K2', ciaglosc: 'brak', rUziemienia: null },
+          ],
+          wynik: 'nadaje-po-usunieciu',
+          zalecenia: ['naprawa-ciaglosci'],
+        },
+      }),
+      inspId
+    )
+
+    const data = (await getDoc(doc(testDb, 'inspections', inspId))).data()!
+    expect(data.unitType).toBe('odgromowa')
+    expect(data.odgromowaData.wynik).toBe('nadaje-po-usunieciu')
+    expect(data.odgromowaData.zlacza).toEqual([
+      { nr: 'K1', ciaglosc: 'zachowana', rUziemienia: 4.2 },
+      { nr: 'K2', ciaglosc: 'brak', rUziemienia: null },
+    ])
+    expect(data.odgromowaData.zalecenia).toEqual(['naprawa-ciaglosci'])
+    expect('przewodyUziomoweInne' in data.odgromowaData).toBe(false)
   })
 
   it('update does not duplicate the document', async () => {

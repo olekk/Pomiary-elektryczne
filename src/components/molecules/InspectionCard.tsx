@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { Card, Badge, ActionMenu } from '../atoms'
 import type { Inspection } from '../../types'
-import { generateInspectionPdf } from '../../utils'
+import { generateInspectionPdf, getProtocolTitle } from '../../utils'
 
 interface InspectionCardProps {
   inspection: Inspection
@@ -58,12 +58,7 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               isInaccessible ? 'text-orange-200' : 'text-slate-100'
             }`}
           >
-            {inspection.unitType === 'lokal'
-              ? 'Lokal'
-              : inspection.unitType === 'klatka'
-                ? 'Klatka'
-                : 'Mieszkanie'}
-            : {inspection.apartmentNumber}
+            {getProtocolTitle(inspection)}
           </h3>
           {isInaccessible && (
             <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-orange-900/50 text-orange-300 border border-orange-700/50 mb-1">
@@ -83,7 +78,9 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
             </span>
             {!isInaccessible && (
               <span className="text-xs text-slate-400">
-                Punkty: {inspection.measurements.length}
+                {inspection.unitType === 'odgromowa'
+                  ? `Złącza: ${inspection.odgromowaData?.zlacza.length ?? 0}`
+                  : `Punkty: ${inspection.measurements.length}`}
               </span>
             )}
             {inspection.synced ? (

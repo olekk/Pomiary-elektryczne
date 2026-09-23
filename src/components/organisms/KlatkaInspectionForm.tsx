@@ -1,6 +1,12 @@
 import React from 'react'
 import { Select, Input, Card } from '../atoms'
-import type { KlatkaData, PrzylaczType, PwpStatus } from '../../types'
+import type {
+  KlatkaData,
+  PrzylaczType,
+  ProtocolVerdict,
+  PwpStatus,
+} from '../../types'
+import { VERDICT_OPTIONS } from '../../utils'
 
 interface KlatkaInspectionFormProps {
   value: KlatkaData
@@ -558,15 +564,9 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
             label="Ocena instalacji elektrycznej"
             value={v.ocenaInstalacji || 'nadaje'}
             onChange={(e) =>
-              u({ ocenaInstalacji: e.target.value as 'nadaje' | 'nie-nadaje' })
+              u({ ocenaInstalacji: e.target.value as ProtocolVerdict })
             }
-            options={[
-              { value: 'nadaje', label: 'NADAJE się do dalszej eksploatacji' },
-              {
-                value: 'nie-nadaje',
-                label: 'NIE NADAJE się do dalszej eksploatacji',
-              },
-            ]}
+            options={VERDICT_OPTIONS}
           />
         </SectionRow>
 
