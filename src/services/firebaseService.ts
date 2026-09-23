@@ -2,7 +2,6 @@ import {
   setDoc,
   doc,
   Timestamp,
-  deleteDoc,
   updateDoc,
   writeBatch,
   collection,
@@ -10,11 +9,13 @@ import {
   where,
   getDocs,
   getDoc,
+  deleteField,
+  type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import type { Inspection, KlatkaData, Project, UserSettings } from '../types'
 import { logger } from '../utils/logger'
-import { ensureDate } from '../utils'
+import { ensureDate, buildInspectionStatusMap } from '../utils'
 
 /**
  * Save a project to Firestore
@@ -164,18 +165,142 @@ export const saveInspectionToFirestore = async (
     ...(sanitizedKlatkaData ? { klatkaData: sanitizedKlatkaData } : {}),
   }
 
-  const docRef = doc(db, 'inspections', inspectionId)
-  await setDoc(docRef, dataToSave, { merge: true })
+  const batch = writeBatch(db)
+  batch.set(doc(db, 'inspections', inspectionId), dataToSave, { merge: true })
+
+  // Lekka kopia statusu w budynku — ekran projektu liczy statystyki z niej
+  // zamiast pobierać wszystkie inspekcje. Mapa (nie licznik), więc ponowny
+  // zapis tej samej inspekcji jest idempotentny.
+  if (inspection.buildingId) {
+    batch.set(
+      doc(db, 'buildings', inspection.buildingId),
+      { inspectionStatuses: { [inspectionId]: dataToSave.status } },
+      { merge: true }
+    )
+  }
+
+  await batch.commit()
 }
 
 /**
  * Delete an inspection from Firestore
  */
 export const deleteInspectionFromFirestore = async (
-  id: string
+  id: string,
+  buildingId: string
 ): Promise<void> => {
-  await deleteDoc(doc(db, 'inspections', id))
+  const batch = writeBatch(db)
+  batch.delete(doc(db, 'inspections', id))
+  if (buildingId) {
+    batch.set(
+      doc(db, 'buildings', buildingId),
+      { inspectionStatuses: { [id]: deleteField() } },
+      { merge: true }
+    )
+  }
+  await batch.commit()
 }
+
+/**
+ * Map an inspection document to the domain type
+ */
+export const mapInspectionDoc = (
+  docSnap: QueryDocumentSnapshot
+): Inspection => {
+  const data = docSnap.data()
+  return {
+    id: docSnap.id,
+    projectId: data.projectId,
+    buildingId: data.buildingId,
+    address: data.address,
+    apartmentNumber: data.apartmentNumber,
+    ownerName: data.ownerName || '',
+    date: data.date?.toDate ? data.date.toDate() : new Date(),
+    technicianName: data.technicianName || data.technician || '',
+    technicianLicenseNumber: data.technicianLicenseNumber || '',
+    technicianSignature: data.technicianSignature || '',
+    reviewerName: data.reviewerName || '',
+    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
+    reviewerSignature: data.reviewerSignature || '',
+    measurements: data.measurements || [],
+    notes: data.notes || '',
+    ownerSignature: data.ownerSignature || data.signature || '',
+    protocolNumber: data.protocolNumber,
+    synced: data.synced ?? true,
+    status: data.status || 'COMPLETED',
+    unitType: data.unitType || 'mieszkanie',
+    klatkaData: data.klatkaData || undefined,
+  }
+}
+
+/**
+ * Load all inspections of one building on demand (e.g. batch PDF download).
+ * Served from the local cache when offline.
+ */
+export const getBuildingInspections = async (
+  buildingId: string
+): Promise<Inspection[]> => {
+  const snapshot = await getDocs(
+    query(collection(db, 'inspections'), where('buildingId', '==', buildingId))
+  )
+  return snapshot.docs.map(mapInspectionDoc)
+}
+
+/**
+ * Overwrite a building's inspectionStatuses map with one computed from the
+ * given inspections (self-healing when the map drifted or predates it)
+ */
+export const rebuildBuildingInspectionStatuses = async (
+  buildingId: string,
+  inspections: Pick<Inspection, 'id' | 'status'>[]
+): Promise<void> => {
+  await updateDoc(doc(db, 'buildings', buildingId), {
+    inspectionStatuses: buildInspectionStatusMap(inspections),
+  })
+}
+
+/**
+ * One-off backfill: recompute inspectionStatuses for every building.
+ * Downloads all inspections once — use from Settings, not on a hot path.
+ * Returns the number of buildings updated.
+ */
+export const rebuildAllBuildingInspectionStatuses =
+  async (): Promise<number> => {
+    const [buildingsSnapshot, inspectionsSnapshot] = await Promise.all([
+      getDocs(collection(db, 'buildings')),
+      getDocs(collection(db, 'inspections')),
+    ])
+
+    const byBuilding: Record<string, Pick<Inspection, 'id' | 'status'>[]> = {}
+    inspectionsSnapshot.forEach((docSnap) => {
+      const data = docSnap.data()
+      if (!data.buildingId) return
+      ;(byBuilding[data.buildingId] ||= []).push({
+        id: docSnap.id,
+        status: data.status || 'COMPLETED',
+      })
+    })
+
+    // Firestore batch limit = 500 operations
+    const BATCH_SIZE = 450
+    const buildingDocs = buildingsSnapshot.docs
+    for (let i = 0; i < buildingDocs.length; i += BATCH_SIZE) {
+      const batch = writeBatch(db)
+      for (const buildingDoc of buildingDocs.slice(i, i + BATCH_SIZE)) {
+        batch.update(buildingDoc.ref, {
+          inspectionStatuses: buildInspectionStatusMap(
+            byBuilding[buildingDoc.id] || []
+          ),
+        })
+      }
+      await batch.commit()
+    }
+
+    logger.log(
+      `✅ Rebuilt inspectionStatuses for ${buildingDocs.length} buildings (${inspectionsSnapshot.size} inspections)`
+    )
+    return buildingDocs.length
+  }
 
 /**
  * Mark inspection as synced in Firestore

@@ -19,6 +19,8 @@ import {
   getFullAddress,
   compareApartmentNumbers,
   generateInspectionPdfsBatch,
+  countInspectionStatuses,
+  type InspectionStats,
 } from '../utils'
 import {
   collection,
@@ -30,8 +32,11 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { deleteBuildingFromFirestore } from '../services'
-import type { Building, Inspection } from '../types'
+import {
+  deleteBuildingFromFirestore,
+  getBuildingInspections,
+} from '../services'
+import type { Building } from '../types'
 import { logger } from '../utils/logger'
 
 const buildingMapper = (doc: QueryDocumentSnapshot): Building => {
@@ -46,33 +51,7 @@ const buildingMapper = (doc: QueryDocumentSnapshot): Building => {
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
     userId: data.userId || '',
-  }
-}
-
-const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
-  const data = doc.data()
-  return {
-    id: doc.id,
-    projectId: data.projectId,
-    buildingId: data.buildingId,
-    address: data.address,
-    apartmentNumber: data.apartmentNumber,
-    ownerName: data.ownerName || '',
-    date: data.date?.toDate ? data.date.toDate() : new Date(),
-    technicianName: data.technicianName || data.technician || '',
-    technicianLicenseNumber: data.technicianLicenseNumber || '',
-    technicianSignature: data.technicianSignature || '',
-    reviewerName: data.reviewerName || '',
-    reviewerLicenseNumber: data.reviewerLicenseNumber || '',
-    reviewerSignature: data.reviewerSignature || '',
-    measurements: data.measurements || [],
-    notes: data.notes || '',
-    ownerSignature: data.ownerSignature || data.signature || '',
-    protocolNumber: data.protocolNumber,
-    synced: data.synced ?? true,
-    status: data.status || 'COMPLETED',
-    unitType: data.unitType || 'mieszkanie',
-    klatkaData: data.klatkaData || undefined,
+    inspectionStatuses: data.inspectionStatuses || {},
   }
 }
 
@@ -101,19 +80,6 @@ export const ProjectDetailsScreen: React.FC = () => {
     [projectId]
   )
 
-  // Query for all inspections in this project (for per-building stats)
-  const projectInspectionsQuery = useMemo(
-    () =>
-      projectId
-        ? query(
-            collection(db, 'inspections'),
-            where('projectId', '==', projectId),
-            orderBy('createdAt', 'desc')
-          )
-        : null,
-    [projectId]
-  )
-
   // Query for all projects (to find current project name)
   const projectsQuery = useMemo(
     () => query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
@@ -130,12 +96,6 @@ export const ProjectDetailsScreen: React.FC = () => {
     `buildings-${projectId || 'none'}`,
     'Buildings'
   )
-  const { data: projectInspections } = useCollection<Inspection>(
-    projectInspectionsQuery,
-    inspectionMapper,
-    `inspections-${projectId || 'none'}`,
-    'ProjectInspections'
-  )
   const { data: projects, isLoading: isLoadingProjects } = useCollection(
     projectsQuery,
     (doc) => ({ id: doc.id, name: doc.data().name }),
@@ -143,23 +103,15 @@ export const ProjectDetailsScreen: React.FC = () => {
     'Projects'
   )
 
-  // Oblicz statystyki inspekcji per budynek
+  // Statystyki per budynek z lekkiej mapy statusów w dokumencie budynku —
+  // bez pobierania pełnych inspekcji (podpisy base64 ważą megabajty)
   const buildingStats = useMemo(() => {
-    const stats: Record<string, { completed: number; inaccessible: number }> =
-      {}
-    for (const inspection of projectInspections) {
-      const bId = inspection.buildingId
-      if (!stats[bId]) {
-        stats[bId] = { completed: 0, inaccessible: 0 }
-      }
-      if (inspection.status === 'INACCESSIBLE') {
-        stats[bId].inaccessible++
-      } else {
-        stats[bId].completed++
-      }
+    const stats: Record<string, InspectionStats> = {}
+    for (const building of buildings) {
+      stats[building.id] = countInspectionStatuses(building.inspectionStatuses)
     }
     return stats
-  }, [projectInspections])
+  }, [buildings])
 
   // Filtruj budynki po adresie
   const filteredBuildings = useMemo(() => {
@@ -213,12 +165,18 @@ export const ProjectDetailsScreen: React.FC = () => {
     setShowNewModal(false)
   }
 
-  const handleDownloadAllPdfs = (buildingId: string, address: string) => {
-    const buildingInspections = projectInspections
-      .filter((inspection) => inspection.buildingId === buildingId)
-      .sort((a, b) =>
-        compareApartmentNumbers(a.apartmentNumber, b.apartmentNumber)
+  const handleDownloadAllPdfs = async (buildingId: string, address: string) => {
+    // Pełne protokoły pobieramy dopiero na żądanie (z cache, jeśli offline)
+    let buildingInspections
+    try {
+      buildingInspections = (await getBuildingInspections(buildingId)).sort(
+        (a, b) => compareApartmentNumbers(a.apartmentNumber, b.apartmentNumber)
       )
+    } catch (error) {
+      logger.error('❌ Error loading building inspections:', error)
+      alert('Nie udało się pobrać protokołów budynku. Spróbuj ponownie.')
+      return
+    }
 
     if (buildingInspections.length === 0) {
       alert(`Budynek "${address}" nie ma jeszcze żadnych protokołów.`)

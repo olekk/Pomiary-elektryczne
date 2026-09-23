@@ -96,6 +96,7 @@ const buildingMapper = (snap: DocumentSnapshot): Building | null => {
     createdAt: d.createdAt?.toDate ? d.createdAt.toDate() : new Date(),
     updatedAt: d.updatedAt?.toDate ? d.updatedAt.toDate() : new Date(),
     userId: d.userId || '',
+    inspectionStatuses: d.inspectionStatuses || {},
   }
 }
 

@@ -109,6 +109,9 @@ export interface Building {
   createdAt: Date
   updatedAt: Date
   userId: string
+  // Lekka kopia statusów inspekcji budynku (inspectionId → status) — pozwala
+  // liczyć statystyki bez pobierania pełnych dokumentów inspekcji (podpisy base64)
+  inspectionStatuses?: Record<string, InspectionStatus>
 }
 
 export type InspectionStatus = 'COMPLETED' | 'INACCESSIBLE'

@@ -3,11 +3,13 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { useCollection, useDocument, useUserSettings, useAuth } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
+import { DashboardStats, InspectionsList } from './organisms'
 import {
-  DashboardStats,
-  InspectionsList,
-} from './organisms'
-import { incrementApartmentNumber, getFullAddress } from '../utils'
+  incrementApartmentNumber,
+  getFullAddress,
+  buildInspectionStatusMap,
+  areInspectionStatusMapsEqual,
+} from '../utils'
 import { generateProtocolNumber } from '../utils'
 import type { Inspection, Building } from '../types'
 import {
@@ -20,7 +22,11 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from '../firebase'
-import { deleteInspectionFromFirestore } from '../services'
+import {
+  deleteInspectionFromFirestore,
+  rebuildBuildingInspectionStatuses,
+} from '../services'
+import { logger } from '../utils/logger'
 
 const inspectionMapper = (doc: QueryDocumentSnapshot): Inspection => {
   const data = doc.data()
@@ -62,6 +68,7 @@ const buildingMapper = (snap: DocumentSnapshot): Building | null => {
     createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
     updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(),
     userId: data.userId || '',
+    inspectionStatuses: data.inspectionStatuses || {},
   }
 }
 
@@ -70,7 +77,13 @@ export const BuildingDetailsScreen: React.FC = () => {
   const location = useLocation()
   const { id: buildingId } = useParams<{ id: string }>()
   const { user } = useAuth()
-  const { technicianName, technicianSignature, reviewerName, reviewerLicenseNumber, reviewerSignature } = useUserSettings(user?.uid)
+  const {
+    technicianName,
+    technicianSignature,
+    reviewerName,
+    reviewerLicenseNumber,
+    reviewerSignature,
+  } = useUserSettings(user?.uid)
 
   // Subscribe to inspections for this building
   const inspectionsQuery = useMemo(
@@ -85,8 +98,16 @@ export const BuildingDetailsScreen: React.FC = () => {
     [buildingId]
   )
 
-  const { data: inspections, isLoading: isLoadingInspections, fromCache: inspectionsFromCache } =
-    useCollection<Inspection>(inspectionsQuery, inspectionMapper, `inspections-${buildingId || 'none'}`, 'Inspections')
+  const {
+    data: inspections,
+    isLoading: isLoadingInspections,
+    fromCache: inspectionsFromCache,
+  } = useCollection<Inspection>(
+    inspectionsQuery,
+    inspectionMapper,
+    `inspections-${buildingId || 'none'}`,
+    'Inspections'
+  )
 
   // Subscribe to building document
   const buildingDocRef = useMemo(
@@ -94,11 +115,37 @@ export const BuildingDetailsScreen: React.FC = () => {
     [buildingId]
   )
 
-  const { data: currentBuilding, isLoading: isLoadingBuilding } = useDocument<Building>(
-    buildingDocRef,
-    buildingMapper,
-    'Building'
-  )
+  const {
+    data: currentBuilding,
+    isLoading: isLoadingBuilding,
+    fromCache: buildingFromCache,
+  } = useDocument<Building>(buildingDocRef, buildingMapper, 'Building')
+
+  // Samonaprawa mapy statusów w budynku (używanej przez ekran projektu do
+  // statystyk): gdy obie subskrypcje mają dane z serwera, a mapa się różni
+  // od faktycznej listy inspekcji — nadpisz ją. Uzupełnia też stare budynki.
+  useEffect(() => {
+    if (!buildingId || !currentBuilding) return
+    if (inspectionsFromCache || buildingFromCache) return
+    const actual = buildInspectionStatusMap(inspections)
+    if (
+      areInspectionStatusMapsEqual(actual, currentBuilding.inspectionStatuses)
+    )
+      return
+    rebuildBuildingInspectionStatuses(buildingId, inspections)
+      .then(() =>
+        logger.log(`✅ inspectionStatuses rebuilt for building ${buildingId}`)
+      )
+      .catch((error: unknown) => {
+        logger.error('❌ Error rebuilding inspectionStatuses:', error)
+      })
+  }, [
+    buildingId,
+    currentBuilding,
+    inspections,
+    inspectionsFromCache,
+    buildingFromCache,
+  ])
 
   const buildingName = currentBuilding
     ? getFullAddress(currentBuilding)
@@ -148,7 +195,11 @@ export const BuildingDetailsScreen: React.FC = () => {
       reviewerLicenseNumber,
       reviewerSignature,
       date,
-      protocolNumber: generateProtocolNumber(date, prefillApartment, buildingStreet),
+      protocolNumber: generateProtocolNumber(
+        date,
+        prefillApartment,
+        buildingStreet
+      ),
       notes: '',
       measurements: [],
       synced: false,
@@ -165,7 +216,9 @@ export const BuildingDetailsScreen: React.FC = () => {
   // od razu otwieramy MeasurementScreen z podbitym numerem (bez modala).
   useEffect(() => {
     if (locationState?.lastApartmentNumber && currentBuilding) {
-      const nextApartment = incrementApartmentNumber(locationState.lastApartmentNumber)
+      const nextApartment = incrementApartmentNumber(
+        locationState.lastApartmentNumber
+      )
       window.history.replaceState({}, document.title)
       startNewInspection(nextApartment)
     }
@@ -174,10 +227,11 @@ export const BuildingDetailsScreen: React.FC = () => {
 
   const handleDelete = (id: string) => {
     if (confirm('Czy na pewno chcesz usunąć ten pomiar?')) {
-      deleteInspectionFromFirestore(id)
-        .catch((error: unknown) => {
+      deleteInspectionFromFirestore(id, buildingId || '').catch(
+        (error: unknown) => {
           console.error('❌ Error deleting inspection:', error)
-        })
+        }
+      )
     }
   }
 

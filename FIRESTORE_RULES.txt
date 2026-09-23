@@ -14,6 +14,39 @@ Gdzie to wkleić?
 
 ================================================================
 
+Aktualna zawartość Firestore rules:
+
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Reguły dla PROJEKTÓW
+    match /projects/{projectId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Reguły dla POMIARÓW
+    match /inspections/{inspectionId} {
+      allow read, write: if request.auth != null;
+    }
+    // Reguły dla BUDYNKÓW
+    match /buildings/{buildingId} {
+      allow read, write: if request.auth != null;
+    }
+    // --- REGUŁA DLA UŻYTKOWNIKÓW ---
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // Blokuj wszystko inne
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+================================================================
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

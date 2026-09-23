@@ -119,6 +119,7 @@ interface Building {
   createdAt: Date
   updatedAt: Date
   userId: string
+  inspectionStatuses?: Record<string, InspectionStatus>  // denormalized — see §5
 }
 
 interface Inspection {
@@ -168,6 +169,7 @@ Project: `pomiary-elektryczne-57ad6`. Config is inline in `src/firebase.ts` (not
 Field-level notes and quirks worth knowing before writing a new document mapper:
 
 - **`Building.name`** is a legacy field from before addresses were split into `street`/`zipCode`/`city`. `getFullAddress()` (`utils/addressHelper.ts`) prefers the structured fields and falls back to `name` for old documents.
+- **`Building.inspectionStatuses`** is a denormalized `{ [inspectionId]: 'COMPLETED' | 'INACCESSIBLE' }` map. `ProjectDetailsScreen` computes the per-building "Wykonano / Niedostępne" stats from it (`countInspectionStatuses()`, `utils/inspectionStatuses.ts`) so it never subscribes to the project's inspections — those carry three base64 signatures each and cost megabytes for a large project. It is kept current by `saveInspectionToFirestore()` / `deleteInspectionFromFirestore(id, buildingId)`, which write the inspection and the building map entry in **one `writeBatch`** (`set` with `merge: true`; `deleteField()` on delete). It's a map rather than an `increment()` counter so re-saves (edits, `retrySyncInspection`, status changes) are idempotent. Drift is self-healed by `BuildingDetailsScreen` (when both its subscriptions have server data and the map differs from the actual inspection list → `rebuildBuildingInspectionStatuses()`), and Settings → "Przelicz statystyki budynków" (`rebuildAllBuildingInspectionStatuses()`) backfills every building in one pass. Full inspections for "Pobierz wszystkie PDF" are loaded on demand via `getBuildingInspections()`. Any new code path that creates/deletes/changes the status of an inspection must go through these service functions, or the map drifts.
 - **Every document mapper reads defensively** (`data.field || fallback`) because the schema evolved incrementally and old documents lack newer fields — `technician` → `technicianName`, `signature` → `ownerSignature`, `name` → `street`/`zipCode`/`city` are all renames that only the mapper's fallback bridges.
 - **`Inspection` documents omit `undefined` fields on write.** Firestore's SDK throws on `undefined` values; `saveInspectionToFirestore()` explicitly guards `noGrounding` (`noGrounding === undefined ? measurement : { ...measurement, noGrounding }`) and defaults every optional string field to `''`. Any new optional field needs the same treatment.
 - **Cascading deletes** (`deleteProjectFromFirestore`, `deleteBuildingFromFirestore` in `firebaseService.ts`) use `writeBatch` after a `getDocs()` query to find children — the one place in the app that intentionally does a blocking, non-cached read, because correctness matters more than offline-availability for a destructive, rare operation.

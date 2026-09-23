@@ -5,7 +5,15 @@
  * Start emulator first: `firebase emulators:start --only firestore`
  * Then run:              `npm run test:integration`
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  beforeEach,
+  afterAll,
+  vi,
+} from 'vitest'
 import {
   doc,
   setDoc,
@@ -37,14 +45,17 @@ vi.mock('../../firebase', () => ({
 }))
 
 // ── Lazy-import production functions AFTER mock is registered ──
-let saveProjectToFirestore: typeof import('../firebaseService')['saveProjectToFirestore']
-let deleteProjectFromFirestore: typeof import('../firebaseService')['deleteProjectFromFirestore']
-let deleteBuildingFromFirestore: typeof import('../firebaseService')['deleteBuildingFromFirestore']
-let saveInspectionToFirestore: typeof import('../firebaseService')['saveInspectionToFirestore']
-let deleteInspectionFromFirestore: typeof import('../firebaseService')['deleteInspectionFromFirestore']
-let markInspectionAsSynced: typeof import('../firebaseService')['markInspectionAsSynced']
-let saveUserSettingsToFirestore: typeof import('../firebaseService')['saveUserSettingsToFirestore']
-let getUserSettingsFromFirestore: typeof import('../firebaseService')['getUserSettingsFromFirestore']
+let saveProjectToFirestore: (typeof import('../firebaseService'))['saveProjectToFirestore']
+let deleteProjectFromFirestore: (typeof import('../firebaseService'))['deleteProjectFromFirestore']
+let deleteBuildingFromFirestore: (typeof import('../firebaseService'))['deleteBuildingFromFirestore']
+let saveInspectionToFirestore: (typeof import('../firebaseService'))['saveInspectionToFirestore']
+let deleteInspectionFromFirestore: (typeof import('../firebaseService'))['deleteInspectionFromFirestore']
+let markInspectionAsSynced: (typeof import('../firebaseService'))['markInspectionAsSynced']
+let saveUserSettingsToFirestore: (typeof import('../firebaseService'))['saveUserSettingsToFirestore']
+let getUserSettingsFromFirestore: (typeof import('../firebaseService'))['getUserSettingsFromFirestore']
+let getBuildingInspections: (typeof import('../firebaseService'))['getBuildingInspections']
+let rebuildBuildingInspectionStatuses: (typeof import('../firebaseService'))['rebuildBuildingInspectionStatuses']
+let rebuildAllBuildingInspectionStatuses: (typeof import('../firebaseService'))['rebuildAllBuildingInspectionStatuses']
 
 // ── Lifecycle ────────────────────────────────────────────────────────
 beforeAll(async () => {
@@ -60,6 +71,10 @@ beforeAll(async () => {
   markInspectionAsSynced = mod.markInspectionAsSynced
   saveUserSettingsToFirestore = mod.saveUserSettingsToFirestore
   getUserSettingsFromFirestore = mod.getUserSettingsFromFirestore
+  getBuildingInspections = mod.getBuildingInspections
+  rebuildBuildingInspectionStatuses = mod.rebuildBuildingInspectionStatuses
+  rebuildAllBuildingInspectionStatuses =
+    mod.rebuildAllBuildingInspectionStatuses
 })
 
 beforeEach(async () => {
@@ -168,10 +183,120 @@ describe('saveInspectionToFirestore', () => {
     const inspId = 'insp-del-1'
     await saveInspectionToFirestore(makeInspection(), inspId)
 
-    await deleteInspectionFromFirestore(inspId)
+    await deleteInspectionFromFirestore(inspId, 'test-building-1')
 
     const snap = await getDoc(doc(testDb, 'inspections', inspId))
     expect(snap.exists()).toBe(false)
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════
+// 2b. Building inspectionStatuses map (lightweight per-building stats)
+// ═════════════════════════════════════════════════════════════════════
+describe('building inspectionStatuses', () => {
+  const buildingId = 'test-building-1'
+
+  const readStatuses = async () =>
+    (await getDoc(doc(testDb, 'buildings', buildingId))).data()
+      ?.inspectionStatuses
+
+  beforeEach(async () => {
+    await setDoc(doc(testDb, 'buildings', buildingId), {
+      projectId: 'test-project-1',
+      street: 'ul. Testowa 1',
+      zipCode: '40-000',
+      city: 'Katowice',
+    })
+  })
+
+  it('saving an inspection adds its status to the building map', async () => {
+    await saveInspectionToFirestore(makeInspection(), 'insp-a')
+    await saveInspectionToFirestore(
+      makeInspection({ status: 'INACCESSIBLE' }),
+      'insp-b'
+    )
+
+    expect(await readStatuses()).toEqual({
+      'insp-a': 'COMPLETED',
+      'insp-b': 'INACCESSIBLE',
+    })
+  })
+
+  it('re-saving with a changed status keeps a single entry', async () => {
+    await saveInspectionToFirestore(
+      makeInspection({ status: 'INACCESSIBLE' }),
+      'insp-a'
+    )
+    await saveInspectionToFirestore(makeInspection(), 'insp-a')
+
+    expect(await readStatuses()).toEqual({ 'insp-a': 'COMPLETED' })
+  })
+
+  it('does not overwrite other building fields', async () => {
+    await saveInspectionToFirestore(makeInspection(), 'insp-a')
+
+    const data = (await getDoc(doc(testDb, 'buildings', buildingId))).data()!
+    expect(data.street).toBe('ul. Testowa 1')
+    expect(data.projectId).toBe('test-project-1')
+  })
+
+  it('deleting an inspection removes its entry from the map', async () => {
+    await saveInspectionToFirestore(makeInspection(), 'insp-a')
+    await saveInspectionToFirestore(makeInspection(), 'insp-b')
+
+    await deleteInspectionFromFirestore('insp-a', buildingId)
+
+    expect(await readStatuses()).toEqual({ 'insp-b': 'COMPLETED' })
+  })
+
+  it('rebuildBuildingInspectionStatuses replaces the whole map', async () => {
+    await saveInspectionToFirestore(makeInspection(), 'insp-stale')
+
+    await rebuildBuildingInspectionStatuses(buildingId, [
+      { id: 'insp-x', status: 'INACCESSIBLE' },
+    ])
+
+    expect(await readStatuses()).toEqual({ 'insp-x': 'INACCESSIBLE' })
+  })
+
+  it('rebuildAllBuildingInspectionStatuses backfills from existing inspections', async () => {
+    // Legacy data: inspections written directly, building has no map yet
+    await setDoc(doc(testDb, 'inspections', 'legacy-1'), {
+      buildingId,
+      projectId: 'test-project-1',
+      status: 'COMPLETED',
+    })
+    await setDoc(doc(testDb, 'inspections', 'legacy-2'), {
+      buildingId,
+      projectId: 'test-project-1',
+      status: 'INACCESSIBLE',
+    })
+    await setDoc(doc(testDb, 'buildings', 'empty-building'), {
+      projectId: 'test-project-1',
+    })
+
+    const count = await rebuildAllBuildingInspectionStatuses()
+
+    expect(count).toBe(2)
+    expect(await readStatuses()).toEqual({
+      'legacy-1': 'COMPLETED',
+      'legacy-2': 'INACCESSIBLE',
+    })
+    const empty = await getDoc(doc(testDb, 'buildings', 'empty-building'))
+    expect(empty.data()!.inspectionStatuses).toEqual({})
+  })
+
+  it('getBuildingInspections returns only that building', async () => {
+    await saveInspectionToFirestore(makeInspection(), 'insp-a')
+    await saveInspectionToFirestore(
+      makeInspection({ buildingId: 'other-building' }),
+      'insp-other'
+    )
+
+    const result = await getBuildingInspections(buildingId)
+
+    expect(result.map((i) => i.id)).toEqual(['insp-a'])
+    expect(result[0].status).toBe('COMPLETED')
   })
 })
 

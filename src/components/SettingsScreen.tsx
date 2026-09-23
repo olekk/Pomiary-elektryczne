@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { MainLayout } from './layout/MainLayout'
 import { Button, Card, Input } from './atoms'
 import { SignaturePanel } from './organisms'
-import { Save } from 'lucide-react'
+import { Save, RefreshCw } from 'lucide-react'
 import { useAuth, useUserSettings } from '../hooks'
+import { rebuildAllBuildingInspectionStatuses } from '../services'
+import { showToast } from '../utils/toast'
+import { logger } from '../utils/logger'
 
 export const SettingsScreen: React.FC = () => {
   const { user } = useAuth()
@@ -18,20 +21,36 @@ export const SettingsScreen: React.FC = () => {
   } = useUserSettings(user?.uid)
 
   const [technicianName, setTechnicianName] = useState(nameFromHook)
-  const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState(licenseFromHook)
+  const [technicianLicenseNumber, setTechnicianLicenseNumber] =
+    useState(licenseFromHook)
   const [currentSignature, setCurrentSignature] = useState(sigFromHook)
 
   const [reviewerName, setReviewerName] = useState(reviewerNameFromHook)
-  const [reviewerLicenseNumber, setReviewerLicenseNumber] = useState(reviewerLicenseFromHook)
-  const [reviewerSignature, setReviewerSignature] = useState(reviewerSigFromHook)
+  const [reviewerLicenseNumber, setReviewerLicenseNumber] = useState(
+    reviewerLicenseFromHook
+  )
+  const [reviewerSignature, setReviewerSignature] =
+    useState(reviewerSigFromHook)
 
   // Sync local state when data loads from Firestore/localStorage
-  useEffect(() => { setTechnicianName(nameFromHook) }, [nameFromHook])
-  useEffect(() => { setTechnicianLicenseNumber(licenseFromHook) }, [licenseFromHook])
-  useEffect(() => { setCurrentSignature(sigFromHook) }, [sigFromHook])
-  useEffect(() => { setReviewerName(reviewerNameFromHook) }, [reviewerNameFromHook])
-  useEffect(() => { setReviewerLicenseNumber(reviewerLicenseFromHook) }, [reviewerLicenseFromHook])
-  useEffect(() => { setReviewerSignature(reviewerSigFromHook) }, [reviewerSigFromHook])
+  useEffect(() => {
+    setTechnicianName(nameFromHook)
+  }, [nameFromHook])
+  useEffect(() => {
+    setTechnicianLicenseNumber(licenseFromHook)
+  }, [licenseFromHook])
+  useEffect(() => {
+    setCurrentSignature(sigFromHook)
+  }, [sigFromHook])
+  useEffect(() => {
+    setReviewerName(reviewerNameFromHook)
+  }, [reviewerNameFromHook])
+  useEffect(() => {
+    setReviewerLicenseNumber(reviewerLicenseFromHook)
+  }, [reviewerLicenseFromHook])
+  useEffect(() => {
+    setReviewerSignature(reviewerSigFromHook)
+  }, [reviewerSigFromHook])
 
   const handleSaveSignature = (signature: string) => {
     setCurrentSignature(signature)
@@ -64,12 +83,44 @@ export const SettingsScreen: React.FC = () => {
       reviewerName: reviewerName.trim(),
       reviewerLicenseNumber: reviewerLicenseNumber.trim(),
       reviewerSignatureBase64: reviewerSignature,
+    }).catch((error) => {
+      console.error('❌ Error saving settings:', error)
     })
-      .catch((error) => {
-        console.error('❌ Error saving settings:', error)
-      })
 
     alert('Ustawienia zapisane!')
+  }
+
+  const [isRebuildingStats, setIsRebuildingStats] = useState(false)
+
+  // Jednorazowe/naprawcze przeliczenie statystyk budynków (mapa statusów
+  // inspekcji w dokumencie budynku). Pobiera wszystkie inspekcje raz.
+  const handleRebuildStats = () => {
+    if (
+      !confirm(
+        'Przeliczyć statystyki wszystkich budynków? Operacja pobierze wszystkie protokoły (kilka MB) — wykonaj ją przy dobrym połączeniu.'
+      )
+    ) {
+      return
+    }
+
+    setIsRebuildingStats(true)
+    const toast = showToast('Przeliczanie statystyk budynków…', {
+      duration: 0,
+    })
+
+    rebuildAllBuildingInspectionStatuses()
+      .then((count) => {
+        toast.update(
+          `Przeliczono statystyki ${count} budynków`,
+          'success',
+          3000
+        )
+      })
+      .catch((error: unknown) => {
+        logger.error('❌ Error rebuilding building stats:', error)
+        toast.update('Nie udało się przeliczyć statystyk', 'error', 5000)
+      })
+      .finally(() => setIsRebuildingStats(false))
   }
 
   return (
@@ -158,6 +209,24 @@ export const SettingsScreen: React.FC = () => {
             Zapisz ustawienia
           </Button>
         </div>
+
+        {/* Sekcja: Narzędzia */}
+        <Card>
+          <h2 className="text-lg font-bold text-slate-100 mb-2">Narzędzia</h2>
+          <p className="text-sm text-slate-400 mb-4">
+            Przelicza liczniki „Wykonano / Niedostępne” na liście budynków. Użyj
+            jednorazowo po aktualizacji lub gdy liczniki są niezgodne.
+          </p>
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={handleRebuildStats}
+            disabled={isRebuildingStats}
+            icon={<RefreshCw size={18} />}
+          >
+            Przelicz statystyki budynków
+          </Button>
+        </Card>
       </div>
     </MainLayout>
   )

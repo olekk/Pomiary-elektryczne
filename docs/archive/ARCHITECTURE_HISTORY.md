@@ -123,6 +123,14 @@ The pre-measurement `CreateInspectionModal` (adres / typ lokalu / numer / właś
 
 Consequences: `BuildingDetailsScreen`'s FAB, the "next measurement" flow, and resuming an `INACCESSIBLE` unit now all navigate straight to `MeasurementScreen` with a skeleton (or existing) inspection in `location.state` — no dialog. "Rozpocznij" is gone (you're already on the screen); "Anuluj" and "Niedostępne" moved into the screen header, with "Niedostępne" hidden in resume mode (an existing unit has an id). `MeasurementScreen` now also subscribes to sibling inspections (`useCollection`) to keep the duplicate-number warning and automatic `klatka` numbering the modal used to own, and (re)generates the protocol number at save time since the apartment number is now editable after creation. The mark-inaccessible write moved from `BuildingDetailsScreen` into `MeasurementScreen`.
 
+## Era 15 — Per-building stats from a denormalized status map (2026-09-23)
+
+**Problem**: opening a large project (Knurów, 259 buildings) downloaded ~3 MB every time. `ProjectDetailsScreen` subscribed to *all* inspections of the project just to count "Wykonano / Niedostępne" per building, and every inspection document carries three base64 PNG signatures plus measurements. The Firestore web SDK has no field projection for `onSnapshot`, and a listener re-attached after ~30 minutes gets the full result set again, so the cost repeated on nearly every visit.
+
+**Considered and rejected**: paginating buildings 10 at a time (counts would still need each building's inspections — same bytes, just spread out, plus N listeners); showing the list before the stats (already the case — the two subscriptions were independent, the transfer was the problem); `getCountFromServer()` (aggregation queries don't work offline); `increment()` counters on the building (not idempotent — `saveInspectionToFirestore` is a `merge` upsert used for create, edit, status change and `retrySyncInspection`, so counters would double-count).
+
+**Decision**: `buildings/{id}.inspectionStatuses` map (`inspectionId → status`), written in the same `writeBatch` as the inspection save/delete, self-healed on `BuildingDetailsScreen`, backfilled from Settings. Batch PDF download now loads the building's inspections on demand. See `docs/ARCHITECTURE.md` §5.
+
 ## Sources
 
 - `docs/ARCHITEKTURA.md` (now `docs/ARCHITECTURE.md`) — dated changelog-style sections through 2026-03-23, extracted into the eras above.
