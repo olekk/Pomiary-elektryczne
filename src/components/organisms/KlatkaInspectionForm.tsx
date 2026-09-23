@@ -427,6 +427,7 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
             options={[
               { value: 'natynkowo', label: 'Natynkowo' },
               { value: 'podtynkowo', label: 'Podtynkowo' },
+              { value: 'brak-strychu', label: 'Brak strychu' },
             ]}
           />
         </SectionRow>
@@ -440,6 +441,7 @@ export const KlatkaInspectionForm: React.FC<KlatkaInspectionFormProps> = ({
             options={[
               { value: 'natynkowo', label: 'Natynkowo' },
               { value: 'podtynkowo', label: 'Podtynkowo' },
+              { value: 'brak-piwnicy', label: 'Brak piwnicy' },
             ]}
           />
         </SectionRow>

@@ -28,7 +28,9 @@ describe('ZS_DOP_TABLE — PN-HD 60364 norm values', () => {
 
   it('each protection type has exactly 4 amperage entries', () => {
     for (const type of Object.keys(ZS_DOP_TABLE)) {
-      expect(Object.keys(ZS_DOP_TABLE[type as keyof typeof ZS_DOP_TABLE])).toHaveLength(4)
+      expect(
+        Object.keys(ZS_DOP_TABLE[type as keyof typeof ZS_DOP_TABLE])
+      ).toHaveLength(4)
     }
   })
 

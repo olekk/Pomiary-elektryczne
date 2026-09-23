@@ -8,11 +8,16 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 // Cache Google Fonts (CacheFirst — fonts rarely change)
 registerRoute(
-  ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
+  ({ url }) =>
+    url.origin === 'https://fonts.googleapis.com' ||
+    url.origin === 'https://fonts.gstatic.com',
   new CacheFirst({
     cacheName: 'google-fonts',
     plugins: [
-      new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 60 * 24 * 365,
+      }),
     ],
   })
 )
@@ -23,7 +28,10 @@ registerRoute(
   new CacheFirst({
     cacheName: 'local-fonts',
     plugins: [
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }),
+      new ExpirationPlugin({
+        maxEntries: 10,
+        maxAgeSeconds: 60 * 60 * 24 * 365,
+      }),
     ],
   })
 )
@@ -34,7 +42,10 @@ registerRoute(
   new CacheFirst({
     cacheName: 'images',
     plugins: [
-      new ExpirationPlugin({ maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 60 * 60 * 24 * 30,
+      }),
     ],
   })
 )

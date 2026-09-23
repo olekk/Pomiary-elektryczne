@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guidance for Claude Code sessions working on **Pomiary Elektryczne**. This file is intentionally concise — it states project-specific rules, invariants, and pitfalls that aren't derivable from reading the code. For implementation detail, data model, hook APIs, and the full component inventory, see **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — this file points there rather than duplicating it. For *why* things are the way they are, see [`docs/archive/ARCHITECTURE_HISTORY.md`](docs/archive/ARCHITECTURE_HISTORY.md).
+Guidance for Claude Code sessions working on **Pomiary Elektryczne**. This file is intentionally concise — it states project-specific rules, invariants, and pitfalls that aren't derivable from reading the code. For implementation detail, data model, hook APIs, and the full component inventory, see **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — this file points there rather than duplicating it. For _why_ things are the way they are, see [`docs/archive/ARCHITECTURE_HISTORY.md`](docs/archive/ARCHITECTURE_HISTORY.md).
 
 ## Project Overview
 
@@ -12,7 +12,7 @@ UI copy, PDF output, and domain vocabulary (WNP, BI, Zs, Zs_dop, klatka, protoco
 
 These are non-negotiable unless the user explicitly asks to change them — each exists because of a real, previously-shipped bug (full stories in `docs/archive/ARCHITECTURE_HISTORY.md`):
 
-- **No global client-side store.** Firestore's own cache *is* the state layer, via `onSnapshot` hooks (`useCollection`/`useDocument`) + React Context (`useAuth`) + local `useState`. A Zustand store was tried twice and removed both times after causing ghost-data and stale-cache bugs. Don't reintroduce one — if something seems to need "global state," ask first whether it should be a Firestore document instead.
+- **No global client-side store.** Firestore's own cache _is_ the state layer, via `onSnapshot` hooks (`useCollection`/`useDocument`) + React Context (`useAuth`) + local `useState`. A Zustand store was tried twice and removed both times after causing ghost-data and stale-cache bugs. Don't reintroduce one — if something seems to need "global state," ask first whether it should be a Firestore document instead.
 - **Never `await` a Firestore write inside a UI event handler.** Every write is `saveXToFirestore(...).then(...).catch(logger.error)`, followed immediately by a local state update / navigation / modal close. This is the single most load-bearing convention in the codebase.
 - **IDs are generated client-side** (`generateInspectionId()` etc.) so writes resolve against the local cache instantly, with no server round-trip required.
 - **Don't gate sync logic on `navigator.onLine`** or call `enableNetwork()`/`disableNetwork()` manually — the Firebase SDK manages its own connectivity. `useOnlineStatus()` is a UI hint and retry trigger only.
@@ -22,12 +22,12 @@ These are non-negotiable unless the user explicitly asks to change them — each
 
 ## State Management (summary)
 
-| Layer | Used for |
-| --- | --- |
-| Firestore `onSnapshot` | Everything persisted (projects, buildings, inspections, user settings) |
-| React Context | Auth session (`useAuth`) |
-| `useState` | In-progress, not-yet-saved forms |
-| `sessionStorage` + `location.state` | Survive navigation without a Firestore round-trip |
+| Layer                               | Used for                                                               |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| Firestore `onSnapshot`              | Everything persisted (projects, buildings, inspections, user settings) |
+| React Context                       | Auth session (`useAuth`)                                               |
+| `useState`                          | In-progress, not-yet-saved forms                                       |
+| `sessionStorage` + `location.state` | Survive navigation without a Firestore round-trip                      |
 
 Full hook signatures and behavior: `docs/ARCHITECTURE.md` §6.
 

@@ -28,7 +28,9 @@ const readUserSettingsFromLocal = (userId: string): UserSettings | null => {
       reviewerName:
         typeof parsed.reviewerName === 'string' ? parsed.reviewerName : '',
       reviewerLicenseNumber:
-        typeof parsed.reviewerLicenseNumber === 'string' ? parsed.reviewerLicenseNumber : '',
+        typeof parsed.reviewerLicenseNumber === 'string'
+          ? parsed.reviewerLicenseNumber
+          : '',
       reviewerSignatureBase64:
         typeof parsed.reviewerSignatureBase64 === 'string'
           ? parsed.reviewerSignatureBase64
@@ -76,7 +78,9 @@ interface UseUserSettingsResult {
  * Hook for user settings with Firestore onSnapshot + localStorage fallback.
  * Replaces userSettingsSlice.
  */
-export function useUserSettings(userId: string | undefined): UseUserSettingsResult {
+export function useUserSettings(
+  userId: string | undefined
+): UseUserSettingsResult {
   const [technicianName, setTechnicianName] = useState('')
   const [technicianLicenseNumber, setTechnicianLicenseNumber] = useState('')
   const [technicianSignature, setTechnicianSignature] = useState('')
@@ -115,12 +119,22 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
       (snap) => {
         if (snap.exists()) {
           const data = snap.data()
-          const name = typeof data.displayName === 'string' ? data.displayName : ''
-          const license = typeof data.licenseNumber === 'string' ? data.licenseNumber : ''
-          const signature = typeof data.signatureBase64 === 'string' ? data.signatureBase64 : ''
-          const revName = typeof data.reviewerName === 'string' ? data.reviewerName : ''
-          const revLicense = typeof data.reviewerLicenseNumber === 'string' ? data.reviewerLicenseNumber : ''
-          const revSignature = typeof data.reviewerSignatureBase64 === 'string' ? data.reviewerSignatureBase64 : ''
+          const name =
+            typeof data.displayName === 'string' ? data.displayName : ''
+          const license =
+            typeof data.licenseNumber === 'string' ? data.licenseNumber : ''
+          const signature =
+            typeof data.signatureBase64 === 'string' ? data.signatureBase64 : ''
+          const revName =
+            typeof data.reviewerName === 'string' ? data.reviewerName : ''
+          const revLicense =
+            typeof data.reviewerLicenseNumber === 'string'
+              ? data.reviewerLicenseNumber
+              : ''
+          const revSignature =
+            typeof data.reviewerSignatureBase64 === 'string'
+              ? data.reviewerSignatureBase64
+              : ''
 
           setTechnicianName(name)
           setTechnicianLicenseNumber(license)
@@ -178,5 +192,14 @@ export function useUserSettings(userId: string | undefined): UseUserSettingsResu
     [userId]
   )
 
-  return { technicianName, technicianLicenseNumber, technicianSignature, reviewerName, reviewerLicenseNumber, reviewerSignature, isLoading, save }
+  return {
+    technicianName,
+    technicianLicenseNumber,
+    technicianSignature,
+    reviewerName,
+    reviewerLicenseNumber,
+    reviewerSignature,
+    isLoading,
+    save,
+  }
 }

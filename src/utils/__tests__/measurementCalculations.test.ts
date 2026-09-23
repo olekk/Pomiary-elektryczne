@@ -105,7 +105,14 @@ describe('createMeasurement', () => {
 
   it('accepts explicit socketType "Gniazdo IP44"', () => {
     const m = createMeasurement(
-      'm-1', 1, 'Łazienka', 'WNP', 16, 2.0, undefined, 'Gniazdo IP44'
+      'm-1',
+      1,
+      'Łazienka',
+      'WNP',
+      16,
+      2.0,
+      undefined,
+      'Gniazdo IP44'
     )
     expect(m.socketType).toBe('Gniazdo IP44')
   })

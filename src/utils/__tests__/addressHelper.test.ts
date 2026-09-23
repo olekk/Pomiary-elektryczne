@@ -68,7 +68,11 @@ describe('getFullAddress', () => {
   })
 
   it('falls back to name when street and city are set but zipCode is missing', () => {
-    const building = makeBuilding({ street: 'Nowa 1', city: 'Katowice', name: 'Fallback' })
+    const building = makeBuilding({
+      street: 'Nowa 1',
+      city: 'Katowice',
+      name: 'Fallback',
+    })
     expect(getFullAddress(building)).toBe('Fallback')
   })
 
@@ -104,7 +108,9 @@ describe('normalizeAddressForProtocol', () => {
   })
 
   it('removes "os." prefix', () => {
-    expect(normalizeAddressForProtocol('os. Tysiąclecia 3')).toBe('TYSIACLECIA_3')
+    expect(normalizeAddressForProtocol('os. Tysiąclecia 3')).toBe(
+      'TYSIACLECIA_3'
+    )
   })
 
   it('replaces spaces with underscores', () => {
@@ -120,7 +126,8 @@ describe('normalizeAddressForProtocol', () => {
     it('Ń → N', () => expect(normalizeAddressForProtocol('Ńa')).toBe('NA'))
     it('Ó → O', () => expect(normalizeAddressForProtocol('Ósma')).toBe('OSMA'))
     it('Ś → S', () => expect(normalizeAddressForProtocol('Ślad')).toBe('SLAD'))
-    it('Ź → Z', () => expect(normalizeAddressForProtocol('Źródło')).toBe('ZRODLO'))
+    it('Ź → Z', () =>
+      expect(normalizeAddressForProtocol('Źródło')).toBe('ZRODLO'))
     it('Ż → Z', () => expect(normalizeAddressForProtocol('Żaba')).toBe('ZABA'))
   })
 
@@ -133,6 +140,8 @@ describe('normalizeAddressForProtocol', () => {
   })
 
   it('collapses multiple spaces into single underscore', () => {
-    expect(normalizeAddressForProtocol('Jana   Pawła  12')).toBe('JANA_PAWLA_12')
+    expect(normalizeAddressForProtocol('Jana   Pawła  12')).toBe(
+      'JANA_PAWLA_12'
+    )
   })
 })

@@ -1,11 +1,7 @@
 import React from 'react'
 
 export type ButtonVariant =
-  | 'primary'
-  | 'secondary'
-  | 'danger'
-  | 'success'
-  | 'warning'
+  'primary' | 'secondary' | 'danger' | 'success' | 'warning'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

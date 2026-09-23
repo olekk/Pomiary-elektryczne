@@ -73,24 +73,18 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     }
   }, [isOpen])
 
-  const handleToggle = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      setIsOpen((prev) => !prev)
-    },
-    []
-  )
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setIsOpen((prev) => !prev)
+  }, [])
 
-  const handleTriggerKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
-        e.preventDefault()
-        e.stopPropagation()
-        setIsOpen(true)
-      }
-    },
-    []
-  )
+  const handleTriggerKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsOpen(true)
+    }
+  }, [])
 
   const handleMenuKeyDown = useCallback(
     (e: React.KeyboardEvent, index: number) => {

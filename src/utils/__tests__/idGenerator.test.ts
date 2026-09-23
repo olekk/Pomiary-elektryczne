@@ -19,7 +19,9 @@ describe('generateInspectionId', () => {
   })
 
   it('generates unique IDs on successive calls', () => {
-    const ids = new Set(Array.from({ length: 20 }, () => generateInspectionId()))
+    const ids = new Set(
+      Array.from({ length: 20 }, () => generateInspectionId())
+    )
     expect(ids.size).toBe(20)
   })
 
@@ -39,7 +41,9 @@ describe('generateMeasurementId', () => {
   })
 
   it('generates unique IDs on successive calls', () => {
-    const ids = new Set(Array.from({ length: 20 }, () => generateMeasurementId()))
+    const ids = new Set(
+      Array.from({ length: 20 }, () => generateMeasurementId())
+    )
     expect(ids.size).toBe(20)
   })
 })

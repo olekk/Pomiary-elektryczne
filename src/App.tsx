@@ -28,7 +28,13 @@ function AppRoutes() {
   // Also show it when user is null but we have a cached UID — the real
   // User object will arrive from onAuthStateChanged momentarily.
   // This prevents flashing LoginScreen on offline cold starts.
-  const hasCachedUid = (() => { try { return !!localStorage.getItem('cachedAuthUid') } catch { return false } })()
+  const hasCachedUid = (() => {
+    try {
+      return !!localStorage.getItem('cachedAuthUid')
+    } catch {
+      return false
+    }
+  })()
 
   if (!user && !hasCachedUid) {
     return <LoginScreen />
@@ -41,8 +47,14 @@ function AppRoutes() {
         <Route path="/" element={<ProjectsScreen />} />
         <Route path="/project/:id" element={<ProjectDetailsScreen />} />
         <Route path="/building/:id" element={<BuildingDetailsScreen />} />
-        <Route path="/building/:buildingId/measurement" element={<MeasurementScreen />} />
-        <Route path="/building/:buildingId/summary/:inspectionId" element={<SummaryScreen />} />
+        <Route
+          path="/building/:buildingId/measurement"
+          element={<MeasurementScreen />}
+        />
+        <Route
+          path="/building/:buildingId/summary/:inspectionId"
+          element={<SummaryScreen />}
+        />
         <Route path="/settings" element={<SettingsScreen />} />
       </Routes>
     </BrowserRouter>

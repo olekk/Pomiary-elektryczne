@@ -15,11 +15,9 @@ export const MeasurementListItem: React.FC<MeasurementListItemProps> = ({
   onDelete,
   showDelete = true,
 }) => {
-  const borderColor =
-    m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
+  const borderColor = m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
 
-  const resultColor =
-    m.result === 'TAK' ? 'text-green-600' : 'text-red-600'
+  const resultColor = m.result === 'TAK' ? 'text-green-600' : 'text-red-600'
 
   return (
     <div
@@ -85,19 +83,18 @@ interface CompactMeasurementListItemProps {
 export const CompactMeasurementListItem: React.FC<
   CompactMeasurementListItemProps
 > = ({ measurement: m }) => {
-  const borderColor =
-    m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
+  const borderColor = m.result === 'TAK' ? 'border-green-500' : 'border-red-500'
 
-  const bgColor =
-    m.result === 'TAK' ? 'bg-green-900/20' : 'bg-red-900/20'
+  const bgColor = m.result === 'TAK' ? 'bg-green-900/20' : 'bg-red-900/20'
 
-  const resultColor =
-    m.result === 'TAK' ? 'text-green-400' : 'text-red-400'
+  const resultColor = m.result === 'TAK' ? 'text-green-400' : 'text-red-400'
 
   return (
     <div className={cn('p-2 rounded border-l-4', borderColor, bgColor)}>
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-slate-100">{m.room} #{m.pointNumber}</span>
+        <span className="font-semibold text-slate-100">
+          {m.room} #{m.pointNumber}
+        </span>
         <span className="text-sm text-slate-400">
           {m.protectionType} {m.amperage}A
         </span>

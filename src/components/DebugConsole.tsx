@@ -22,8 +22,12 @@ export const DebugConsole: React.FC = () => {
     })
 
     return () => {
-      if (vConsoleInstance && typeof (vConsoleInstance as { destroy: () => void }).destroy === 'function') {
-        (vConsoleInstance as { destroy: () => void }).destroy()
+      if (
+        vConsoleInstance &&
+        typeof (vConsoleInstance as { destroy: () => void }).destroy ===
+          'function'
+      ) {
+        ;(vConsoleInstance as { destroy: () => void }).destroy()
       }
     }
   }, [])

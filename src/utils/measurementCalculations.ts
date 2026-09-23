@@ -53,8 +53,7 @@ export const createMeasurement = (
   const zsDop = calculateZsDop(protectionType, amperage)
   const result = determineMeasurementResult(zsValue, zsDop, noGrounding)
 
-  const noGroundingField =
-    noGrounding === undefined ? {} : { noGrounding }
+  const noGroundingField = noGrounding === undefined ? {} : { noGrounding }
 
   return {
     id,

@@ -53,7 +53,9 @@ export function useCollection<T>(
       setData([])
       setIsLoading(false)
       setFromCache(false)
-      logger.log(`📭 ${label || 'Collection'}: query is null, skipping subscription`)
+      logger.log(
+        `📭 ${label || 'Collection'}: query is null, skipping subscription`
+      )
       return
     }
 
@@ -98,7 +100,9 @@ export function useCollection<T>(
     // force isLoading to false so the UI doesn't hang permanently.
     const timeoutId = setTimeout(() => {
       if (!snapshotReceived) {
-        logger.warn(`⏰ ${label || 'Collection'}: no snapshot after 5s, forcing isLoading=false (key=${key})`)
+        logger.warn(
+          `⏰ ${label || 'Collection'}: no snapshot after 5s, forcing isLoading=false (key=${key})`
+        )
         setIsLoading(false)
       }
     }, 5000)

@@ -45,9 +45,11 @@ src/store/
 **Odpowiedzialność:** Zarządzanie stanem użytkownika
 
 **Stan:**
+
 - `user: User | null`
 
 **Akcje:**
+
 - `setUser(user: User | null): void`
 
 **Integracja:** Firebase Auth
@@ -59,10 +61,12 @@ src/store/
 **Odpowiedzialność:** Zarządzanie projektami
 
 **Stan:**
+
 - `projects: Project[]`
 - `currentProjectId: string | null`
 
 **Akcje:**
+
 - `loadProjects(): Promise<void>`
 - `createNewProject(name: string): Promise<void>`
 - `deleteProject(id: string): Promise<void>`
@@ -77,11 +81,13 @@ src/store/
 **Odpowiedzialność:** Zarządzanie przeglądami elektrycznymi i pomiarami
 
 **Stan:**
+
 - `inspections: Inspection[]`
 - `currentInspection: Inspection | null`
 - `pendingSyncCount: number`
 
 **Akcje:**
+
 - `loadInspections(projectId: string): Promise<void>`
 - `createNewInspection(...): void`
 - `setCurrentInspection(inspection: Inspection | null): void`
@@ -92,11 +98,13 @@ src/store/
 - `deleteInspection(id: string): Promise<void>`
 - `setSignature(signature: string): void`
 
-**Integracja:** 
+**Integracja:**
+
 - Firestore (collection `inspections`)
 - Utils (calculationCalculations, validators, idGenerator)
 
-**Uwaga:** 
+**Uwaga:**
+
 - Zachowano logikę `signatureOverride` w `saveToFirestore`
 - `pendingSyncCount` przeniesiono tutaj (logicznie związany z sync inspections)
 
@@ -107,12 +115,14 @@ src/store/
 **Odpowiedzialność:** Zarządzanie statusem połączenia i domyślnymi ustawieniami
 
 **Stan:**
+
 - `isOnline: boolean`
 - `lastProtectionType: ProtectionType`
 - `lastAmperage: Amperage`
 - `lastKFactor: number`
 
 **Akcje:**
+
 - `setOnlineStatus(status: boolean): void`
 - `retryPendingSync(): Promise<void>`
 - `setLastDefaults(protectionType, amperage, kFactor): void`
@@ -137,7 +147,7 @@ const { inspections } = state
 
 ;(set as any)({
   inspections: syncedList,
-  pendingSyncCount: newCount
+  pendingSyncCount: newCount,
 })
 ```
 
@@ -158,6 +168,7 @@ const { user, inspections } = useAppStore()
 ```
 
 **Lista zaktualizowanych plików:**
+
 1. `src/App.tsx`
 2. `src/components/ProjectsScreen.tsx`
 3. `src/components/ProjectDetailsScreen.tsx`
@@ -183,32 +194,37 @@ npm run lint
 
 ## 📊 Statystyki
 
-| Metryka | Przed | Po | Zmiana |
-|---------|-------|-----|---------|
-| Główny plik store | 455 linii | 13 linii | -97% |
-| Liczba plików | 1 | 6 | +500% |
-| Największy slice | 455 linii | 278 linii | -39% |
-| Separacja odpowiedzialności | ❌ Brak | ✅ 4 slice'y | Znaczna poprawa |
+| Metryka                     | Przed     | Po           | Zmiana          |
+| --------------------------- | --------- | ------------ | --------------- |
+| Główny plik store           | 455 linii | 13 linii     | -97%            |
+| Liczba plików               | 1         | 6            | +500%           |
+| Największy slice            | 455 linii | 278 linii    | -39%            |
+| Separacja odpowiedzialności | ❌ Brak   | ✅ 4 slice'y | Znaczna poprawa |
 
 ## 🎓 Zalety Refaktoryzacji
 
 ### 1. **Czytelność**
+
 - Każdy slice ma jasno określoną odpowiedzialność
 - Kod jest łatwiejszy do zrozumienia i nawigacji
 
 ### 2. **Testowalność**
+
 - Slice'y mogą być testowane niezależnie
 - Łatwiejsze mockowanie zależności
 
 ### 3. **Skalowalność**
+
 - Dodanie nowego slice'a nie wymaga modyfikacji istniejących
 - Łatwe rozszerzanie funkcjonalności
 
 ### 4. **Maintenance**
+
 - Bugfixy dotyczą tylko konkretnego slice'a
 - Mniejsze ryzyko regresji
 
 ### 5. **Best Practices**
+
 - Zgodność z oficjalnymi zaleceniami Zustand
 - Single Responsibility Principle
 
@@ -229,6 +245,7 @@ Niektóre akcje wymagają modyfikacji stanu z innych slice'ów:
 ## 📝 Aktualizacja Dokumentacji
 
 Zaktualizowano `docs/ARCHITEKTURA.md`:
+
 - Dodano sekcję "Store Layer (Slices Pattern)"
 - Zaktualizowano strukturę projektu
 - Zaktualizowano przykłady kodu
@@ -236,6 +253,7 @@ Zaktualizowano `docs/ARCHITEKTURA.md`:
 ## 🏁 Wnioski
 
 Refaktoryzacja zakończona sukcesem:
+
 - ✅ **Brak błędów TypeScript**
 - ✅ **Brak błędów lintera**
 - ✅ **Logika biznesowa zachowana 1:1**

@@ -1,16 +1,14 @@
 import { useMemo, useCallback } from 'react'
-import {
-  collection,
-  query,
-  where,
-} from 'firebase/firestore'
+import { collection, query, where } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useCollection } from './useCollection'
 import { retrySyncInspection } from '../services'
 import type { Inspection } from '../types'
 import { logger } from '../utils/logger'
 
-const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) => {
+const pendingMapper = (
+  doc: import('firebase/firestore').QueryDocumentSnapshot
+) => {
   const data = doc.data()
   return {
     id: doc.id,
@@ -42,15 +40,16 @@ const pendingMapper = (doc: import('firebase/firestore').QueryDocumentSnapshot) 
  */
 export function usePendingSync() {
   const q = useMemo(
-    () =>
-      query(
-        collection(db, 'inspections'),
-        where('synced', '==', false)
-      ),
+    () => query(collection(db, 'inspections'), where('synced', '==', false)),
     []
   )
 
-  const { data: pendingInspections } = useCollection<Inspection>(q, pendingMapper, 'pending-sync', 'PendingSync')
+  const { data: pendingInspections } = useCollection<Inspection>(
+    q,
+    pendingMapper,
+    'pending-sync',
+    'PendingSync'
+  )
 
   const pendingSyncCount = pendingInspections.length
 

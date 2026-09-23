@@ -6,19 +6,19 @@ Canonical technical reference for the current system. This document describes **
 
 Pomiary Elektryczne is an offline-first Progressive Web App used by electricians in the field to record electrical safety measurements (short-circuit loop impedance, "Zs"), assess pass/fail per point against regulatory limits, collect signatures, and generate signed PDF inspection protocols — while working with unreliable or no internet connectivity.
 
-| Layer | Choice |
-| --- | --- |
-| UI framework | React 19 + TypeScript, Vite 7 |
-| Styling | Tailwind CSS 4 (dark-mode-only design system) |
-| Routing | react-router-dom v7 (`BrowserRouter`) |
-| Backend | Firebase (Firestore + Auth), no custom server |
+| Layer            | Choice                                                                       |
+| ---------------- | ---------------------------------------------------------------------------- |
+| UI framework     | React 19 + TypeScript, Vite 7                                                |
+| Styling          | Tailwind CSS 4 (dark-mode-only design system)                                |
+| Routing          | react-router-dom v7 (`BrowserRouter`)                                        |
+| Backend          | Firebase (Firestore + Auth), no custom server                                |
 | State management | None global — Firestore `onSnapshot` + custom hooks + React Context (see §6) |
-| PDF | `@react-pdf/renderer`, dynamically imported |
-| Signatures | `react-signature-canvas` |
-| Icons | `lucide-react` |
-| Mobile debugging | `vconsole`, lazy-loaded behind `?debug=1` |
-| Testing | Vitest (unit + Firebase-emulator integration), Stryker (mutation) |
-| PWA | `vite-plugin-pwa` (`injectManifest` strategy, custom `public/sw.js`) |
+| PDF              | `@react-pdf/renderer`, dynamically imported                                  |
+| Signatures       | `react-signature-canvas`                                                     |
+| Icons            | `lucide-react`                                                               |
+| Mobile debugging | `vconsole`, lazy-loaded behind `?debug=1`                                    |
+| Testing          | Vitest (unit + Firebase-emulator integration), Stryker (mutation)            |
+| PWA              | `vite-plugin-pwa` (`injectManifest` strategy, custom `public/sw.js`)         |
 
 ## 2. Architecture Principles
 
@@ -84,7 +84,7 @@ Authoritative source: `src/types/index.ts`. Reproduced here for reference — if
 type ProtectionType = 'WNP' | 'BI'
 type Amperage = 10 | 16 | 20 | 25
 type NoGroundingType = 'NO_PIN' | 'NO_CONN' | 'HIGH_Z' | null
-type Room = 'Łazienka' | 'Kuchnia' | (string & {})   // constrained-but-extensible union
+type Room = 'Łazienka' | 'Kuchnia' | (string & {}) // constrained-but-extensible union
 type SocketType = 'Gniazdo 230V' | 'Gniazdo IP44'
 type UnitType = 'mieszkanie' | 'lokal' | 'klatka'
 type InspectionStatus = 'COMPLETED' | 'INACCESSIBLE'
@@ -95,9 +95,9 @@ interface Measurement {
   room: Room
   protectionType: ProtectionType
   amperage: Amperage
-  zsValue: number | null      // measured Zs
-  zsDop: number                // allowable Zs (looked up from ZS_DOP_TABLE)
-  result: 'TAK' | 'NIE'        // binary pass/fail — see History Era 8 for why not three-state
+  zsValue: number | null // measured Zs
+  zsDop: number // allowable Zs (looked up from ZS_DOP_TABLE)
+  result: 'TAK' | 'NIE' // binary pass/fail — see History Era 8 for why not three-state
   noGrounding?: NoGroundingType
   socketType: SocketType
 }
@@ -112,38 +112,38 @@ interface Project {
 interface Building {
   id: string
   projectId: string
-  name?: string        // legacy field, back-compat only — see §5
+  name?: string // legacy field, back-compat only — see §5
   street: string
   zipCode: string
   city: string
   createdAt: Date
   updatedAt: Date
   userId: string
-  inspectionStatuses?: Record<string, InspectionStatus>  // denormalized — see §5
+  inspectionStatuses?: Record<string, InspectionStatus> // denormalized — see §5
 }
 
 interface Inspection {
   id?: string
-  projectId: string            // REQUIRED
-  buildingId: string           // REQUIRED
+  projectId: string // REQUIRED
+  buildingId: string // REQUIRED
   address: string
   apartmentNumber: string
   ownerName?: string
   date: Date
   technicianName: string
-  technicianLicenseNumber?: string   // snapshotted from UserSettings at creation
-  technicianSignature?: string       // base64, snapshotted from UserSettings at creation
-  reviewerName?: string              // second signer — snapshotted from UserSettings
+  technicianLicenseNumber?: string // snapshotted from UserSettings at creation
+  technicianSignature?: string // base64, snapshotted from UserSettings at creation
+  reviewerName?: string // second signer — snapshotted from UserSettings
   reviewerLicenseNumber?: string
   reviewerSignature?: string
   notes?: string
-  measurements: Measurement[]        // empty for unitType 'klatka'
-  ownerSignature?: string            // base64, collected in SummaryScreen (not for 'klatka')
+  measurements: Measurement[] // empty for unitType 'klatka'
+  ownerSignature?: string // base64, collected in SummaryScreen (not for 'klatka')
   protocolNumber: string
   synced?: boolean
-  status?: InspectionStatus          // default 'COMPLETED'
-  unitType?: UnitType                 // default 'mieszkanie'
-  klatkaData?: KlatkaData              // present only when unitType === 'klatka'
+  status?: InspectionStatus // default 'COMPLETED'
+  unitType?: UnitType // default 'mieszkanie'
+  klatkaData?: KlatkaData // present only when unitType === 'klatka'
 }
 
 interface UserSettings {
@@ -179,12 +179,12 @@ Field-level notes and quirks worth knowing before writing a new document mapper:
 
 No global client store. State lives in four places by design:
 
-| Layer | Used for | Mechanism |
-| --- | --- | --- |
-| Firestore (`onSnapshot`) | Everything persisted: projects, buildings, inspections, user settings | `useCollection` / `useDocument` / `useUserSettings` |
-| React Context | Auth session | `useAuth()` — `AuthProvider` wraps the whole app |
-| Component `useState` | In-progress, not-yet-saved forms | Local to the owning screen |
-| `sessionStorage` + `location.state` | Survive navigation without a Firestore round-trip | `MeasurementScreen` draft cache; `navigate(path, { state })` handoffs |
+| Layer                               | Used for                                                              | Mechanism                                                             |
+| ----------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Firestore (`onSnapshot`)            | Everything persisted: projects, buildings, inspections, user settings | `useCollection` / `useDocument` / `useUserSettings`                   |
+| React Context                       | Auth session                                                          | `useAuth()` — `AuthProvider` wraps the whole app                      |
+| Component `useState`                | In-progress, not-yet-saved forms                                      | Local to the owning screen                                            |
+| `sessionStorage` + `location.state` | Survive navigation without a Firestore round-trip                     | `MeasurementScreen` draft cache; `navigate(path, { state })` handoffs |
 
 ### Hook reference
 
@@ -199,7 +199,7 @@ No global client store. State lives in four places by design:
 
 **`useAuth()`** — React Context around `onAuthStateChanged`. Returns `{ user, isAuthChecking, signOutUser }`. Also has a 3s safety timeout for the same class of stuck-state bug. See §10 for the cold-start caching behavior.
 
-**`useUserSettings(uid)`** — subscribes to `users/{uid}`, with an immediate synchronous read from `localStorage` on mount (before the Firestore snapshot arrives) as a cold-start fallback, and writes to both Firestore and `localStorage` on `save()`. Returns technician *and* reviewer name/license/signature plus `isLoading` and `save()`.
+**`useUserSettings(uid)`** — subscribes to `users/{uid}`, with an immediate synchronous read from `localStorage` on mount (before the Firestore snapshot arrives) as a cold-start fallback, and writes to both Firestore and `localStorage` on `save()`. Returns technician _and_ reviewer name/license/signature plus `isLoading` and `save()`.
 
 **`useOnlineStatus()`** — wraps `navigator.onLine` + `window.online`/`offline` events. **UI hint only** — never used to gate whether a write is attempted, only to decide when to show a status indicator or fire a sync retry.
 
@@ -211,7 +211,7 @@ Creating and completing an inspection crosses four screens and two persistence l
 
 1. **`BuildingDetailsScreen`** builds a skeleton in-memory `Inspection` object (no Firestore write yet) — technician/reviewer data snapshotted from `useUserSettings`, `address` defaulted to the building's full address, an empty/incremented `apartmentNumber`, `unitType: 'mieszkanie'` — then `navigate()`s straight to `MeasurementScreen`, passing the object via `location.state`. The FAB, the "next measurement" flow (`location.state.lastApartmentNumber` → incremented), and resuming an `INACCESSIBLE` unit all use this same navigate-to-screen path; there is no create dialog.
 
-2. **`MeasurementScreen`** holds it in `useState` and mirrors every change to `sessionStorage` (key: `` draft-inspection:{buildingId} ``) via an `updateInspection()` wrapper. The identity fields (adres / typ lokalu / numer / właściciel) are edited **inline at the top of the screen** — they write into the same in-memory inspection through `updateInspection`. The screen also subscribes to sibling inspections (`useCollection`) to drive the duplicate-number warning and automatic `klatka` numbering. Its header carries **Anuluj** (clears the draft → back to building) and **Niedostępne** (fire-and-forget save of an `INACCESSIBLE` record → back; hidden when resuming an existing unit). It only writes to Firestore when the user taps "Zapisz," using a **client-generated ID** (`generateInspectionId()`) so the write never blocks navigation; the protocol number is (re)generated at save/inaccessible time from the possibly-edited apartment number.
+2. **`MeasurementScreen`** holds it in `useState` and mirrors every change to `sessionStorage` (key: `draft-inspection:{buildingId}`) via an `updateInspection()` wrapper. The identity fields (adres / typ lokalu / numer / właściciel) are edited **inline at the top of the screen** — they write into the same in-memory inspection through `updateInspection`. The screen also subscribes to sibling inspections (`useCollection`) to drive the duplicate-number warning and automatic `klatka` numbering. Its header carries **Anuluj** (clears the draft → back to building) and **Niedostępne** (fire-and-forget save of an `INACCESSIBLE` record → back; hidden when resuming an existing unit). It only writes to Firestore when the user taps "Zapisz," using a **client-generated ID** (`generateInspectionId()`) so the write never blocks navigation; the protocol number is (re)generated at save/inaccessible time from the possibly-edited apartment number.
    - **Rehydration source depends on `useNavigationType()`**: browser **`POP`** (back/forward) prefers the `sessionStorage` draft, because it holds the most recently edited state; **`PUSH`/`REPLACE`** (a fresh "new measurement" action) prefers `location.state`, because that's the newly-constructed object the user just asked to start editing. Getting this branch backwards reintroduces a real, previously-shipped stale-data bug (History, Era 13) — preserve it exactly if you touch this screen.
    - `klatkaData` follows the same local-state-then-save flow but has no per-point measurement list; `isKlatka` (derived from `unitType === 'klatka'`) switches the entire screen body between the numeric-keypad measurement UI and `KlatkaInspectionForm`.
 
@@ -223,7 +223,7 @@ Creating and completing an inspection crosses four screens and two persistence l
 
 ## 8. Offline & Sync Strategy
 
-- **Firestore is initialized** with `persistentLocalCache({ tabManager: persistentMultipleTabManager() })` — this *is* the offline database. There is no separate IndexedDB/localStorage layer for inspection data; `localStorage` is used only as a cold-start fallback cache for `UserSettings`.
+- **Firestore is initialized** with `persistentLocalCache({ tabManager: persistentMultipleTabManager() })` — this _is_ the offline database. There is no separate IndexedDB/localStorage layer for inspection data; `localStorage` is used only as a cold-start fallback cache for `UserSettings`.
 - **`onSnapshot` double-emit**: every subscription fires once immediately from cache (works offline, `fromCache: true`) and again when the server confirms (`fromCache: false`). UI never needs to branch on `navigator.onLine` to decide what to render — it renders whatever the latest snapshot says.
 - **Auto-sync triggers**: `MainLayout` calls `retryPendingSync()` once on mount if online and there's a pending count; a `window.addEventListener('online', ...)` trigger also fires a retry on reconnect. Neither manually calls `enableNetwork()`/`disableNetwork()` — the Firebase SDK manages its own connection; the app only nudges it to retry.
 - **Safety timeouts**: `useCollection`, `useDocument`, and `useAuth` each force their loading state to `false` after 3–5 seconds if the underlying Firebase callback never fires — mitigation for a known iOS Safari stuck-state bug (History, Era 7). Any new Firestore-subscribing hook should follow the same pattern.
@@ -278,41 +278,41 @@ Semantic result colors: `TAK` (pass) → green, `NIE` (fail) → red. `KlatkaDat
 
 ## 12. Component Inventory
 
-| Component | Layer | Purpose |
-| --- | --- | --- |
-| `Button`, `Input`, `Select`, `Card`, `Badge` | atoms | Presentational primitives, zero business logic |
-| `ActionMenu` | atoms | Reusable kebab dropdown with keyboard nav |
-| `FormField` | molecules | Label + input + error wrapper |
-| `InspectionCard` | molecules | Inspection summary row (list view), PDF/delete actions |
-| `MeasurementListItem` / `CompactMeasurementListItem` | molecules | Measurement row, full and summary variants |
-| `StatusBadge` | molecules | Online/offline/pending indicator — **currently unused/dead code**, see §16 |
-| `KlatkaInspectionForm` | organisms | ~14-section staircase inspection checklist |
-| `SignaturePanel` | organisms | Signature capture; reused identically for technician, reviewer, and owner signatures |
-| `DashboardStats` | organisms | Total/synced/pending counts for a building |
-| `InspectionsList` | organisms | List of `InspectionCard`s with loading/cache states |
-| `MeasurementSettings` | organisms | Room/protection-type/amperage/socket-type controls |
-| `NotesSection` | organisms | Collapsible protocol-notes editor |
-| `MainLayout` | layout | Header/footer chrome, logout, settings link, auto-sync-on-mount |
+| Component                                            | Layer     | Purpose                                                                              |
+| ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------ |
+| `Button`, `Input`, `Select`, `Card`, `Badge`         | atoms     | Presentational primitives, zero business logic                                       |
+| `ActionMenu`                                         | atoms     | Reusable kebab dropdown with keyboard nav                                            |
+| `FormField`                                          | molecules | Label + input + error wrapper                                                        |
+| `InspectionCard`                                     | molecules | Inspection summary row (list view), PDF/delete actions                               |
+| `MeasurementListItem` / `CompactMeasurementListItem` | molecules | Measurement row, full and summary variants                                           |
+| `StatusBadge`                                        | molecules | Online/offline/pending indicator — **currently unused/dead code**, see §16           |
+| `KlatkaInspectionForm`                               | organisms | ~14-section staircase inspection checklist                                           |
+| `SignaturePanel`                                     | organisms | Signature capture; reused identically for technician, reviewer, and owner signatures |
+| `DashboardStats`                                     | organisms | Total/synced/pending counts for a building                                           |
+| `InspectionsList`                                    | organisms | List of `InspectionCard`s with loading/cache states                                  |
+| `MeasurementSettings`                                | organisms | Room/protection-type/amperage/socket-type controls                                   |
+| `NotesSection`                                       | organisms | Collapsible protocol-notes editor                                                    |
+| `MainLayout`                                         | layout    | Header/footer chrome, logout, settings link, auto-sync-on-mount                      |
 
 ## 13. Routing Table
 
-| Path | Component | Notes |
-| --- | --- | --- |
-| `/` | `ProjectsScreen` | Project list, create/delete |
-| `/project/:id` | `ProjectDetailsScreen` | Buildings in a project, address search, per-building stats |
-| `/building/:id` | `BuildingDetailsScreen` | Inspections in a building, create/resume/mark-inaccessible |
-| `/building/:buildingId/measurement` | `MeasurementScreen` | Data entry (measurements or klatka checklist) |
-| `/building/:buildingId/summary/:inspectionId` | `SummaryScreen` | Review, notes, signature, PDF |
-| `/settings` | `SettingsScreen` | Technician + reviewer profile and signatures |
-| *(none — rendered outside the router)* | `LoginScreen` | Shown when unauthenticated and no cached UID |
+| Path                                          | Component               | Notes                                                      |
+| --------------------------------------------- | ----------------------- | ---------------------------------------------------------- |
+| `/`                                           | `ProjectsScreen`        | Project list, create/delete                                |
+| `/project/:id`                                | `ProjectDetailsScreen`  | Buildings in a project, address search, per-building stats |
+| `/building/:id`                               | `BuildingDetailsScreen` | Inspections in a building, create/resume/mark-inaccessible |
+| `/building/:buildingId/measurement`           | `MeasurementScreen`     | Data entry (measurements or klatka checklist)              |
+| `/building/:buildingId/summary/:inspectionId` | `SummaryScreen`         | Review, notes, signature, PDF                              |
+| `/settings`                                   | `SettingsScreen`        | Technician + reviewer profile and signatures               |
+| _(none — rendered outside the router)_        | `LoginScreen`           | Shown when unauthenticated and no cached UID               |
 
 ## 14. Testing Strategy
 
-| Type | Location | Runner | Scope / threshold |
-| --- | --- | --- | --- |
-| Unit | `src/utils/**/__tests__/*.test.ts` | Vitest | Pure functions in `utils/`; **90% statement coverage enforced** on `src/utils/**` (`vitest.config.ts`) |
-| Integration | `src/services/__tests__/*.integration.test.ts` | Vitest + real Firebase Emulator (no mocks) | `firebaseService.ts` — save/read round-trips, cascading deletes, required-field validation |
-| Mutation | `src/utils/**` | Stryker | Thresholds: high 80 / low 60 / break 50 |
+| Type        | Location                                       | Runner                                     | Scope / threshold                                                                                      |
+| ----------- | ---------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Unit        | `src/utils/**/__tests__/*.test.ts`             | Vitest                                     | Pure functions in `utils/`; **90% statement coverage enforced** on `src/utils/**` (`vitest.config.ts`) |
+| Integration | `src/services/__tests__/*.integration.test.ts` | Vitest + real Firebase Emulator (no mocks) | `firebaseService.ts` — save/read round-trips, cascading deletes, required-field validation             |
+| Mutation    | `src/utils/**`                                 | Stryker                                    | Thresholds: high 80 / low 60 / break 50                                                                |
 
 There is currently **no automated test coverage for components, hooks, or screens** — including the offline-sync UI paths, which is where most of the bugs in the project's history (see Architecture History) actually occurred. This is a known gap, not an oversight to silently "fix" — see §16.
 

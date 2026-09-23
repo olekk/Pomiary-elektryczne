@@ -46,7 +46,9 @@ export function useDocument<T>(
       setData(null)
       setIsLoading(false)
       setFromCache(false)
-      logger.log(`📭 ${label || 'Document'}: ref is null, skipping subscription`)
+      logger.log(
+        `📭 ${label || 'Document'}: ref is null, skipping subscription`
+      )
       return
     }
 
@@ -66,9 +68,7 @@ export function useDocument<T>(
           const result = mapperRef.current(snap)
           setData(result)
           if (label) {
-            logger.log(
-              `📥 ${label}: loaded (fromCache: ${isCached})`
-            )
+            logger.log(`📥 ${label}: loaded (fromCache: ${isCached})`)
           }
         } else {
           setData(null)
@@ -93,7 +93,9 @@ export function useDocument<T>(
     // force isLoading to false so the UI doesn't hang permanently.
     const timeoutId = setTimeout(() => {
       if (!snapshotReceived) {
-        logger.warn(`⏰ ${label || 'Document'}: no snapshot after 5s, forcing isLoading=false (path=${docPath})`)
+        logger.warn(
+          `⏰ ${label || 'Document'}: no snapshot after 5s, forcing isLoading=false (path=${docPath})`
+        )
         setIsLoading(false)
       }
     }, 5000)

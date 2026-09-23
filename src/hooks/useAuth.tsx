@@ -13,13 +13,17 @@ function cacheAuthState(user: User | null) {
     } else {
       localStorage.removeItem(AUTH_CACHE_KEY)
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function hasCachedAuth(): boolean {
   try {
     return !!localStorage.getItem(AUTH_CACHE_KEY)
-  } catch { return false }
+  } catch {
+    return false
+  }
 }
 
 interface AuthContextValue {

@@ -4,7 +4,12 @@ import { Plus, FolderOpen, Trash2 } from 'lucide-react'
 import { useCollection } from '../hooks'
 import { MainLayout } from './layout/MainLayout'
 import { Button, ActionMenu } from './atoms'
-import { collection, query, orderBy, type QueryDocumentSnapshot } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  orderBy,
+  type QueryDocumentSnapshot,
+} from 'firebase/firestore'
 import { db } from '../firebase'
 import { saveProjectToFirestore, deleteProjectFromFirestore } from '../services'
 import type { Project } from '../types'
@@ -28,12 +33,13 @@ export const ProjectsScreen: React.FC = () => {
     []
   )
 
-  const { data: projects, isLoading: isLoadingProjects } = useCollection<Project>(
-    projectsQuery,
-    projectMapper,
-    'all-projects',
-    'Projects'
-  )
+  const { data: projects, isLoading: isLoadingProjects } =
+    useCollection<Project>(
+      projectsQuery,
+      projectMapper,
+      'all-projects',
+      'Projects'
+    )
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
@@ -71,10 +77,9 @@ export const ProjectsScreen: React.FC = () => {
         `Czy na pewno chcesz usunąć projekt "${name}"? Ta akcja jest nieodwracalna.`
       )
     ) {
-      deleteProjectFromFirestore(id)
-        .catch((error: unknown) => {
-          console.error('❌ Error deleting project:', error)
-        })
+      deleteProjectFromFirestore(id).catch((error: unknown) => {
+        console.error('❌ Error deleting project:', error)
+      })
     }
   }
 
@@ -123,7 +128,8 @@ export const ProjectsScreen: React.FC = () => {
                       {
                         label: 'Usuń',
                         icon: <Trash2 size={16} className="text-red-400" />,
-                        onClick: () => handleDeleteProject(project.id, project.name),
+                        onClick: () =>
+                          handleDeleteProject(project.id, project.name),
                         className: 'text-red-400 hover:bg-red-900/40',
                       },
                     ]}
@@ -186,10 +192,7 @@ export const ProjectsScreen: React.FC = () => {
               >
                 Anuluj
               </Button>
-              <Button 
-                onClick={handleCreateProject} 
-                className="flex-1"
-              >
+              <Button onClick={handleCreateProject} className="flex-1">
                 Utwórz
               </Button>
             </div>

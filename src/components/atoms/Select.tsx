@@ -23,7 +23,12 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={selectId} className="block text-sm font-semibold text-slate-300 mb-1">{label}</label>
+        <label
+          htmlFor={selectId}
+          className="block text-sm font-semibold text-slate-300 mb-1"
+        >
+          {label}
+        </label>
       )}
       <select
         id={selectId}

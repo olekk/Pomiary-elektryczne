@@ -2,22 +2,22 @@
 
 This document explains **how the architecture of Pomiary Elektryczne evolved and why** — it is the merged, chronological changelog previously scattered across `docs/ARCHITEKTURA.md`'s dated sections and the standalone refactoring write-ups in `docs/archive/` (`REFACTORING_COMPLETED.md`, `REFACTORING_SLICES.md`, `ARCHITECTURE_REFACTORING.md`, `REFACTORING_SUMMARY.md`, `CHANGELOG.md`, `CHANGELOG_OFFLINE.md`, `OFFLINE_STRATEGY_IMPLEMENTATION.md`, `OFFLINE_VISUAL_GUIDE.md`, `NAPRAWA_BLEDU_IPHONE.md`).
 
-**This is a historical record, not a source of truth for current behavior.** For how the system works *today*, see `docs/ARCHITECTURE.md`. Dates and commit hashes below are from `git log` and are accurate; narrative details are drawn from the archived docs' own explanations, which were written contemporaneously by whoever made the change.
+**This is a historical record, not a source of truth for current behavior.** For how the system works _today_, see `docs/ARCHITECTURE.md`. Dates and commit hashes below are from `git log` and are accurate; narrative details are drawn from the archived docs' own explanations, which were written contemporaneously by whoever made the change.
 
 ## Superseded decisions — quick reference
 
 If you're about to reintroduce one of these, read the relevant era below first — most were tried, shipped, and then deliberately reverted after causing real bugs.
 
-| Old approach | Replaced by | When |
-| --- | --- | --- |
-| Single monolithic `useInspectionStore.ts` (Zustand) | Split into 4 Zustand slices (`authSlice`/`projectSlice`/`inspectionSlice`/`offlineSlice`) | 2026-01-30 |
-| Zustand (in any form — monolith or slices) as the state layer | Firestore `onSnapshot` + custom hooks (`useCollection`/`useDocument`/`useAuth`/etc.), no global store at all | 2026-02-14 |
-| Manual `navigator.onLine` checks + manual `enableNetwork()`/`disableNetwork()` calls | Trusting Firebase SDK's own network detection; `online` event used only as a retry trigger | 2026-01-31 (added 01-31, then removed again 02-14 when the whole slice it lived in was deleted) |
-| `addDoc()` (waits for a server-assigned ID) | `setDoc()` with a client-generated ID (`generateInspectionId()`), so writes never block on the network | 2026-01-26/27 |
-| Three-state result `TAK` / `NIE` / `B.UZ` | Binary `TAK` / `NIE`; "no grounding" became a separate `noGrounding` reason code instead of a result value | 2026-02-20 |
-| Anonymous Firebase Auth (planned/documented in early setup docs) | Email/password auth only, users created manually in the Firebase Console | some time before the current codebase's `LoginScreen`/`useAuth` were written — no anonymous-auth code has existed in any commit inspected |
-| Protocol number format `PROT/RRRR/MM/DD/ULICA/NR` (date-first) | `ULICA/MIESZKANIE/RRRR/MM/DD/PROT` (address-first) | 2026-06-15 |
-| Per-screen copy-pasted `pdf(...).toBlob()` + download logic | Centralized `generateInspectionPdf()` in `utils/generatePdf.tsx` | 2026-06-14 (after being duplicated on 2026-06-11 — see Era 12) |
+| Old approach                                                                         | Replaced by                                                                                                  | When                                                                                                                                      |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Single monolithic `useInspectionStore.ts` (Zustand)                                  | Split into 4 Zustand slices (`authSlice`/`projectSlice`/`inspectionSlice`/`offlineSlice`)                    | 2026-01-30                                                                                                                                |
+| Zustand (in any form — monolith or slices) as the state layer                        | Firestore `onSnapshot` + custom hooks (`useCollection`/`useDocument`/`useAuth`/etc.), no global store at all | 2026-02-14                                                                                                                                |
+| Manual `navigator.onLine` checks + manual `enableNetwork()`/`disableNetwork()` calls | Trusting Firebase SDK's own network detection; `online` event used only as a retry trigger                   | 2026-01-31 (added 01-31, then removed again 02-14 when the whole slice it lived in was deleted)                                           |
+| `addDoc()` (waits for a server-assigned ID)                                          | `setDoc()` with a client-generated ID (`generateInspectionId()`), so writes never block on the network       | 2026-01-26/27                                                                                                                             |
+| Three-state result `TAK` / `NIE` / `B.UZ`                                            | Binary `TAK` / `NIE`; "no grounding" became a separate `noGrounding` reason code instead of a result value   | 2026-02-20                                                                                                                                |
+| Anonymous Firebase Auth (planned/documented in early setup docs)                     | Email/password auth only, users created manually in the Firebase Console                                     | some time before the current codebase's `LoginScreen`/`useAuth` were written — no anonymous-auth code has existed in any commit inspected |
+| Protocol number format `PROT/RRRR/MM/DD/ULICA/NR` (date-first)                       | `ULICA/MIESZKANIE/RRRR/MM/DD/PROT` (address-first)                                                           | 2026-06-15                                                                                                                                |
+| Per-screen copy-pasted `pdf(...).toBlob()` + download logic                          | Centralized `generateInspectionPdf()` in `utils/generatePdf.tsx`                                             | 2026-06-14 (after being duplicated on 2026-06-11 — see Era 12)                                                                            |
 
 ## Era 0 — Initial build (2026-01-23 – 2026-01-27)
 
@@ -33,7 +33,7 @@ Early setup docs (`FAQ.md`, `CHECKLIST.md`) describe **Anonymous Firebase Auth**
 
 This is the origin of the **fire-and-forget write** pattern that still governs every Firestore write in the app today — the specific implementation (Zustand store, `Dashboard.tsx`) has been completely replaced twice since, but the underlying principle from this fix was never reverted.
 
-A separate, unrelated iOS issue from the same period (`NAPRAWA_BLEDU_IPHONE.md`): saves failing on iPhone turned out to be a **missing/misconfigured Firestore security rules** problem (`permission-denied`), not an offline/sync bug. Worth keeping distinct from the *later*, different iOS Safari issue in Era 7 (WebChannel death from heavy `fetch()` activity) — two unrelated "it's broken on iPhone" incidents, two unrelated root causes.
+A separate, unrelated iOS issue from the same period (`NAPRAWA_BLEDU_IPHONE.md`): saves failing on iPhone turned out to be a **missing/misconfigured Firestore security rules** problem (`permission-denied`), not an offline/sync bug. Worth keeping distinct from the _later_, different iOS Safari issue in Era 7 (WebChannel death from heavy `fetch()` activity) — two unrelated "it's broken on iPhone" incidents, two unrelated root causes.
 
 ## Era 2 — Atomic Design refactor + Projects hierarchy (2026-01-29 – 2026-01-30)
 
@@ -54,7 +54,7 @@ A dedicated audit-and-fix pass on 2026-01-31 (`REFACTORING_COMPLETED.md`) addres
 - Deduplicated date-conversion logic into `ensureDate()` (`utils/dateUtils.ts`) — the one piece of this era's cleanup that is still present essentially unchanged in the current codebase.
 - Cascading delete for projects → buildings → inspections via `writeBatch` (`72084a0`) — also still present today.
 
-**The irony, in hindsight**: this entire era's central fix (Ghost Data Protection bolted onto a global store) was itself superseded two weeks later by removing the global store altogether (Era 6) — which eliminated the ghost-data bug class structurally instead of patching around it. The `loadedUserId`/3-step-logout mechanism from this era is *not* present in the current codebase; it isn't needed because there's no longer a store to leak.
+**The irony, in hindsight**: this entire era's central fix (Ghost Data Protection bolted onto a global store) was itself superseded two weeks later by removing the global store altogether (Era 6) — which eliminated the ghost-data bug class structurally instead of patching around it. The `loadedUserId`/3-step-logout mechanism from this era is _not_ present in the current codebase; it isn't needed because there's no longer a store to leak.
 
 ## Era 4 — Buildings, protocol numbers, and dual signatures (2026-02-04 – 2026-02-12)
 
@@ -70,7 +70,7 @@ A dedicated audit-and-fix pass on 2026-01-31 (`REFACTORING_COMPLETED.md`) addres
 
 **The pivotal rewrite.** `84ffd38` ("Migrate application state management from Zustand store slices to custom React hooks"): deleted all of `src/store/` (10 files, ~750 lines in `inspectionSlice` alone) and the `zustand` dependency, replacing it with the custom hooks that exist today — `useCollection`, `useDocument`, `useAuth`, `useUserSettings`, `useOnlineStatus`, `usePendingSync`.
 
-**Stated motivation**: Firestore's own `persistentLocalCache` already *is* an offline-capable store. A Zustand store sitting in front of it as a synchronization/cache layer was redundant complexity that had already caused two rounds of ghost-data bugs (Era 3) and stale-cache-on-reload issues. Removing the intermediary layer removed the bug class structurally rather than requiring ongoing defensive code (`loadedUserId` tracking, 3-step logout, cross-slice `as any` casts) to keep it safe.
+**Stated motivation**: Firestore's own `persistentLocalCache` already _is_ an offline-capable store. A Zustand store sitting in front of it as a synchronization/cache layer was redundant complexity that had already caused two rounds of ghost-data bugs (Era 3) and stale-cache-on-reload issues. Removing the intermediary layer removed the bug class structurally rather than requiring ongoing defensive code (`loadedUserId` tracking, 3-step logout, cross-slice `as any` casts) to keep it safe.
 
 Net effect reported at the time: -1242 lines. `26be211`, same day, added the explicit `key` parameter to `useCollection` so subscriptions only restart when the logical query changes, not on every render.
 
@@ -125,7 +125,7 @@ Consequences: `BuildingDetailsScreen`'s FAB, the "next measurement" flow, and re
 
 ## Era 15 — Per-building stats from a denormalized status map (2026-09-23)
 
-**Problem**: opening a large project (Knurów, 259 buildings) downloaded ~3 MB every time. `ProjectDetailsScreen` subscribed to *all* inspections of the project just to count "Wykonano / Niedostępne" per building, and every inspection document carries three base64 PNG signatures plus measurements. The Firestore web SDK has no field projection for `onSnapshot`, and a listener re-attached after ~30 minutes gets the full result set again, so the cost repeated on nearly every visit.
+**Problem**: opening a large project (Knurów, 259 buildings) downloaded ~3 MB every time. `ProjectDetailsScreen` subscribed to _all_ inspections of the project just to count "Wykonano / Niedostępne" per building, and every inspection document carries three base64 PNG signatures plus measurements. The Firestore web SDK has no field projection for `onSnapshot`, and a listener re-attached after ~30 minutes gets the full result set again, so the cost repeated on nearly every visit.
 
 **Considered and rejected**: paginating buildings 10 at a time (counts would still need each building's inspections — same bytes, just spread out, plus N listeners); showing the list before the stats (already the case — the two subscriptions were independent, the transfer was the problem); `getCountFromServer()` (aggregation queries don't work offline); `increment()` counters on the building (not idempotent — `saveInspectionToFirestore` is a `merge` upsert used for create, edit, status change and `retrySyncInspection`, so counters would double-count).
 

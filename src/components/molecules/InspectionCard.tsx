@@ -33,8 +33,9 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
   return (
     <Card>
       <div
-        className={`flex items-start justify-between cursor-pointer ${isInaccessible ? 'border-l-4 border-orange-500 pl-3 -ml-1' : ''
-          }`}
+        className={`flex items-start justify-between cursor-pointer ${
+          isInaccessible ? 'border-l-4 border-orange-500 pl-3 -ml-1' : ''
+        }`}
         onClick={handleCardClick}
       >
         <div className="flex-1 min-w-0">
@@ -45,21 +46,24 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               <FileText size={18} className="text-blue-400" />
             )}
             <span
-              className={`font-mono text-sm break-all ${isInaccessible ? 'text-orange-400' : 'text-blue-400'
-                }`}
+              className={`font-mono text-sm break-all ${
+                isInaccessible ? 'text-orange-400' : 'text-blue-400'
+              }`}
             >
               {inspection.protocolNumber}
             </span>
           </div>
           <h3
-            className={`font-bold text-lg ${isInaccessible ? 'text-orange-200' : 'text-slate-100'
-              }`}
+            className={`font-bold text-lg ${
+              isInaccessible ? 'text-orange-200' : 'text-slate-100'
+            }`}
           >
             {inspection.unitType === 'lokal'
               ? 'Lokal'
               : inspection.unitType === 'klatka'
                 ? 'Klatka'
-                : 'Mieszkanie'}: {inspection.apartmentNumber}
+                : 'Mieszkanie'}
+            : {inspection.apartmentNumber}
           </h3>
           {isInaccessible && (
             <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded bg-orange-900/50 text-orange-300 border border-orange-700/50 mb-1">
@@ -100,16 +104,23 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
             items={[
               {
                 label: 'Generuj PDF',
-                icon: <FileDown size={16} className="text-blue-400 cursor-pointer" />,
-                onClick: () => (generateInspectionPdf(inspection)),
+                icon: (
+                  <FileDown
+                    size={16}
+                    className="text-blue-400 cursor-pointer"
+                  />
+                ),
+                onClick: () => generateInspectionPdf(inspection),
                 className: 'text-blue-400 hover:bg-blue-900/40 cursor-pointer',
               },
               {
                 label: 'Usuń',
-                icon: <Trash2 size={16} className="text-red-400 cursor-pointer" />,
+                icon: (
+                  <Trash2 size={16} className="text-red-400 cursor-pointer" />
+                ),
                 onClick: () => onDelete(inspection.id!),
                 className: 'text-red-400 hover:bg-red-900/40 cursor-pointer',
-              }
+              },
             ]}
           />
         </div>
