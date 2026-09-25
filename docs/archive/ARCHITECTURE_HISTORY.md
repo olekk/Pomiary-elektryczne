@@ -141,6 +141,19 @@ A fourth `UnitType`, `odgromowa` (przegląd instalacji odgromowej), added the sa
 
 The building sketch (section 8 of the protocol) is deliberately left as an empty frame in the PDF, to be decided separately (drawing vs. photo, and the base64 size cost).
 
+## Era 17 — Insulation resistance in the mieszkanie protocol (2026-09-24)
+
+A "Rezystancja izolacji" section was added to the `mieszkanie` protocol as an optional `izolacjaData` payload on the inspection — same shape of change as `klatkaData`/`odgromowaData`, no new collection or route. Deliberately minimal: network type, conductor material, test voltage, and per-circuit pass/fail against a fixed 1,0 MΩ; no measured values, protection or cross-section fields.
+
+**Decisions**:
+
+- **Verdict**: folded into `getProtocolVerdict()`'s dwelling branch as a second worst-wins condition (Zs `NIE` OR circuit `ponizej-normy` → `nie-nadaje`), not a separate verdict.
+- **Prefilled defaults**: new sections start as TN-C, Cu, 500 V with oświetlenie + gniazda rated `w-normie` (added rows are `w-normie` too), so the technician only changes what differs from the typical apartment. The first draft left every choice empty to force a conscious pick; the product owner chose prefilled defaults instead. Tradeoff: a section nobody touched saves as "all in norm".
+- **Remarks are derived, not stored**: the "odłączyć obwód do czasu naprawy" remark is generated at PDF render time (`getIzolacjaRemarks()`), like the existing Zs auto-remarks, instead of being appended to `notes`. Appending would duplicate the text on every re-save and leave it behind after a rating was corrected.
+- **Draft persistence**: unlike `klatkaData`/`odgromowaData`, the payload lives inside the in-memory inspection so it is mirrored to the `sessionStorage` draft.
+- **Scope**: `mieszkanie` only (not `lokal`), and only for protocols not yet completed — old completed protocols keep opening, editing and printing without the section.
+- **Stale data on type change**: the inspection write uses `merge`, so a mieszkanie → lokal change would have left `izolacjaData` behind (and flipped the verdict). The save writes `deleteField()` for non-mieszkanie types.
+
 ## Sources
 
 - `docs/ARCHITEKTURA.md` (now `docs/ARCHITECTURE.md`) — dated changelog-style sections through 2026-03-23, extracted into the eras above.

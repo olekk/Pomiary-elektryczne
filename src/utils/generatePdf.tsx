@@ -1,6 +1,10 @@
 import type { Inspection } from '../types'
 import { logger } from './logger'
 import { showToast, type ToastHandle } from './toast'
+import { canGeneratePdf } from './izolacja'
+
+const INCOMPLETE_MESSAGE =
+  'Uzupełnij sekcję „Rezystancja izolacji” przed wygenerowaniem PDF.'
 
 /** Shown while a job waits for an earlier one to finish. */
 const QUEUED_MESSAGE = 'Czekam na zakończenie poprzedniego pobierania…'
@@ -102,6 +106,10 @@ async function recoverFirestoreAfterPdf(): Promise<void> {
 export async function generateInspectionPdf(
   inspection: Inspection
 ): Promise<void> {
+  if (!canGeneratePdf(inspection)) {
+    showToast(INCOMPLETE_MESSAGE, { type: 'error', duration: 5000 })
+    return
+  }
   const toast = showToast(
     pendingPdfJobs > 0 ? QUEUED_MESSAGE : 'Generowanie PDF…',
     { type: 'info', duration: 0 }
@@ -156,6 +164,11 @@ async function runPdfBatch(
 
     for (let i = 0; i < total; i++) {
       const inspection = inspections[i]
+      if (!canGeneratePdf(inspection)) {
+        logger.warn(`⚠️ ${inspection.protocolNumber}: ${INCOMPLETE_MESSAGE}`)
+        failed.push(inspection.protocolNumber)
+        continue
+      }
       toast.update(
         `Generowanie PDF ${i + 1}/${total} — ${inspection.protocolNumber}`,
         'info',

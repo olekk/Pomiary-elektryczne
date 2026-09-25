@@ -1,10 +1,12 @@
 import type { Inspection, ProtocolVerdict } from '../types'
+import { hasFailedIzolacja } from './izolacja'
 
 /**
  * Wynik końcowy protokołu — jedyne miejsce, które decyduje, czy instalacja
  * nadaje się do eksploatacji. PDF, podsumowanie i formularze czytają go stąd.
  *
- * - mieszkanie / lokal: liczony z pomiarów Zs — choć jeden NIE → nie nadaje się
+ * - mieszkanie / lokal: najgorszy wynik wygrywa — choć jeden pomiar Zs = NIE
+ *   albo choć jeden obwód izolacji „poniżej normy” → nie nadaje się
  * - klatka / odgromowa: wybierany przez technika w formularzu
  *
  * Brak zapisanej oceny (starsze dokumenty, pole nietknięte) → 'nadaje',
@@ -13,7 +15,11 @@ import type { Inspection, ProtocolVerdict } from '../types'
 export const getProtocolVerdict = (
   inspection: Pick<
     Inspection,
-    'unitType' | 'measurements' | 'klatkaData' | 'odgromowaData'
+    | 'unitType'
+    | 'measurements'
+    | 'klatkaData'
+    | 'odgromowaData'
+    | 'izolacjaData'
   >
 ): ProtocolVerdict => {
   switch (inspection.unitType) {
@@ -22,7 +28,8 @@ export const getProtocolVerdict = (
     case 'odgromowa':
       return inspection.odgromowaData?.wynik || 'nadaje'
     default:
-      return inspection.measurements.some((m) => m.result === 'NIE')
+      return inspection.measurements.some((m) => m.result === 'NIE') ||
+        hasFailedIzolacja(inspection.izolacjaData)
         ? 'nie-nadaje'
         : 'nadaje'
   }

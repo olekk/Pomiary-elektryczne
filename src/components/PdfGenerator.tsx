@@ -17,6 +17,7 @@ import {
   getProtocolTitle,
   VERDICT_CONCLUSIONS,
   verdictLabel,
+  getIzolacjaRemarks,
 } from '../utils'
 import {
   OWNER_CLAUSE_CONSENT,
@@ -24,6 +25,7 @@ import {
 } from '../constants/clauses'
 import { MEASURING_INSTRUMENT } from '../constants/instrument'
 import { OdgromowaPdfSection } from './OdgromowaPdfSection'
+import { IzolacjaPdfSection } from './IzolacjaPdfSection'
 
 interface PdfGeneratorProps {
   inspection: Inspection
@@ -297,6 +299,12 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
 
     return recommendation || []
   })
+  // Rezystancja izolacji — tylko mieszkanie; brak sekcji (stary protokół) → []
+  const izolacjaData =
+    (inspection.unitType ?? 'mieszkanie') === 'mieszkanie'
+      ? inspection.izolacjaData
+      : undefined
+  postInspectionRecommendations.push(...getIzolacjaRemarks(izolacjaData))
 
   const manualNotes = (inspection.notes ?? '').trim()
   const hasAuto = postInspectionRecommendations.length > 0
@@ -752,6 +760,11 @@ export const PdfGenerator: React.FC<PdfGeneratorProps> = ({ inspection }) => {
                 style={styles.directionImage}
               />
             </View>
+            {izolacjaData && (
+              <View style={{ marginTop: 15 }}>
+                <IzolacjaPdfSection data={izolacjaData} />
+              </View>
+            )}
           </>
         )}
         {/* --- SEKCJA OGLĘDZINY (instalacja elektryczna; odgromowa ma własne) --- */}

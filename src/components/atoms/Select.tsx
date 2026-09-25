@@ -8,11 +8,16 @@ interface SelectOption {
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   options: SelectOption[]
+  error?: string
+  /** Pusta pozycja na początku listy — pole bez wartości domyślnej */
+  placeholder?: string
 }
 
 export const Select: React.FC<SelectProps> = ({
   label,
   options,
+  error,
+  placeholder,
   className = '',
   id: externalId,
   ...props
@@ -32,15 +37,23 @@ export const Select: React.FC<SelectProps> = ({
       )}
       <select
         id={selectId}
-        className={`w-full p-3 border border-slate-700 rounded-lg text-lg bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
+        className={`w-full p-3 border border-slate-700 rounded-lg text-lg bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          error ? 'border-red-500' : ''
+        } ${className}`}
         {...props}
       >
+        {placeholder !== undefined && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
+      {error && <p className="text-red-400 text-xs mt-1">{error}</p>}
     </div>
   )
 }

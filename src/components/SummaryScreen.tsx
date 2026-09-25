@@ -21,9 +21,19 @@ import {
   getProtocolTitle,
   verdictLabel,
   evaluateZlacze,
+  obwodLabel,
+  formatMegaohm,
+  getIzolacjaRemarks,
 } from '../utils'
 import type { Inspection, ProtocolVerdict } from '../types'
-import { R_UZIEMIENIA_DOP } from '../types'
+import { R_UZIEMIENIA_DOP, R_IZOLACJI_WYMAGANA } from '../types'
+import { labelOf } from '../constants/odgromowa'
+import {
+  MATERIAL_PRZEWODOW_OPTIONS,
+  NAPIECIE_PROBIERCZE_OPTIONS,
+  OCENA_IZOLACJI_OPTIONS,
+  UKLAD_SIECI_OPTIONS,
+} from '../constants/izolacja'
 import { logger } from '../utils/logger'
 import { useDocument } from '../hooks'
 import { doc, type DocumentSnapshot } from 'firebase/firestore'
@@ -72,6 +82,7 @@ const inspectionMapper = (snap: DocumentSnapshot): Inspection | null => {
     unitType: d.unitType || 'mieszkanie',
     klatkaData: d.klatkaData || undefined,
     odgromowaData: d.odgromowaData || undefined,
+    izolacjaData: d.izolacjaData || undefined,
   }
 }
 
@@ -222,6 +233,11 @@ export const SummaryScreen: React.FC = () => {
 
   const { passed, failed } = countMeasurementsByResult(inspection.measurements)
   const verdict = getProtocolVerdict(inspection)
+  const izolacjaData =
+    (inspection.unitType ?? 'mieszkanie') === 'mieszkanie'
+      ? inspection.izolacjaData
+      : undefined
+  const izolacjaRemarks = getIzolacjaRemarks(izolacjaData)
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -502,6 +518,64 @@ export const SummaryScreen: React.FC = () => {
                 ))}
               </div>
             </Card>
+
+            {izolacjaData && (
+              <Card className="mb-4">
+                <h3 className="font-bold text-slate-100 mb-1">
+                  Rezystancja izolacji
+                </h3>
+                <p className="text-xs text-slate-400 mb-3">
+                  Układ sieci:{' '}
+                  {labelOf(
+                    UKLAD_SIECI_OPTIONS,
+                    izolacjaData.ukladSieci ?? undefined
+                  )}{' '}
+                  · Przewody:{' '}
+                  {labelOf(
+                    MATERIAL_PRZEWODOW_OPTIONS,
+                    izolacjaData.materialPrzewodow ?? undefined
+                  )}{' '}
+                  · Napięcie probiercze:{' '}
+                  {labelOf(
+                    NAPIECIE_PROBIERCZE_OPTIONS,
+                    izolacjaData.napiecieProbiercze
+                  )}
+                </p>
+                <div className="space-y-1">
+                  {izolacjaData.obwody.map((o, i) => (
+                    <div
+                      key={o.id}
+                      className="flex justify-between items-center border-b border-slate-700 pb-1 text-sm"
+                    >
+                      <span className="text-slate-200">
+                        {i + 1}. {obwodLabel(o)}
+                      </span>
+                      <span
+                        className={`font-bold ${
+                          o.ocena === 'ponizej-normy'
+                            ? 'text-red-400'
+                            : 'text-green-400'
+                        }`}
+                      >
+                        {labelOf(OCENA_IZOLACJI_OPTIONS, o.ocena ?? undefined)}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-slate-500 pt-1">
+                    R wymagana: {formatMegaohm(R_IZOLACJI_WYMAGANA)} MΩ
+                  </p>
+                </div>
+                {izolacjaRemarks.length > 0 && (
+                  <div className="mt-3 space-y-1">
+                    {izolacjaRemarks.map((r) => (
+                      <p key={r} className="text-xs text-red-400">
+                        {r}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
           </>
         )}
 

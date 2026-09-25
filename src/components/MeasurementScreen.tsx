@@ -13,6 +13,7 @@ import {
   KlatkaInspectionForm,
   DEFAULT_KLATKA_DATA,
   OdgromowaInspectionForm,
+  IzolacjaInspectionForm,
 } from './organisms'
 import { MeasurementListItem } from './molecules'
 import { Button, Card, Input, Select } from './atoms'
@@ -26,6 +27,7 @@ import type {
   Building,
   KlatkaData,
   OdgromowaData,
+  IzolacjaData,
   UnitType,
 } from '../types'
 import {
@@ -41,6 +43,10 @@ import {
   createOdgromowaData,
   findPreviousOdgromowa,
   findUnmeasuredZlacza,
+  createIzolacjaData,
+  shouldStartIzolacja,
+  validateIzolacja,
+  isIzolacjaValid,
 } from '../utils'
 import { useCollection, useDocument, useAuth, useUserSettings } from '../hooks'
 import {
@@ -132,6 +138,7 @@ const inspectionMapper = (snap: QueryDocumentSnapshot): Inspection => {
     unitType: d.unitType || 'mieszkanie',
     klatkaData: d.klatkaData || undefined,
     odgromowaData: d.odgromowaData || undefined,
+    izolacjaData: d.izolacjaData || undefined,
   }
 }
 
@@ -153,13 +160,19 @@ export const MeasurementScreen: React.FC = () => {
   // PUSH/REPLACE = programmatic navigation → prefer location.state (fresh data)
   const [currentInspection, setCurrentInspection] = useState<Inspection | null>(
     () => {
-      if (navigationType === 'POP' && buildingId) {
-        const draft = loadDraftFromSession(buildingId)
-        if (draft) return draft
-      }
-      if (locationState?.inspection) return locationState.inspection
-      if (buildingId) return loadDraftFromSession(buildingId)
-      return null
+      const initial = (() => {
+        if (navigationType === 'POP' && buildingId) {
+          const draft = loadDraftFromSession(buildingId)
+          if (draft) return draft
+        }
+        if (locationState?.inspection) return locationState.inspection
+        if (buildingId) return loadDraftFromSession(buildingId)
+        return null
+      })()
+      // Nowy protokół mieszkaniowy startuje z obwodami: oświetlenie + gniazda
+      return initial && shouldStartIzolacja(initial)
+        ? { ...initial, izolacjaData: createIzolacjaData() }
+        : initial
     }
   )
 
@@ -197,6 +210,7 @@ export const MeasurementScreen: React.FC = () => {
   const unitType = currentInspection?.unitType
   const isKlatka = unitType === 'klatka'
   const isOdgromowa = unitType === 'odgromowa'
+  const isMieszkanie = (unitType ?? 'mieszkanie') === 'mieszkanie'
   // Mieszkanie/lokal: pomiary Zs + właściciel. Klatka/odgromowa: formularz budynkowy.
   const isDwelling = isDwellingUnit(unitType)
   // Domyślne wartości pól wyboru muszą być w stanie od początku — inaczej pole,
@@ -220,6 +234,25 @@ export const MeasurementScreen: React.FC = () => {
     setOdgromowaSettled(true)
     setOdgromowaData(data)
   }, [])
+
+  // Rezystancja izolacji — trzymana w `currentInspection`, więc trafia do szkicu
+  // w sessionStorage razem z resztą protokołu. Tylko mieszkanie (patrz
+  // `shouldStartIzolacja`: stare wykonane protokoły edytujemy bez tej sekcji).
+  const izolacjaData = isMieszkanie
+    ? currentInspection?.izolacjaData
+    : undefined
+  // Błędy pokazujemy dopiero po pierwszej próbie zapisu, potem na bieżąco
+  const [showIzolacjaErrors, setShowIzolacjaErrors] = useState(false)
+  const izolacjaErrors =
+    izolacjaData && showIzolacjaErrors ? validateIzolacja(izolacjaData) : null
+  const handleIzolacjaChange = useCallback(
+    (data: IzolacjaData) => {
+      updateInspection((prev) =>
+        prev ? { ...prev, izolacjaData: data } : null
+      )
+    },
+    [updateInspection]
+  )
 
   const handleNotesChange = useCallback(
     (value: string) => {
@@ -437,6 +470,13 @@ export const MeasurementScreen: React.FC = () => {
         return
       }
     }
+    if (izolacjaData && !isIzolacjaValid(izolacjaData)) {
+      setShowIzolacjaErrors(true)
+      document
+        .getElementById('rezystancja-izolacji')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     if (!buildingId) {
       alert('Błąd: Brak ID budynku')
       return
@@ -459,6 +499,8 @@ export const MeasurementScreen: React.FC = () => {
       synced: false,
       ...(isKlatka ? { klatkaData } : {}),
       ...(isOdgromowa ? { odgromowaData } : {}),
+      // Izolacja tylko przy mieszkaniu — po zmianie typu nie zapisujemy jej
+      izolacjaData,
     }
 
     // Fire-and-forget: write to Firestore cache (works offline), sync when online
@@ -494,6 +536,7 @@ export const MeasurementScreen: React.FC = () => {
       notes,
       date,
       measurements: [],
+      izolacjaData: undefined,
       status: 'INACCESSIBLE',
       synced: false,
       ...(isKlatka ? { klatkaData } : {}),
@@ -551,9 +594,17 @@ export const MeasurementScreen: React.FC = () => {
               <Select
                 label="Typ protokołu"
                 value={currentInspection.unitType}
-                onChange={(e) =>
-                  setField({ unitType: e.target.value as UnitType })
-                }
+                onChange={(e) => {
+                  const nextUnitType = e.target.value as UnitType
+                  updateInspection((prev) => {
+                    if (!prev) return null
+                    const next = { ...prev, unitType: nextUnitType }
+                    // Zmiana typu na „Mieszkanie” w nowym protokole → startowe obwody
+                    return shouldStartIzolacja(next)
+                      ? { ...next, izolacjaData: createIzolacjaData() }
+                      : next
+                  })
+                }}
                 options={[
                   { value: 'mieszkanie', label: 'Mieszkanie' },
                   { value: 'lokal', label: 'Lokal użytkowy' },
@@ -671,6 +722,15 @@ export const MeasurementScreen: React.FC = () => {
                 onNoGrounding={handleNoGrounding}
               />
             </div>
+            {izolacjaData && (
+              <div id="rezystancja-izolacji" className="px-4 scroll-mt-4">
+                <IzolacjaInspectionForm
+                  value={izolacjaData}
+                  onChange={handleIzolacjaChange}
+                  errors={izolacjaErrors}
+                />
+              </div>
+            )}
           </>
         )}
         <Card className="m-4 shadow-lg" padding={false}>

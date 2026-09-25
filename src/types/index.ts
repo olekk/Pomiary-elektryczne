@@ -143,6 +143,36 @@ export interface OdgromowaData {
   zalecenia: ZalecenieOdgromowe[] // tylko przy wyniku innym niż 'nadaje'
 }
 
+// ─── Rezystancja izolacji (protokół mieszkaniowy) ───
+// Etykiety do UI/PDF są w constants/izolacja.ts.
+export type UkladSieci = 'TN-C' | 'TN-S'
+export type MaterialPrzewodow = 'Cu' | 'Al'
+export type NapiecieProbiercze = '500' | '250'
+export type RodzajObwodu =
+  | 'oswietlenie'
+  | 'gniazda'
+  | 'gniazda-kuchnia'
+  | 'lazienka-pralka'
+  | 'bojler'
+  | 'kuchenka'
+  | 'inny'
+export type OcenaIzolacji = 'w-normie' | 'ponizej-normy'
+
+export interface ObwodIzolacji {
+  id: string // generowane po stronie klienta — klucz wiersza
+  rodzaj: RodzajObwodu | null // null = jeszcze nie wybrano
+  nazwaInny?: string // tylko przy rodzaju 'inny'
+  ocena: OcenaIzolacji | null // domyślnie 'w-normie'; null = brak wyboru
+}
+
+export interface IzolacjaData {
+  // `null` zamiast `undefined` — Firestore odrzuca `undefined`
+  ukladSieci: UkladSieci
+  materialPrzewodow: MaterialPrzewodow
+  napiecieProbiercze: NapiecieProbiercze
+  obwody: ObwodIzolacji[]
+}
+
 export interface Measurement {
   id: string
   pointNumber: number
@@ -203,6 +233,7 @@ export interface Inspection {
   unitType?: UnitType // 'mieszkanie' domyślnie
   klatkaData?: KlatkaData // data for 'klatka' unit type inspections
   odgromowaData?: OdgromowaData // data for 'odgromowa' unit type inspections
+  izolacjaData?: IzolacjaData // tylko 'mieszkanie'; brak = protokół sprzed tej sekcji
 }
 
 export interface UserSettings {
@@ -232,6 +263,9 @@ export const ZS_DOP_TABLE: Record<ProtectionType, Record<Amperage, number>> = {
 
 // Dopuszczalna rezystancja uziemienia instalacji odgromowej [Ω]
 export const R_UZIEMIENIA_DOP = 10
+
+// Wymagana rezystancja izolacji obwodu w mieszkaniu [MΩ]
+export const R_IZOLACJI_WYMAGANA = 1.0
 
 // Domyślne współczynniki k
 export const DEFAULT_K_FACTORS: Record<ProtectionType, number> = {

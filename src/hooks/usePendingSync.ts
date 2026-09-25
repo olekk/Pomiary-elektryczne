@@ -31,6 +31,7 @@ const pendingMapper = (
     synced: data.synced ?? false,
     status: data.status || 'COMPLETED',
     unitType: data.unitType || 'mieszkanie',
+    izolacjaData: data.izolacjaData || undefined,
   } as Inspection
 }
 

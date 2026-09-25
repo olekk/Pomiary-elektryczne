@@ -5,7 +5,7 @@ import {
   verdictLabel,
   VERDICT_CONCLUSIONS,
 } from '../protocolVerdict'
-import type { Measurement } from '../../types'
+import type { IzolacjaData, Measurement } from '../../types'
 import { DEFAULT_ODGROMOWA_DATA } from '../../constants/odgromowa'
 
 const measurement = (result: 'TAK' | 'NIE'): Measurement => ({
@@ -87,6 +87,51 @@ describe('getProtocolVerdict', () => {
     expect(
       getProtocolVerdict({ unitType: 'odgromowa', measurements: [] })
     ).toBe('nadaje')
+  })
+
+  describe('mieszkanie: rezystancja izolacji (najgorszy wynik wygrywa)', () => {
+    const izolacja = (ocena: 'w-normie' | 'ponizej-normy'): IzolacjaData => ({
+      ukladSieci: 'TN-C',
+      materialPrzewodow: 'Cu',
+      napiecieProbiercze: '500',
+      obwody: [{ id: 'o1', rodzaj: 'gniazda', ocena }],
+    })
+
+    it('Zs all TAK + circuit poniżej normy → nie-nadaje', () => {
+      expect(
+        getProtocolVerdict({
+          unitType: 'mieszkanie',
+          measurements: [measurement('TAK')],
+          izolacjaData: izolacja('ponizej-normy'),
+        })
+      ).toBe('nie-nadaje')
+    })
+
+    it('Zs NIE + circuits in norm → still nie-nadaje', () => {
+      expect(
+        getProtocolVerdict({
+          unitType: 'mieszkanie',
+          measurements: [measurement('NIE')],
+          izolacjaData: izolacja('w-normie'),
+        })
+      ).toBe('nie-nadaje')
+    })
+
+    it('everything in norm → nadaje; missing section (old protocol) → Zs rule only', () => {
+      expect(
+        getProtocolVerdict({
+          unitType: 'mieszkanie',
+          measurements: [measurement('TAK')],
+          izolacjaData: izolacja('w-normie'),
+        })
+      ).toBe('nadaje')
+      expect(
+        getProtocolVerdict({
+          unitType: 'mieszkanie',
+          measurements: [measurement('TAK')],
+        })
+      ).toBe('nadaje')
+    })
   })
 })
 

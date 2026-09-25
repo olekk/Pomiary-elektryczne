@@ -21,7 +21,11 @@ import type {
   UserSettings,
 } from '../types'
 import { logger } from '../utils/logger'
-import { ensureDate, buildInspectionStatusMap } from '../utils'
+import {
+  ensureDate,
+  buildInspectionStatusMap,
+  toIzolacjaPayload,
+} from '../utils'
 
 /**
  * Save a project to Firestore
@@ -152,6 +156,8 @@ export const saveInspectionToFirestore = async (
     ? withoutUndefinedFields<OdgromowaData>(inspection.odgromowaData)
     : undefined
 
+  const isMieszkanie = (inspection.unitType || 'mieszkanie') === 'mieszkanie'
+
   const dataToSave = {
     projectId: inspection.projectId,
     buildingId: inspection.buildingId,
@@ -177,6 +183,15 @@ export const saveInspectionToFirestore = async (
     ...(sanitizedOdgromowaData
       ? { odgromowaData: sanitizedOdgromowaData }
       : {}),
+    // Izolacja: tablica obiektów — `withoutUndefinedFields` czyści tylko płytko,
+    // więc payload budowany jawnie (`toIzolacjaPayload`). Zapis jest `merge`,
+    // więc przy zmianie typu z mieszkania na inny usuwamy pole jawnie — inaczej
+    // stare dane zostałyby w dokumencie i wpływały na wynik protokołu.
+    ...(!isMieszkanie
+      ? { izolacjaData: deleteField() }
+      : inspection.izolacjaData
+        ? { izolacjaData: toIzolacjaPayload(inspection.izolacjaData) }
+        : {}),
   }
 
   const batch = writeBatch(db)
@@ -245,6 +260,7 @@ export const mapInspectionDoc = (
     unitType: data.unitType || 'mieszkanie',
     klatkaData: data.klatkaData || undefined,
     odgromowaData: data.odgromowaData || undefined,
+    izolacjaData: data.izolacjaData || undefined,
   }
 }
 

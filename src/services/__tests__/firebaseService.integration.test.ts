@@ -184,6 +184,85 @@ describe('saveInspectionToFirestore', () => {
     expect('przewodyUziomoweInne' in data.odgromowaData).toBe(false)
   })
 
+  it('saves izolacjaData round-trip without nested undefined fields', async () => {
+    const inspId = 'insp-izol-1'
+    await saveInspectionToFirestore(
+      makeInspection({
+        unitType: 'mieszkanie',
+        izolacjaData: {
+          ukladSieci: 'TN-C',
+          materialPrzewodow: 'Al',
+          napiecieProbiercze: '250',
+          obwody: [
+            {
+              id: 'o1',
+              rodzaj: 'gniazda',
+              nazwaInny: undefined,
+              ocena: 'w-normie',
+            },
+            {
+              id: 'o2',
+              rodzaj: 'inny',
+              nazwaInny: ' Garaż ',
+              ocena: 'ponizej-normy',
+            },
+          ],
+        },
+      }),
+      inspId
+    )
+
+    const data = (await getDoc(doc(testDb, 'inspections', inspId))).data()!
+    expect(data.izolacjaData).toEqual({
+      ukladSieci: 'TN-C',
+      materialPrzewodow: 'Al',
+      napiecieProbiercze: '250',
+      obwody: [
+        { id: 'o1', rodzaj: 'gniazda', ocena: 'w-normie' },
+        {
+          id: 'o2',
+          rodzaj: 'inny',
+          nazwaInny: 'Garaż',
+          ocena: 'ponizej-normy',
+        },
+      ],
+    })
+  })
+
+  it('removes izolacjaData when the unit type changes away from mieszkanie', async () => {
+    const inspId = 'insp-izol-2'
+    const izolacjaData = {
+      ukladSieci: 'TN-S' as const,
+      materialPrzewodow: 'Cu' as const,
+      napiecieProbiercze: '500' as const,
+      obwody: [
+        { id: 'o1', rodzaj: 'gniazda' as const, ocena: 'w-normie' as const },
+      ],
+    }
+    await saveInspectionToFirestore(
+      makeInspection({ unitType: 'mieszkanie', izolacjaData }),
+      inspId
+    )
+    await saveInspectionToFirestore(
+      makeInspection({ unitType: 'lokal', izolacjaData }),
+      inspId
+    )
+
+    const data = (await getDoc(doc(testDb, 'inspections', inspId))).data()!
+    expect(data.unitType).toBe('lokal')
+    expect('izolacjaData' in data).toBe(false)
+  })
+
+  it('old mieszkanie without izolacjaData saves without the field', async () => {
+    const inspId = 'insp-izol-3'
+    await saveInspectionToFirestore(
+      makeInspection({ unitType: 'mieszkanie' }),
+      inspId
+    )
+    const data = (await getDoc(doc(testDb, 'inspections', inspId))).data()!
+    expect('izolacjaData' in data).toBe(false)
+  })
+
   it('update does not duplicate the document', async () => {
     const inspection = makeInspection()
     const inspId = 'insp-dup-1'

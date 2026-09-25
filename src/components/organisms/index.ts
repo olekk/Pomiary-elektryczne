@@ -8,3 +8,4 @@ export {
   DEFAULT_KLATKA_DATA,
 } from './KlatkaInspectionForm'
 export { OdgromowaInspectionForm } from './OdgromowaInspectionForm'
+export { IzolacjaInspectionForm } from './IzolacjaInspectionForm'
